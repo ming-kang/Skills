@@ -30,38 +30,13 @@ skills-root/
     └── SKILL.md            # 5-phase workflow definition
 ```
 
-## Quick Start
+## Installation Guide
 
-### Using the docx Skill
+Run the following command
 
-```bash
-# Check environment
-<skill-path>/docx/scripts/docx env
-
-# Initialize workspace
-<skill-path>/docx/scripts/docx init
-
-# Build and validate
-<skill-path>/docx/scripts/docx build
-
-# Validate a specific file
-<skill-path>/docx/scripts/docx validate <file.docx>
+```powershell
+npx skills install ming-kang/Skills
 ```
-
-### Running Tests
-
-```bash
-cd docx/scripts
-pytest tests/ -v                    # Run all tests
-pytest tests/test_validate_docx.py  # Run specific test file
-```
-
-## Development Notes
-
-- `.claude/` directory is gitignored — do not commit
-- `docx/validator/` contains pre-compiled binaries — do not modify
-- `__pycache__/` and `.pyc` files are build artifacts
-- When editing documents: always verify with `pandoc <file.docx> -t markdown --track-changes=all`
 
 ## License
 
