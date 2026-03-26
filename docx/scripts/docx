@@ -1,0 +1,855 @@
+#!/usr/bin/env bash
+# docx - Unified entry point
+# Usage: docx {env|init|build|validate}
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILL_DIR="$(dirname "$SCRIPT_DIR")"
+TASK_ROOT_RAW="${DOCX_TASK_ROOT:-$PWD}"
+SOURCE_DIR_RAW="${DOCX_SOURCE_DIR:-.docx}"
+WORK_ROOT_RAW="${DOCX_WORK_ROOT:-.docx-tmp}"
+DEFAULT_OUTPUT_DIR_RAW="${DOCX_OUTPUT_DIR:-.}"
+KEEP_WORKSPACE="${DOCX_KEEP_WORKSPACE:-0}"
+
+ACTIVE_WORK_DIR=""
+PYTHON=""
+VALIDATOR_DLL=""
+
+# ============================================================================
+# Cleanup
+# ============================================================================
+
+cleanup_on_exit() {
+    local status=$?
+
+    if [ -n "$ACTIVE_WORK_DIR" ] && [ -d "$ACTIVE_WORK_DIR" ]; then
+        if [ "$status" -eq 0 ] && [ "$KEEP_WORKSPACE" != "1" ]; then
+            rm -rf "$ACTIVE_WORK_DIR"
+        elif [ "$status" -eq 0 ]; then
+            echo "ℹ Kept temporary workspace: $ACTIVE_WORK_DIR" >&2
+        else
+            echo "⚠ Build failed; temporary workspace preserved at: $ACTIVE_WORK_DIR" >&2
+        fi
+    fi
+}
+
+trap cleanup_on_exit EXIT
+
+# ============================================================================
+# Path helpers
+# ============================================================================
+
+expand_home_path() {
+    local path="$1"
+    case "$path" in
+        "~")
+            echo "$HOME"
+            ;;
+        "~/"*)
+            echo "$HOME/${path#~/}"
+            ;;
+        *)
+            echo "$path"
+            ;;
+    esac
+}
+
+is_absolute_path() {
+    local path="$1"
+    case "$path" in
+        /*)
+            return 0
+            ;;
+    esac
+
+    if [[ "$path" =~ ^[A-Za-z]:[\\/] ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+resolve_rooted_path() {
+    local raw_path="$1"
+    local base_path="$2"
+    local path
+
+    path="$(expand_home_path "$raw_path")"
+
+    if is_absolute_path "$path"; then
+        echo "$path"
+    else
+        echo "$base_path/$path"
+    fi
+}
+
+TASK_ROOT="$(resolve_rooted_path "$TASK_ROOT_RAW" "$PWD")"
+SOURCE_DIR="$(resolve_rooted_path "$SOURCE_DIR_RAW" "$TASK_ROOT")"
+WORK_ROOT="$(resolve_rooted_path "$WORK_ROOT_RAW" "$TASK_ROOT")"
+DEFAULT_OUTPUT_DIR="$(resolve_rooted_path "$DEFAULT_OUTPUT_DIR_RAW" "$TASK_ROOT")"
+
+remap_legacy_path() {
+    local path="$1"
+
+    case "$path" in
+        /mnt/okcomputer/output)
+            echo "Note: Remapped legacy output directory to $DEFAULT_OUTPUT_DIR" >&2
+            echo "$DEFAULT_OUTPUT_DIR"
+            ;;
+        /mnt/okcomputer/output/*)
+            local remapped="$DEFAULT_OUTPUT_DIR/${path##*/}"
+            echo "Note: Remapped legacy output path to $remapped" >&2
+            echo "$remapped"
+            ;;
+        /mnt/okcomputer/upload/*)
+            local remapped="$TASK_ROOT/${path##*/}"
+            echo "Note: Remapped legacy upload path to $remapped" >&2
+            echo "$remapped"
+            ;;
+        /tmp/docx-work|/mnt/okcomputer/docx-work)
+            echo "Note: Remapped legacy workspace path to $SOURCE_DIR" >&2
+            echo "$SOURCE_DIR"
+            ;;
+        /tmp/docx-work/*|/mnt/okcomputer/docx-work/*)
+            local remapped="$SOURCE_DIR/${path##*/}"
+            echo "Note: Remapped legacy workspace path to $remapped" >&2
+            echo "$remapped"
+            ;;
+        *)
+            echo "$path"
+            ;;
+    esac
+}
+
+resolve_task_path() {
+    local raw_path="$1"
+    local path
+
+    path="$(expand_home_path "$raw_path")"
+    path="$(remap_legacy_path "$path")"
+
+    if is_absolute_path "$path"; then
+        echo "$path"
+    else
+        echo "$TASK_ROOT/$path"
+    fi
+}
+
+ensure_parent_dir() {
+    local path="$1"
+    mkdir -p "$(dirname "$path")"
+}
+
+unique_path() {
+    local target="$1"
+    local dir
+    local filename
+    local stem
+    local ext=""
+    local candidate="$target"
+    local counter=2
+
+    dir="$(dirname "$target")"
+    filename="$(basename "$target")"
+    stem="${filename%.*}"
+
+    if [ "$stem" != "$filename" ]; then
+        ext=".${filename##*.}"
+    else
+        stem="$filename"
+    fi
+
+    while [ -e "$candidate" ]; do
+        candidate="$dir/${stem}-$counter$ext"
+        counter=$((counter + 1))
+    done
+
+    echo "$candidate"
+}
+
+default_build_output() {
+    unique_path "$DEFAULT_OUTPUT_DIR/output.docx"
+}
+
+default_edited_output() {
+    local input_path="$1"
+    local dir
+    local filename
+    local stem
+    local ext=""
+
+    dir="$(dirname "$input_path")"
+    filename="$(basename "$input_path")"
+    stem="${filename%.*}"
+
+    if [ "$stem" != "$filename" ]; then
+        ext=".${filename##*.}"
+    else
+        stem="$filename"
+    fi
+
+    unique_path "$dir/${stem}-edited$ext"
+}
+
+# ============================================================================
+# Dependency detection
+# ============================================================================
+
+find_dotnet() {
+    local candidates=(
+        "dotnet"
+        "$HOME/.dotnet/dotnet"
+        "/root/.dotnet/dotnet"
+        "/usr/local/share/dotnet/dotnet"
+        "/usr/share/dotnet/dotnet"
+        "/opt/dotnet/dotnet"
+    )
+
+    for bin in "${candidates[@]}"; do
+        if command -v "$bin" >/dev/null 2>&1; then
+            command -v "$bin"
+            return 0
+        fi
+        if [ -x "$bin" ]; then
+            echo "$bin"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+check_dotnet_status() {
+    local dotnet_bin
+
+    if dotnet_bin="$(find_dotnet 2>/dev/null)"; then
+        local version
+        if version="$("$dotnet_bin" --version 2>/dev/null)"; then
+            local major
+            major="$(echo "$version" | cut -d. -f1)"
+            if [ "$major" -ge 6 ]; then
+                echo "ok:$dotnet_bin:$version"
+                return 0
+            fi
+            echo "outdated:$dotnet_bin:$version"
+            return 1
+        fi
+        echo "broken:$dotnet_bin"
+        return 1
+    fi
+
+    echo "missing"
+    return 1
+}
+
+find_validator_dll() {
+    local candidate="$SKILL_DIR/validator/Validator.dll"
+
+    if [ -f "$candidate" ]; then
+        echo "$candidate"
+        return 0
+    fi
+
+    return 1
+}
+
+check_validator_status() {
+    local validator_dll
+
+    if validator_dll="$(find_validator_dll 2>/dev/null)"; then
+        echo "ok:$validator_dll"
+        return 0
+    fi
+
+    echo "missing"
+    return 1
+}
+
+find_python() {
+    local candidates=("python" "python3")
+    local bin
+
+    for bin in "${candidates[@]}"; do
+        if command -v "$bin" >/dev/null 2>&1 && "$bin" -c "import sys" >/dev/null 2>&1; then
+            echo "$bin"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+check_python_status() {
+    local python_bin
+
+    if python_bin="$(find_python 2>/dev/null)"; then
+        local version
+        version="$("$python_bin" --version 2>&1 | awk '{print $2}')"
+        echo "ok:$python_bin:$version"
+        return 0
+    fi
+
+    echo "missing"
+    return 1
+}
+
+check_python_module_status() {
+    local python_bin="$1"
+    local module="$2"
+
+    if [ -z "$python_bin" ]; then
+        echo "missing-python"
+        return 1
+    fi
+
+    if "$python_bin" -c "import importlib.util, sys; raise SystemExit(0 if importlib.util.find_spec(sys.argv[1]) else 1)" "$module" >/dev/null 2>&1; then
+        echo "ok"
+        return 0
+    fi
+
+    echo "missing"
+    return 1
+}
+
+show_python_package_status() {
+    local python_state="$1"
+    local python_bin="$2"
+    local module="$3"
+    local requirement_label="$4"
+    local install_label="$5"
+    local module_state
+    local marker="○"
+
+    if [ "$python_state" != "ok" ]; then
+        echo "✗ $module ($requirement_label; install Python first)"
+        return 0
+    fi
+
+    module_state="$(check_python_module_status "$python_bin" "$module" || true)"
+    if [ "$module_state" = "ok" ]; then
+        echo "✓ $module"
+        return 0
+    fi
+
+    case "$requirement_label" in
+        required*)
+            marker="✗"
+            ;;
+    esac
+
+    echo "$marker $module ($requirement_label; install with: $python_bin -m pip install $install_label)"
+    return 0
+}
+
+install_dotnet() {
+    echo "  Downloading .NET SDK..."
+    curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+    chmod +x /tmp/dotnet-install.sh
+    /tmp/dotnet-install.sh --channel 8.0 --install-dir "$HOME/.dotnet" 2>/dev/null
+
+    if [ -x "$HOME/.dotnet/dotnet" ]; then
+        export DOTNET="$HOME/.dotnet/dotnet"
+        echo "  Installed: $("$DOTNET" --version)"
+        return
+    fi
+
+    echo "  Installation failed"
+    echo "  Manual: https://dotnet.microsoft.com/download"
+    exit 1
+}
+
+ensure_dotnet() {
+    local status
+    local state
+    local bin
+    local ver
+
+    status="$(check_dotnet_status)"
+    state="$(echo "$status" | cut -d: -f1)"
+    bin="$(echo "$status" | cut -d: -f2)"
+    ver="$(echo "$status" | cut -d: -f3)"
+
+    case "$state" in
+        ok)
+            export DOTNET="$bin"
+            ;;
+        outdated)
+            echo "⚠ dotnet $ver is too old (need 6+), upgrading..."
+            install_dotnet
+            ;;
+        broken)
+            echo "⚠ dotnet is broken, reinstalling..."
+            rm -rf "$HOME/.dotnet"
+            install_dotnet
+            ;;
+        missing)
+            echo "○ dotnet not found, installing..."
+            install_dotnet
+            ;;
+    esac
+}
+
+ensure_python() {
+    local status
+    local state
+    local bin
+    local ver
+
+    status="$(check_python_status)"
+    state="$(echo "$status" | cut -d: -f1)"
+    bin="$(echo "$status" | cut -d: -f2)"
+    ver="$(echo "$status" | cut -d: -f3)"
+
+    case "$state" in
+        ok)
+            export PYTHON="$bin"
+            ;;
+        *)
+            echo "✗ Python is required but neither 'python' nor 'python3' is available"
+            echo "  Install Python 3 and ensure one of those commands is on PATH"
+            exit 1
+            ;;
+    esac
+
+    echo "$ver" >/dev/null
+}
+
+ensure_validator() {
+    local status
+    local state
+    local dll
+
+    status="$(check_validator_status)"
+    state="$(echo "$status" | cut -d: -f1)"
+    dll="$(echo "$status" | cut -d: -f2-)"
+
+    case "$state" in
+        ok)
+            export VALIDATOR_DLL="$dll"
+            ;;
+        missing)
+            echo "✗ OpenXML validator missing: $SKILL_DIR/validator/Validator.dll"
+            echo "  Validation is expected to run locally via: dotnet $SKILL_DIR/validator/Validator.dll <file.docx>"
+            exit 1
+            ;;
+    esac
+}
+
+warn_missing_editing_dependency() {
+    if [ -z "$PYTHON" ]; then
+        return 0
+    fi
+
+    if ! check_python_module_status "$PYTHON" "lxml" >/dev/null 2>&1; then
+        echo "⚠ Editing workflows require Python package: lxml"
+        echo "  Install it with: $PYTHON -m pip install lxml"
+        echo "  Create/build/validate can continue, but docx_lib.editing usage will fail until it is installed."
+    fi
+}
+
+check_deps() {
+    local status
+    local state
+    local ver
+    local python_status
+    local python_state
+    local python_bin
+    local python_ver
+    local validator_status
+    local validator_state
+    local validator_dll
+
+    status="$(check_dotnet_status)"
+    state="$(echo "$status" | cut -d: -f1)"
+    ver="$(echo "$status" | cut -d: -f3)"
+
+    case "$state" in
+        ok)       echo "✓ dotnet $ver" ;;
+        outdated) echo "⚠ dotnet $ver (outdated, need 6+)" ;;
+        broken)   echo "✗ dotnet broken" ;;
+        missing)  echo "○ dotnet not installed" ;;
+    esac
+
+    validator_status="$(check_validator_status)"
+    validator_state="$(echo "$validator_status" | cut -d: -f1)"
+    validator_dll="$(echo "$validator_status" | cut -d: -f2-)"
+
+    case "$validator_state" in
+        ok)      echo "✓ OpenXML validator via dotnet $validator_dll" ;;
+        missing) echo "✗ OpenXML validator missing (expected: $SKILL_DIR/validator/Validator.dll)" ;;
+    esac
+
+    python_status="$(check_python_status)"
+    python_state="$(echo "$python_status" | cut -d: -f1)"
+    python_bin="$(echo "$python_status" | cut -d: -f2)"
+    python_ver="$(echo "$python_status" | cut -d: -f3)"
+
+    case "$python_state" in
+        ok)       echo "✓ $python_bin $python_ver" ;;
+        missing)  echo "✗ python/python3 not found (required)" ;;
+    esac
+
+    show_python_package_status "$python_state" "$python_bin" "lxml" "required for Python editing workflows" "lxml"
+    show_python_package_status "$python_state" "$python_bin" "playwright" "optional, for backgrounds" "playwright"
+    show_python_package_status "$python_state" "$python_bin" "matplotlib" "optional, for complex charts" "matplotlib"
+
+    if command -v pandoc >/dev/null 2>&1; then
+        echo "✓ pandoc $(pandoc --version 2>/dev/null | head -1 | cut -d' ' -f2)"
+    else
+        echo "○ pandoc (optional, for word count)"
+    fi
+}
+
+ensure_deps() {
+    ensure_dotnet
+    ensure_validator
+    ensure_python
+    warn_missing_editing_dependency
+}
+
+run_with_optional_timeout() {
+    local seconds="$1"
+    shift
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$@"
+    else
+        "$@"
+    fi
+}
+
+# ============================================================================
+# Workspace management
+# ============================================================================
+
+ensure_source_workspace() {
+    mkdir -p "$SOURCE_DIR" "$WORK_ROOT" "$DEFAULT_OUTPUT_DIR"
+
+    [ -f "$SOURCE_DIR/KimiDocx.csproj" ] || cp "$SKILL_DIR/assets/templates/KimiDocx.csproj" "$SOURCE_DIR/"
+    [ -f "$SOURCE_DIR/Program.cs" ] || cp "$SKILL_DIR/assets/templates/Program.cs" "$SOURCE_DIR/"
+}
+
+create_temp_workspace() {
+    mkdir -p "$WORK_ROOT"
+
+    if ! ACTIVE_WORK_DIR="$(mktemp -d "$WORK_ROOT/docx-task-XXXXXX" 2>/dev/null)"; then
+        ACTIVE_WORK_DIR="$WORK_ROOT/docx-task-$(date +%Y%m%d-%H%M%S)-$$"
+        mkdir -p "$ACTIVE_WORK_DIR"
+    fi
+
+    cp -R "$SOURCE_DIR/." "$ACTIVE_WORK_DIR/"
+}
+
+# ============================================================================
+# Error mapping
+# ============================================================================
+
+enhance_error() {
+    local line="$1"
+
+    if echo "$line" | grep -qE "CS0246.*'Separator'"; then
+        echo "  -> FIX: Use 'SeparatorMark' instead of 'Separator'"
+        return
+    fi
+
+    if echo "$line" | grep -qE "CS0246.*'ContinuationSeparator'"; then
+        echo "  -> FIX: Use 'ContinuationSeparatorMark'"
+        return
+    fi
+
+    if echo "$line" | grep -qE "CS1009"; then
+        echo "  -> FIX: Unrecognized escape -> Use @\"...\" verbatim string"
+        return
+    fi
+
+    if echo "$line" | grep -qE "CS1010"; then
+        echo "  -> FIX: Newline in constant -> Use @\"...\" for multiline"
+        return
+    fi
+
+    if echo "$line" | grep -qE "CS0103.*'WordprocessingDocument'"; then
+        echo "  -> FIX: Add: using DocumentFormat.OpenXml.Packaging;"
+        return
+    fi
+
+    if echo "$line" | grep -qE "CS0103.*'Body'"; then
+        echo "  -> FIX: Add: using DocumentFormat.OpenXml.Wordprocessing;"
+        return
+    fi
+
+    if echo "$line" | grep -qE "CS0103.*'Paragraph'"; then
+        echo "  -> FIX: Add: using DocumentFormat.OpenXml.Wordprocessing;"
+        return
+    fi
+
+    if echo "$line" | grep -qE "CS0029.*cannot implicitly convert"; then
+        echo "  -> FIX: Type mismatch: check int vs string for IDs"
+        return
+    fi
+}
+
+# ============================================================================
+# Validation
+# ============================================================================
+
+do_validate() {
+    local file="$1"
+
+    if ! "$PYTHON" "$SCRIPT_DIR/validate_all.py" "$file" 2>&1; then
+        return 1
+    fi
+
+    if ! "$DOTNET" "$VALIDATOR_DLL" "$file" 2>&1; then
+        return 1
+    fi
+
+    return 0
+}
+
+# ============================================================================
+# Subcommands
+# ============================================================================
+
+cmd_env() {
+    local default_output
+
+    default_output="$(default_build_output)"
+
+    echo "=== Workspace Contract ==="
+    echo "Task root:             $TASK_ROOT"
+    echo "Skill root:            $SKILL_DIR"
+    echo "Source workspace:      $SOURCE_DIR"
+    echo "Work root:             $WORK_ROOT"
+    echo "Build workspaces:      $WORK_ROOT/docx-task-*"
+    echo "Python validate/fix:   $WORK_ROOT/docx-validate-all-*, docx-validate-docx-*, docx-fix-element-order-*"
+    echo "Python edit:           $WORK_ROOT/docx-edit-*"
+    echo "Default build output:  $default_output"
+    echo "Default edit output:   <input>-edited.docx beside the source file"
+    echo "Successful runs:       cleaned by default unless DOCX_KEEP_WORKSPACE=1 or DocxContext(..., keep_workspace=True)"
+    echo "Failed runs:           preserved for debugging by default"
+    echo "Editing overrides:     DocxContext(..., task_root=..., work_root=..., keep_workspace=..., keep_failed_workspace=...)"
+    echo ""
+    echo "=== Dependencies ==="
+    check_deps
+    echo ""
+    echo "=== Source Workspace ==="
+    if [ -d "$SOURCE_DIR" ]; then
+        echo "✓ $SOURCE_DIR"
+        [ -f "$SOURCE_DIR/Program.cs" ] && echo "  Program.cs exists"
+        [ -f "$SOURCE_DIR/KimiDocx.csproj" ] && echo "  KimiDocx.csproj exists"
+    else
+        echo "○ $SOURCE_DIR (run 'docx init')"
+    fi
+}
+
+cmd_init() {
+    ensure_deps
+    ensure_source_workspace
+
+    echo "Done!"
+    echo "  Task root:   $TASK_ROOT"
+    echo "  Edit:        $SOURCE_DIR/Program.cs"
+    echo "  Build:       docx build [out.docx]"
+    echo "  Temp work:   $WORK_ROOT/"
+    echo "  Output dir:  $DEFAULT_OUTPUT_DIR/"
+}
+
+cmd_build() {
+    local output_arg="$1"
+    local output
+    local restore_output
+    local build_output
+
+    ensure_deps
+    ensure_source_workspace
+
+    if [ -n "$output_arg" ]; then
+        output="$(resolve_task_path "$output_arg")"
+    else
+        output="$(default_build_output)"
+    fi
+    ensure_parent_dir "$output"
+
+    create_temp_workspace
+
+    echo "▶ Restoring packages..."
+    if ! restore_output="$(run_with_optional_timeout 20 "$DOTNET" restore "$ACTIVE_WORK_DIR/KimiDocx.csproj" --verbosity quiet --ignore-failed-sources 2>&1)"; then
+        echo "  ⚠ NuGet restore issue"
+        if [ ! -f "$ACTIVE_WORK_DIR/obj/project.assets.json" ]; then
+            echo "  ❌ Restore failed and no cached assets were produced"
+            echo "$restore_output" | tail -5
+            exit 1
+        fi
+        echo "  ✓ Using cached assets"
+    else
+        echo "  ✓ Packages ready"
+    fi
+
+    echo "▶ Compiling..."
+    if ! build_output="$("$DOTNET" build "$ACTIVE_WORK_DIR/KimiDocx.csproj" --verbosity quiet --no-restore 2>&1)"; then
+        echo "❌ Compile failed"
+        echo ""
+        while IFS= read -r line; do
+            if echo "$line" | grep -qE "error (CS|NU|MSB)[0-9]+"; then
+                echo "  $line"
+                enhance_error "$line"
+            fi
+        done <<< "$build_output"
+        exit 1
+    fi
+    echo "  ✓ Compiled"
+
+    echo "▶ Running..."
+    if ! (cd "$ACTIVE_WORK_DIR" && "$DOTNET" run --no-build -- "$output" 2>&1); then
+        echo "❌ Generation failed"
+        exit 1
+    fi
+
+    if [ ! -f "$output" ]; then
+        echo "❌ Output not found: $output"
+        echo "  Ensure Program.cs writes to the output path passed on the command line."
+        exit 1
+    fi
+    echo "  ✓ Generated"
+
+    echo "▶ Validating..."
+    if ! do_validate "$output"; then
+        echo ""
+        echo "⚠ VALIDATION FAILED - Document saved but may have issues"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Document saved to: $output"
+        echo "However, due to the errors above, it may not open correctly in Word/WPS."
+        echo ""
+        echo "Common causes:"
+        echo "  • If editing an existing document: the original file may be non-standard but openable in the user's environment"
+        echo "  • If creating from scratch: fix the errors above before delivering the file"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        exit 1
+    fi
+
+    if command -v pandoc >/dev/null 2>&1; then
+        local text
+        local chars
+        local words
+        local images
+        local has_revisions=false
+        local has_comments=false
+
+        text="$(pandoc "$output" -t plain 2>/dev/null)"
+        chars="$(echo "$text" | wc -m | tr -d '[:space:]')"
+        words="$(echo "$text" | wc -w | tr -d '[:space:]')"
+        images="$(unzip -l "$output" 2>/dev/null | grep -c 'word/media/' || echo "0")"
+        images="${images//[[:space:]]/}"
+
+        if unzip -p "$output" word/document.xml 2>/dev/null | grep -qE '<w:ins|<w:del'; then
+            has_revisions=true
+        fi
+        if unzip -l "$output" 2>/dev/null | grep -q 'word/comments.xml'; then
+            has_comments=true
+        fi
+
+        if [ "$images" -eq 0 ]; then
+            echo "  ⚠ $chars chars, $words words, 0 images - if charts were generated, verify AddInlineImage() was called"
+        else
+            echo "  📊 $chars chars, $words words, $images images"
+        fi
+        echo "  💡 Structure validated. Verify content with: pandoc \"$output\" -t plain"
+        if [ "$has_revisions" = true ] || [ "$has_comments" = true ]; then
+            echo "     Revisions/comments detected - use --track-changes=all to verify marker positions"
+        fi
+    fi
+
+    echo ""
+    echo "✓ Done: $output"
+}
+
+cmd_validate() {
+    local file="$1"
+
+    ensure_deps
+
+    [ -n "$file" ] || { echo "Usage: docx validate <file.docx>"; exit 1; }
+
+    file="$(resolve_task_path "$file")"
+    [ -f "$file" ] || { echo "✗ File not found: $file"; exit 1; }
+
+    echo "▶ Validating: $file"
+    do_validate "$file"
+    echo "✓ Valid"
+}
+
+# ============================================================================
+# Routing
+# ============================================================================
+
+case "${1:-help}" in
+    env)
+        cmd_env
+        ;;
+    init)
+        cmd_init
+        ;;
+    build)
+        cmd_build "$2"
+        ;;
+    validate)
+        cmd_validate "$2"
+        ;;
+    -h|--help|help)
+        cat <<EOF
+Usage: $0 <command> [args]
+
+Commands:
+  env            Show dependency and local workspace status
+  init           Create the local source workspace under the task root
+  build [out]    Build from .docx/, run validation, and write a local output file
+  validate FILE  Validate an existing .docx file
+
+Local Path Model:
+  Task root:        current working directory (or DOCX_TASK_ROOT)
+  Source workspace: $SOURCE_DIR
+  Work root:        $WORK_ROOT
+  Build workspaces: $WORK_ROOT/docx-task-*
+  Python validate:  $WORK_ROOT/docx-validate-all-*, docx-validate-docx-*, docx-fix-element-order-*
+  Python edit:      $WORK_ROOT/docx-edit-*
+  Build output:     $DEFAULT_OUTPUT_DIR/output.docx (unique if needed)
+  Edit output:      <input>-edited.docx beside the source file
+
+Environment Overrides:
+  DOCX_TASK_ROOT    Override the task root used for relative paths in CLI and Python runtime helpers
+  DOCX_SOURCE_DIR   Override the persistent source workspace location
+  DOCX_WORK_ROOT    Override the parent directory for build, validate, fix, and edit workspaces
+  DOCX_OUTPUT_DIR   Override the default output directory
+  DOCX_KEEP_WORKSPACE=1   Keep successful workspaces after build/validate/edit runs that use the shared contract
+
+Python Editing Runtime:
+  DocxContext(input, output) keeps working unchanged.
+  Optional keyword-only overrides:
+    task_root=...
+    work_root=...
+    keep_workspace=True|False
+    keep_failed_workspace=True|False
+
+Create Workflow:
+  1. cd <task-directory>
+  2. <skill-path>/scripts/docx init
+  3. Edit ./.docx/Program.cs
+  4. <skill-path>/scripts/docx build [report.docx]
+
+Compatibility:
+  Windows support expects Git Bash, not PowerShell or cmd.exe.
+  In Bash, prefer relative paths or POSIX absolute paths like /c/Users/name/report.docx.
+  Windows drive-letter paths like C:\Users\name\report.docx are also accepted.
+  Validation runs locally via: dotnet <skill>/validator/Validator.dll <file.docx>
+  Editing workflows require Python package 'lxml'; optional extras include playwright, matplotlib, and pandoc.
+  Successful runs clean up by default; failed runs stay visible under the work root for debugging.
+  Legacy hosted paths may be remapped automatically, but they are no longer the primary workflow.
+EOF
+        ;;
+    *)
+        echo "Unknown command: $1"
+        echo "Run '$0 help' for usage"
+        exit 1
+        ;;
+esac
