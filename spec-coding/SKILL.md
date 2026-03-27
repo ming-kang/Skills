@@ -3,7 +3,7 @@ name: spec-coding
 description: >-
   Triggers when the user mentions "spec coding" / "spec-coding", or invokes
   /spec-coding in Claude Code.
-version: 1.1.0
+version: 1.1.1
 ---
 
 # Spec-Coding
@@ -74,9 +74,10 @@ After loading state from COMPASS.md, populate **TodoWrite** with the active phas
 
 **Goal**: Build a comprehensive understanding of the current codebase.
 
-**Subagent**: Delegate analysis work to the built-in **`explore`** subagent. Launch multiple `explore` instances in parallel across different areas of the codebase to reduce total analysis time.
+**Subagent**: Delegate analysis work to the built-in **`Explore`** subagent. Launch multiple `Explore` instances in parallel across different areas of the codebase to reduce total analysis time.
 
-**Instructions for `explore` subagents**:
+**Instructions for `Explore` subagents**:
+
 - Focus on facts, not opinions. Record what exists, not what should exist.
 - Note every module's responsibility, public API surface, and approximate size.
 - Map internal dependencies between modules and external library dependencies.
@@ -111,9 +112,9 @@ After loading state from COMPASS.md, populate **TodoWrite** with the active phas
 
 **Goal**: Break the transformation into concrete, trackable Tasks organized into logical groups.
 
-**Subagent**: Delegate decomposition work to the built-in **`plan`** subagent.
+**Subagent**: Delegate decomposition work to the built-in **`Plan`** subagent.
 
-**Instructions for `plan` subagent**:
+**Instructions for `Plan` subagent**:
 - Read all three analysis documents from `.spec/analysis/` before proposing any structure.
 - Order tasks by dependency: foundational components before dependent ones.
 - Each task group should be independently testable or verifiable.
