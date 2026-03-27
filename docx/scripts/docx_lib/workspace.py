@@ -5,6 +5,7 @@ This module freezes the Phase 1 contract for Python-side task/workspace handling
 
 - task root: `DOCX_TASK_ROOT` when set, otherwise the current working directory
 - work root: `DOCX_WORK_ROOT` when set, otherwise `<task-root>/.docx-tmp`
+- Windows Git Bash `/c/...` task/work-root inputs normalize to native absolute paths
 - workspace naming: `docx-<purpose>-<timestamp>-<pid>[-N]`
 - successful runs clean up by default unless `DOCX_KEEP_WORKSPACE=1`
 - failed runs are preserved by default for debugging
@@ -30,14 +31,36 @@ DEFAULT_WORKSPACE_PREFIX = "docx"
 DEFAULT_KEEP_FAILURE = True
 
 _WORKSPACE_LABEL_RE = re.compile(r"[^a-z0-9]+")
+_WINDOWS_GIT_BASH_ABS_RE = re.compile(r"^/([a-zA-Z])(?:/(.*))?$")
 
 
 def _get_env(env: Mapping[str, str] | None) -> Mapping[str, str]:
     return os.environ if env is None else env
 
 
+def normalize_rooted_input_path(
+    raw_path: str | Path,
+    *,
+    platform: str | None = None,
+) -> str:
+    path = os.path.expanduser(str(raw_path))
+    current_platform = os.name if platform is None else platform
+
+    if current_platform == "nt":
+        normalized = path.replace("\\", "/")
+        match = _WINDOWS_GIT_BASH_ABS_RE.fullmatch(normalized)
+        if match is not None:
+            drive = match.group(1).upper()
+            remainder = match.group(2)
+            if remainder:
+                return f"{drive}:/{remainder}"
+            return f"{drive}:/"
+
+    return path
+
+
 def _resolve_rooted_path(raw_path: str | Path, base_path: Path) -> Path:
-    path = Path(os.path.expanduser(str(raw_path)))
+    path = Path(normalize_rooted_input_path(raw_path))
     if path.is_absolute():
         return path
     return base_path / path
@@ -163,6 +186,13 @@ class RuntimeWorkspace:
 
         shutil.rmtree(self.root_dir)
         self.cleaned = True
+        # Remove empty work_root if no other workspaces remain
+        try:
+            work_root = self.contract.work_root
+            if work_root.exists() and work_root.is_dir() and not any(work_root.iterdir()):
+                work_root.rmdir()
+        except Exception:
+            pass
         return True
 
     def __enter__(self) -> "RuntimeWorkspace":

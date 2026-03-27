@@ -9,7 +9,11 @@ NOTE: This module now returns lxml objects directly for better namespace handlin
 """
 
 import re
-from lxml import etree
+
+try:
+    from ._lxml import etree
+except ImportError:
+    from _lxml import etree
 
 __all__ = [
     'fix_duplicate_attributes',

@@ -215,6 +215,39 @@ def check_comments_integrity(extract_dir):
     return errors
 
 
+def check_document_settings(extract_dir):
+    """Check document settings such as TOC auto-update guidance."""
+    errors = []
+    warnings = []
+    extract_dir = Path(extract_dir)
+
+    settings_path = extract_dir / 'word' / 'settings.xml'
+    if not settings_path.exists():
+        return errors, warnings
+
+    settings_tree = ET.parse(settings_path)
+    settings_root = settings_tree.getroot()
+
+    update_fields = settings_root.find('.//{%s}updateFields' % W_NS)
+
+    doc_path = extract_dir / 'word' / 'document.xml'
+    if not doc_path.exists():
+        return errors, warnings
+
+    doc_tree = ET.parse(doc_path)
+    doc_root = doc_tree.getroot()
+
+    field_codes = doc_root.findall('.//{%s}instrText' % W_NS)
+    has_toc = any('TOC' in (field_code.text or '') for field_code in field_codes)
+
+    if has_toc and update_fields is None:
+        warnings.append(
+            'TOC: consider adding <w:updateFields w:val="true"/> in settings.xml for auto-update'
+        )
+
+    return errors, warnings
+
+
 def check_section_margins(root):
     """Check section margins for potential issues.
 

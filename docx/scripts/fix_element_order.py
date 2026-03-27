@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 fix_element_order.py - Auto-fix OpenXML element ordering issues in docx files
 

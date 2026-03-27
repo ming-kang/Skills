@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # docx - Unified entry point
-# Usage: docx {env|init|build|validate}
+# Usage: docx {env|init|build|preflight|validate}
 
 set -e
 
@@ -26,10 +26,14 @@ cleanup_on_exit() {
     if [ -n "$ACTIVE_WORK_DIR" ] && [ -d "$ACTIVE_WORK_DIR" ]; then
         if [ "$status" -eq 0 ] && [ "$KEEP_WORKSPACE" != "1" ]; then
             rm -rf "$ACTIVE_WORK_DIR"
+            # Remove empty WORK_ROOT if no other workspaces remain
+            if [ -d "$WORK_ROOT" ] && [ -z "$(ls -A "$WORK_ROOT" 2>/dev/null)" ]; then
+                rmdir "$WORK_ROOT"
+            fi
         elif [ "$status" -eq 0 ]; then
             echo "ℹ Kept temporary workspace: $ACTIVE_WORK_DIR" >&2
         else
-            echo "⚠ Build failed; temporary workspace preserved at: $ACTIVE_WORK_DIR" >&2
+            echo "⚠ CLI build failed; temporary workspace preserved at: $ACTIVE_WORK_DIR" >&2
         fi
     fi
 }
@@ -55,6 +59,67 @@ expand_home_path() {
     esac
 }
 
+is_windows_git_bash() {
+    case "${MSYSTEM:-}" in
+        MINGW*|MSYS*)
+            return 0
+            ;;
+    esac
+
+    case "${OSTYPE:-}" in
+        msys*|cygwin*)
+            return 0
+            ;;
+    esac
+
+    case "$(uname -s 2>/dev/null)" in
+        MINGW*|MSYS*|CYGWIN*)
+            return 0
+            ;;
+    esac
+
+    return 1
+}
+
+normalize_windows_path_separators() {
+    local path="$1"
+
+    if is_windows_git_bash; then
+        echo "${path//\\//}"
+    else
+        echo "$path"
+    fi
+}
+
+normalize_windows_drive_path() {
+    local path="$1"
+    local drive
+    local rest
+
+    drive="${path%%:*}"
+    rest="${path#?:}"
+    drive="$(printf '%s' "$drive" | tr '[:upper:]' '[:lower:]')"
+    rest="${rest#/}"
+
+    if [ -n "$rest" ]; then
+        echo "/$drive/$rest"
+    else
+        echo "/$drive"
+    fi
+}
+
+normalize_for_shell_path() {
+    local path="$1"
+
+    path="$(normalize_windows_path_separators "$path")"
+
+    if is_windows_git_bash && [[ "$path" =~ ^[A-Za-z]:/ ]]; then
+        normalize_windows_drive_path "$path"
+    else
+        echo "$path"
+    fi
+}
+
 is_absolute_path() {
     local path="$1"
     case "$path" in
@@ -75,12 +140,13 @@ resolve_rooted_path() {
     local base_path="$2"
     local path
 
-    path="$(expand_home_path "$raw_path")"
+    path="$(normalize_windows_path_separators "$raw_path")"
+    path="$(expand_home_path "$path")"
 
     if is_absolute_path "$path"; then
-        echo "$path"
+        normalize_for_shell_path "$path"
     else
-        echo "$base_path/$path"
+        normalize_for_shell_path "$base_path/$path"
     fi
 }
 
@@ -126,14 +192,63 @@ resolve_task_path() {
     local raw_path="$1"
     local path
 
-    path="$(expand_home_path "$raw_path")"
+    path="$(normalize_windows_path_separators "$raw_path")"
+    path="$(expand_home_path "$path")"
     path="$(remap_legacy_path "$path")"
 
     if is_absolute_path "$path"; then
-        echo "$path"
+        normalize_for_shell_path "$path"
     else
-        echo "$TASK_ROOT/$path"
+        normalize_for_shell_path "$TASK_ROOT/$path"
     fi
+}
+
+normalize_workspace_label() {
+    local label="$1"
+
+    label="$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')"
+    if [ -z "$label" ]; then
+        label="run"
+    fi
+
+    echo "$label"
+}
+
+workspace_timestamp() {
+    date +%Y%m%d-%H%M%S
+}
+
+workspace_stem() {
+    local purpose="$1"
+    local label
+
+    label="$(normalize_workspace_label "$purpose")"
+    echo "docx-$label-$(workspace_timestamp)-$$"
+}
+
+create_unique_workspace_root() {
+    local work_root="$1"
+    local purpose="$2"
+    local stem
+    local candidate
+    local counter=1
+
+    mkdir -p "$work_root"
+    stem="$(workspace_stem "$purpose")"
+
+    while true; do
+        candidate="$work_root/$stem"
+        if [ "$counter" -gt 1 ]; then
+            candidate="$work_root/$stem-$counter"
+        fi
+
+        if mkdir "$candidate" 2>/dev/null; then
+            echo "$candidate"
+            return 0
+        fi
+
+        counter=$((counter + 1))
+    done
 }
 
 ensure_parent_dir() {
@@ -267,15 +382,10 @@ check_validator_status() {
 }
 
 find_python() {
-    local candidates=("python" "python3")
-    local bin
-
-    for bin in "${candidates[@]}"; do
-        if command -v "$bin" >/dev/null 2>&1 && "$bin" -c "import sys" >/dev/null 2>&1; then
-            echo "$bin"
-            return 0
-        fi
-    done
+    if command -v "python" >/dev/null 2>&1 && python -c "import sys" >/dev/null 2>&1; then
+        echo "python"
+        return 0
+    fi
 
     return 1
 }
@@ -312,6 +422,35 @@ check_python_module_status() {
     return 1
 }
 
+check_playwright_browser_status() {
+    local python_bin="$1"
+
+    if [ -z "$python_bin" ]; then
+        echo "missing-python"
+        return 1
+    fi
+
+    if ! check_python_module_status "$python_bin" "playwright" >/dev/null 2>&1; then
+        echo "missing-playwright"
+        return 1
+    fi
+
+    if "$python_bin" - <<'PY' >/dev/null 2>&1
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    raise SystemExit(0 if Path(p.chromium.executable_path).exists() else 1)
+PY
+    then
+        echo "ok"
+        return 0
+    fi
+
+    echo "missing-browser"
+    return 1
+}
+
 show_python_package_status() {
     local python_state="$1"
     local python_bin="$2"
@@ -339,6 +478,32 @@ show_python_package_status() {
     esac
 
     echo "$marker $module ($requirement_label; install with: $python_bin -m pip install $install_label)"
+    return 0
+}
+
+show_playwright_browser_status() {
+    local python_state="$1"
+    local python_bin="$2"
+    local browser_state
+
+    if [ "$python_state" != "ok" ]; then
+        echo "○ Chromium browser runtime (optional, for background asset scripts; install Python and playwright first)"
+        return 0
+    fi
+
+    browser_state="$(check_playwright_browser_status "$python_bin" || true)"
+    case "$browser_state" in
+        ok)
+            echo "✓ Chromium browser runtime for playwright"
+            ;;
+        missing-playwright)
+            echo "○ Chromium browser runtime (optional, for background asset scripts; install playwright first)"
+            ;;
+        *)
+            echo "○ Chromium browser runtime (optional, for background asset scripts; install with: $python_bin -m playwright install chromium)"
+            ;;
+    esac
+
     return 0
 }
 
@@ -406,8 +571,8 @@ ensure_python() {
             export PYTHON="$bin"
             ;;
         *)
-            echo "✗ Python is required but neither 'python' nor 'python3' is available"
-            echo "  Install Python 3 and ensure one of those commands is on PATH"
+            echo "✗ Python is required but the 'python' command is not available"
+            echo "  Install Python 3 and ensure the 'python' command is on PATH"
             exit 1
             ;;
     esac
@@ -487,17 +652,19 @@ check_deps() {
 
     case "$python_state" in
         ok)       echo "✓ $python_bin $python_ver" ;;
-        missing)  echo "✗ python/python3 not found (required)" ;;
+        missing)  echo "✗ python not found (required)" ;;
     esac
 
     show_python_package_status "$python_state" "$python_bin" "lxml" "required for Python editing workflows" "lxml"
-    show_python_package_status "$python_state" "$python_bin" "playwright" "optional, for backgrounds" "playwright"
-    show_python_package_status "$python_state" "$python_bin" "matplotlib" "optional, for complex charts" "matplotlib"
+    show_python_package_status "$python_state" "$python_bin" "playwright" "optional, for background asset scripts" "playwright"
+    show_playwright_browser_status "$python_state" "$python_bin"
+    show_python_package_status "$python_state" "$python_bin" "matplotlib" "optional, for chart asset scripts" "matplotlib"
+    show_python_package_status "$python_state" "$python_bin" "numpy" "optional, for chart asset scripts" "numpy"
 
     if command -v pandoc >/dev/null 2>&1; then
-        echo "✓ pandoc $(pandoc --version 2>/dev/null | head -1 | cut -d' ' -f2)"
+        echo "✓ pandoc $(pandoc --version 2>/dev/null | head -1 | cut -d' ' -f2) (visible-content verification and word counts)"
     else
-        echo "○ pandoc (optional, for word count)"
+        echo "○ pandoc (optional, for visible-content verification and word counts)"
     fi
 }
 
@@ -531,12 +698,7 @@ ensure_source_workspace() {
 }
 
 create_temp_workspace() {
-    mkdir -p "$WORK_ROOT"
-
-    if ! ACTIVE_WORK_DIR="$(mktemp -d "$WORK_ROOT/docx-task-XXXXXX" 2>/dev/null)"; then
-        ACTIVE_WORK_DIR="$WORK_ROOT/docx-task-$(date +%Y%m%d-%H%M%S)-$$"
-        mkdir -p "$ACTIVE_WORK_DIR"
-    fi
+    ACTIVE_WORK_DIR="$(create_unique_workspace_root "$WORK_ROOT" "task")"
 
     cp -R "$SOURCE_DIR/." "$ACTIVE_WORK_DIR/"
 }
@@ -607,31 +769,63 @@ do_validate() {
     return 0
 }
 
+do_preflight() {
+    local file="$1"
+
+    if ! "$PYTHON" "$SCRIPT_DIR/preflight_docx.py" "$file" 2>&1; then
+        return 1
+    fi
+
+    return 0
+}
+
 # ============================================================================
 # Subcommands
 # ============================================================================
 
 cmd_env() {
     local default_output
+    local asset_output_hint
 
     default_output="$(default_build_output)"
+    if [ -n "${DOCX_ASSET_OUTPUT_DIR:-}" ]; then
+        asset_output_hint="$(resolve_rooted_path "$DOCX_ASSET_OUTPUT_DIR" "$PWD")"
+    else
+        asset_output_hint="$PWD"
+    fi
 
+    echo "=== CLI Contract ==="
+    echo "Supported entry:      $SCRIPT_DIR/docx <command> [args]"
+    echo "Supported shell:      Bash on macOS and Git Bash on Windows inside Claude Code"
+    echo "Python command:       python"
+    echo "Path inputs:          relative paths resolve from the task root"
+    echo "Windows Git Bash:     /c/... and C:\\... normalize to the same absolute location"
+    echo ""
     echo "=== Workspace Contract ==="
     echo "Task root:             $TASK_ROOT"
     echo "Skill root:            $SKILL_DIR"
     echo "Source workspace:      $SOURCE_DIR"
     echo "Work root:             $WORK_ROOT"
+    echo "Workspace names:       docx-<purpose>-<timestamp>-<pid>[-N] (build uses docx-task-...)"
     echo "Build workspaces:      $WORK_ROOT/docx-task-*"
+    echo "Python preflight:      $WORK_ROOT/docx-preflight-*"
     echo "Python validate/fix:   $WORK_ROOT/docx-validate-all-*, docx-validate-docx-*, docx-fix-element-order-*"
     echo "Python edit:           $WORK_ROOT/docx-edit-*"
     echo "Default build output:  $default_output"
     echo "Default edit output:   <input>-edited.docx beside the source file"
-    echo "Successful runs:       cleaned by default unless DOCX_KEEP_WORKSPACE=1 or DocxContext(..., keep_workspace=True)"
+    echo "Successful runs:       remove the per-run workspace and the empty work root unless DOCX_KEEP_WORKSPACE=1 or DocxContext(..., keep_workspace=True)"
     echo "Failed runs:           preserved for debugging by default"
     echo "Editing overrides:     DocxContext(..., task_root=..., work_root=..., keep_workspace=..., keep_failed_workspace=...)"
     echo ""
     echo "=== Dependencies ==="
     check_deps
+    echo ""
+    echo "=== Auxiliary Scripts ==="
+    echo "Background PNGs:        $SCRIPT_DIR/generate_backgrounds.py [output-dir]"
+    echo "                        $SCRIPT_DIR/generate_inkwash_backgrounds.py [output-dir]"
+    echo "Chart PNGs:             $SCRIPT_DIR/generate_chart.py [output-dir]"
+    echo "Asset helper output:    pass [output-dir] or set DOCX_ASSET_OUTPUT_DIR (default: $asset_output_hint)"
+    echo "Local-only artifacts:   generated PNGs, .docx/, .docx-tmp/, __pycache__/, .pytest_cache/, and template bin/obj stay local"
     echo ""
     echo "=== Source Workspace ==="
     if [ -d "$SOURCE_DIR" ]; then
@@ -758,10 +952,27 @@ cmd_build() {
         if [ "$has_revisions" = true ] || [ "$has_comments" = true ]; then
             echo "     Revisions/comments detected - use --track-changes=all to verify marker positions"
         fi
+    else
+        echo "  Info: install pandoc to verify visible content locally and to report word counts."
     fi
 
     echo ""
     echo "✓ Done: $output"
+}
+
+cmd_preflight() {
+    local file="$1"
+
+    ensure_deps
+
+    [ -n "$file" ] || { echo "Usage: docx preflight <file.docx>"; exit 1; }
+
+    file="$(resolve_task_path "$file")"
+    [ -f "$file" ] || { echo "✗ File not found: $file"; exit 1; }
+
+    echo "▶ Preflighting: $file"
+    do_preflight "$file"
+    echo "✓ Preflight complete"
 }
 
 cmd_validate() {
@@ -776,6 +987,11 @@ cmd_validate() {
 
     echo "▶ Validating: $file"
     do_validate "$file"
+    if command -v pandoc >/dev/null 2>&1; then
+        echo "  Verify visible content with: pandoc \"$file\" -t plain"
+    else
+        echo "  Install pandoc to verify visible content locally: pandoc \"$file\" -t plain"
+    fi
     echo "✓ Valid"
 }
 
@@ -793,24 +1009,32 @@ case "${1:-help}" in
     build)
         cmd_build "$2"
         ;;
+    preflight)
+        cmd_preflight "$2"
+        ;;
     validate)
         cmd_validate "$2"
         ;;
     -h|--help|help)
         cat <<EOF
-Usage: $0 <command> [args]
+Usage: docx <command> [args]
 
 Commands:
   env            Show dependency and local workspace status
   init           Create the local source workspace under the task root
   build [out]    Build from .docx/, run validation, and write a local output file
+  preflight FILE Normalize an existing .docx input before edit/build work
   validate FILE  Validate an existing .docx file
 
 Local Path Model:
   Task root:        current working directory (or DOCX_TASK_ROOT)
+  Relative paths:   resolve from the task root
+  Windows Git Bash: /c/... and C:\... normalize to the same absolute location
   Source workspace: $SOURCE_DIR
   Work root:        $WORK_ROOT
+  Workspace names:  docx-<purpose>-<timestamp>-<pid>[-N]
   Build workspaces: $WORK_ROOT/docx-task-*
+  Python preflight: $WORK_ROOT/docx-preflight-*
   Python validate:  $WORK_ROOT/docx-validate-all-*, docx-validate-docx-*, docx-fix-element-order-*
   Python edit:      $WORK_ROOT/docx-edit-*
   Build output:     $DEFAULT_OUTPUT_DIR/output.docx (unique if needed)
@@ -822,6 +1046,7 @@ Environment Overrides:
   DOCX_WORK_ROOT    Override the parent directory for build, validate, fix, and edit workspaces
   DOCX_OUTPUT_DIR   Override the default output directory
   DOCX_KEEP_WORKSPACE=1   Keep successful workspaces after build/validate/edit runs that use the shared contract
+  DOCX_ASSET_OUTPUT_DIR   Override the default output directory for helper-generated PNG assets
 
 Python Editing Runtime:
   DocxContext(input, output) keeps working unchanged.
@@ -837,19 +1062,40 @@ Create Workflow:
   3. Edit ./.docx/Program.cs
   4. <skill-path>/scripts/docx build [report.docx]
 
-Compatibility:
-  Windows support expects Git Bash, not PowerShell or cmd.exe.
-  In Bash, prefer relative paths or POSIX absolute paths like /c/Users/name/report.docx.
-  Windows drive-letter paths like C:\Users\name\report.docx are also accepted.
+Incoming Existing .docx Workflow:
+  1. cd <task-directory>
+  2. <skill-path>/scripts/docx preflight ./incoming.docx
+  3. Run Python editing or template-fill work on the normalized file
+  4. Run <skill-path>/scripts/docx validate ./incoming-edited.docx before delivery
+
+Auxiliary Asset Scripts:
+  Background PNG helpers:
+    python <skill-path>/scripts/generate_backgrounds.py [output-dir]
+    python <skill-path>/scripts/generate_inkwash_backgrounds.py [output-dir]
+    Requires playwright plus Chromium (install with: python -m playwright install chromium)
+  Chart PNG helper:
+    python <skill-path>/scripts/generate_chart.py [output-dir]
+    Requires matplotlib plus numpy
+  Output routing:
+    pass [output-dir] or set DOCX_ASSET_OUTPUT_DIR; generated PNGs are local working files, not shipped skill outputs
+
+Supported Runtime:
+  Supported entry point: <skill-path>/scripts/docx <command> [args]
+  Python command: python
+  Windows inside Claude Code: use Git Bash and the same <skill-path>/scripts/docx <command> [args] commands.
+  Relative paths resolve from the task root unless a path is already absolute.
+  On Windows Git Bash, /c/Users/name/report.docx and C:\Users\name\report.docx normalize to the same absolute location before shell checks.
+  Preflight classifies inputs as clean, fixable, or invalid. It normalizes only the fixable case and does not replace the final validate step.
   Validation runs locally via: dotnet <skill>/validator/Validator.dll <file.docx>
-  Editing workflows require Python package 'lxml'; optional extras include playwright, matplotlib, and pandoc.
-  Successful runs clean up by default; failed runs stay visible under the work root for debugging.
+  pandoc is recommended to verify visible content and to report word counts after build/edit/validate flows.
+  Editing workflows require Python package 'lxml'; optional extras include playwright + Chromium for background assets and matplotlib + numpy for chart assets.
+  Successful runs remove the per-run workspace and remove the empty work root by default; failed runs stay visible under the work root for debugging.
   Legacy hosted paths may be remapped automatically, but they are no longer the primary workflow.
 EOF
         ;;
     *)
         echo "Unknown command: $1"
-        echo "Run '$0 help' for usage"
+        echo "Run 'docx help' for usage"
         exit 1
         ;;
 esac

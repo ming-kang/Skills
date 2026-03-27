@@ -1,14 +1,26 @@
 # Editing Guide
 
-Complete reference for `docx_lib.editing`. Read this to complete any comment/revision task.
+Focused reference for **editing existing `.docx` files** with `docx_lib.editing`. Use [`../SKILL.md`](../SKILL.md) for the shared Bash-first contract and common workflow entry, and use [`CreationGuide.md`](./CreationGuide.md) for new-document creation, TOC/layout/chart rules, and OpenXML build details.
 
-For local-first usage:
+This guide owns editing-specific depth only. It does not restate the full shell/platform contract from `SKILL.md`.
 
-- Work from the task directory, not from the skill directory.
-- Preserve the source document by default and write edits to a sibling `-edited` file.
-- Edit workspaces are visible under `./.docx-tmp/docx-edit-*` by default.
-- Successful edits clean up by default; failed edits stay visible for debugging.
-- Validate the edited output with `pandoc` before delivery.
+For local-first editing:
+
+- Start from the task directory and follow the shared Bash CLI contract from `SKILL.md`
+- Run `<skill-path>/scripts/docx preflight <input.docx>` before editing incoming external documents or templates
+- Preserve the source document by default and write edits to a sibling `-edited` file
+- Edit workspaces are visible under `./.docx-tmp/docx-edit-*` by default
+- Workspace names follow `docx-<purpose>-<timestamp>-<pid>[-N]`, so editing runs appear as `docx-edit-...`
+- Successful edits clean up by default; failed edits stay visible for debugging
+- Relative paths resolve from the task root; on Windows Git Bash, `/c/...` and `C:\...` inputs normalize to the same absolute location before shell checks
+- Add `<skill-path>/scripts` to `sys.path`, then import `docx_lib.editing`
+- Validate the edited output with `<skill-path>/scripts/docx validate ...`, then confirm visible content with `pandoc`
+
+### API-First Editing Principle
+
+**Use `docx_lib.editing` for all editing operations.** Only manipulate raw XML (direct `<w:...>` element access) when `docx_lib.editing` does not cover the specific use case. If `python-docx` or `docx-js` seem necessary, treat them as a signal that the skill API is insufficient — report this gap rather than working around it with lower-quality libraries.
+
+**Never fall back to `python-docx` or `docx-js`.** These libraries produce lower-quality output than direct OpenXML manipulation via `lxml` and can silently corrupt complex features (track changes, comments, styles, headers/footers). If the skill API lacks coverage for a needed operation, escalate the limitation rather than reaching for an inferior tool.
 
 ---
 
@@ -18,6 +30,7 @@ For local-first usage:
 
 | Function | Purpose |
 |----------|---------|
+| `edit_docx` | Preferred helper: optional preflight + default sibling `-edited.docx` output + `DocxContext` |
 | `add_comment` | Add comment to paragraph with optional highlight |
 | `reply_comment` | Reply to existing comment (threaded) |
 | `resolve_comment` | Mark comment as resolved |
@@ -45,17 +58,67 @@ For local-first usage:
 
 | Error | Cause | Solution |
 |-------|-------|----------|
+| `InvalidDocxError` | Preflight or package open failed before editing started | Run `<skill-path>/scripts/docx preflight <file.docx>` and inspect the preserved workspace |
+| `DocxEditError` | Output path or package structure violates editing assumptions | Use a sibling `-edited.docx` output and keep input/output paths distinct |
 | `ParagraphNotFoundError` | `para_text` not found in document | Use more/less specific text |
 | `AmbiguousTextError` | Multiple paragraphs match `para_text` | Use more specific text or `context` |
 | `CommentNotFoundError` | `comment_id` doesn't exist | Check ID from add_comment return |
 | `ValueError` | `highlight`/`target` not found in paragraph | Verify text exists exactly |
 
+### Recommended Workflow
+
+Preferred scripted path for existing `.docx` inputs:
+
+```python
+from pathlib import Path
+import sys
+
+SKILL_PATH = Path(r"<skill-path>")
+sys.path.insert(0, str(SKILL_PATH / "scripts"))
+
+from docx_lib.editing import edit_docx, enable_track_changes, insert_text
+
+with edit_docx("./report.docx", preflight=True) as ctx:
+    enable_track_changes(ctx)
+    insert_text(
+        ctx,
+        "Supports JSON format",
+        after="JSON",
+        new_text=" and XML",
+    )
+
+print("Edited file:", Path("./report-edited.docx").resolve())
+```
+
+Then verify from the same Bash shell:
+
+```bash
+<skill-path>/scripts/docx validate ./report-edited.docx
+pandoc ./report-edited.docx -t markdown --track-changes=all
+```
+
+Use standalone `<skill-path>/scripts/docx preflight ./report.docx` when you want the normalization/debugging step to stay separate and visible.
+
+If the task changes from editing an existing package to creating a new document or redesigning layout from scratch, stop here and switch to [`CreationGuide.md`](./CreationGuide.md).
+
 ### 1.4 Examples
 
 ```python
-from scripts.docx_lib.editing import *
+from pathlib import Path
+import sys
 
-with DocxContext("./report.docx", "./report-edited.docx") as ctx:
+SKILL_PATH = Path(r"<skill-path>")
+sys.path.insert(0, str(SKILL_PATH / "scripts"))
+
+from docx_lib.editing import (
+    edit_docx,
+    add_comment,
+    reply_comment,
+    propose_deletion,
+    insert_text,
+)
+
+with edit_docx("./report.docx", preflight=True) as ctx:
     # Highlight a term
     cid = add_comment(ctx, "The API uses OAuth2 for authentication",
                       "Add a code example.",
@@ -82,6 +145,10 @@ with DocxContext("./report.docx", "./report-edited.docx") as ctx:
                      target="legacy feature will be removed")
 ```
 
+`<skill-path>` must point to this skill directory. For repo-local development from the repository root, `Path("./docx").resolve()` is the equivalent value. Use the same Bash CLI entry point for `preflight` and `validate` on macOS and on Windows Git Bash inside Claude Code, with relative paths resolving from the task root and `/c/...` / `C:\...` forms treated as the same location on Windows Git Bash.
+
+`edit_docx(...)` is the preferred helper because it defaults to a sibling `-edited.docx` output and can run preflight inline. `DocxContext(input, output)` remains supported when you want explicit output naming or lower-level control.
+
 ### 1.5 Verification (Mandatory)
 
 After editing, always verify:
@@ -99,7 +166,7 @@ Check for:
 
 ### 1.6 Workspace Controls
 
-`DocxContext(input, output)` still works with the original two-argument form. For debugging or explicit workspace routing, use keyword-only overrides:
+`edit_docx(input, preflight=True)` is the recommended entry point for most scripted edits. `DocxContext(input, output)` still works with the original two-argument form. For debugging or explicit workspace routing, use keyword-only overrides:
 
 ```python
 with DocxContext(
@@ -116,11 +183,26 @@ with DocxContext(
 | Control | Effect |
 |---------|--------|
 | `task_root=...` | Overrides the visible task root used to resolve relative workspace paths |
-| `work_root=...` | Overrides the parent directory for `docx-edit-*` workspaces |
+| `work_root=...` | Overrides the parent directory for `docx-edit-<timestamp>-<pid>[-N]` workspaces |
 | `keep_workspace=True` | Retains successful edit workspaces |
 | `keep_failed_workspace=False` | Opt out of the default keep-on-failure behavior |
 
 If you do not pass keyword overrides, `DOCX_TASK_ROOT`, `DOCX_WORK_ROOT`, and `DOCX_KEEP_WORKSPACE` are still honored.
+
+### 1.7 Preflight Before Editing
+
+For existing user-provided `.docx` files, run preflight first so fixable OOXML ordering issues are normalized before `DocxContext(...)` touches the package:
+
+```bash
+<skill-path>/scripts/docx preflight ./report.docx
+```
+
+Possible outcomes:
+- `clean` — no normalization changes were needed
+- `fixable` — safe structural fixes were written in place
+- `invalid` — unrecoverable issues remain; inspect the visible `./.docx-tmp/docx-preflight-*` workspace before attempting edits
+
+`edit_docx(..., preflight=True)` uses this same preflight contract inline and raises `InvalidDocxError` if the package is still unsafe to edit.
 
 ---
 

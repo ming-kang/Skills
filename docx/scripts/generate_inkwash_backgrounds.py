@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Ink-Wash (水墨侘寂) Background Generator.
 
@@ -7,12 +7,32 @@ like ink spreading on rice paper. Zen-inspired minimalism.
 
 Colors: Gray scale from charcoal (#1A202C) to misty white (#F7FAFC)
 """
-from playwright.sync_api import sync_playwright
 import os
 import sys
 
+
+def print_usage():
+    script_name = os.path.basename(sys.argv[0])
+    print(f"Usage: python {script_name} [output-dir]")
+    print("Generates local PNG ink-wash background assets for cover, back cover, and body pages.")
+    print("Output directory: explicit [output-dir], DOCX_ASSET_OUTPUT_DIR, or the current working directory.")
+    print("Dependencies: playwright + Chromium (`python -m playwright install chromium`).")
+    print("Local PNG assets are working files, not shipped skill outputs.")
+
+
+def load_playwright():
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        print("Missing dependency for background asset generation: playwright", file=sys.stderr)
+        print("Install it with: python -m pip install playwright", file=sys.stderr)
+        print("Then install Chromium with: python -m playwright install chromium", file=sys.stderr)
+        raise SystemExit(1)
+
+    return sync_playwright
+
 def resolve_output_dir():
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 1 and sys.argv[1] not in ("-h", "--help", "help"):
         return os.path.abspath(sys.argv[1])
 
     env_dir = os.environ.get("DOCX_ASSET_OUTPUT_DIR")
@@ -309,10 +329,20 @@ body {{
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help", "help"):
+        print_usage()
+        return
+
+    sync_playwright = load_playwright()
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        try:
+            browser = p.chromium.launch()
+        except Exception:
+            print("Chromium is required for background asset generation.", file=sys.stderr)
+            print("Install it with: python -m playwright install chromium", file=sys.stderr)
+            raise SystemExit(1)
         page = browser.new_page(
             viewport={'width': PAGE_W, 'height': PAGE_H},
             device_scale_factor=2

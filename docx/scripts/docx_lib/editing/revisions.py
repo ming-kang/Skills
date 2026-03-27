@@ -8,7 +8,6 @@ import os
 import copy
 import random
 from typing import Optional
-from lxml import etree
 from xml.sax.saxutils import escape as xml_escape
 
 from ..constants import NS
@@ -23,6 +22,11 @@ from .helpers import (
     _write_xml,
 )
 from .xml_tolerance import safe_parse_xml
+
+try:
+    from ._lxml import etree
+except ImportError:
+    from _lxml import etree
 
 
 def insert_paragraph(

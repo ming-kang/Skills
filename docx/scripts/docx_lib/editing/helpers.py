@@ -9,10 +9,14 @@ import os
 import copy
 import random
 from datetime import datetime, timezone
-from lxml import etree
 
 from ..constants import NS, W_NS, W14_NS, W15_NS
 from .xml_tolerance import safe_parse_xml
+
+try:
+    from ._lxml import etree
+except ImportError:
+    from _lxml import etree
 
 # Additional namespaces for comments
 W16CID_NS = 'http://schemas.microsoft.com/office/word/2016/wordml/cid'
