@@ -24,10 +24,8 @@ from .business_rules import (
     check_image_aspect_ratio,
     check_comments_integrity,
     check_section_margins,
-    check_document_settings,
     get_image_dimensions
 )
-from .preflight import PreflightResult, preflight_docx
 
 __all__ = [
     # constants
@@ -42,10 +40,7 @@ __all__ = [
     'fix_body_order', 'wrap_border_elements', 'fix_table_width_conservative',
     # business_rules
     'check_table_grid_consistency', 'check_image_aspect_ratio',
-    'check_comments_integrity', 'check_section_margins', 'check_document_settings',
-    'get_image_dimensions',
-    # preflight
-    'PreflightResult', 'preflight_docx',
+    'check_comments_integrity', 'check_section_margins', 'get_image_dimensions',
     # editing (import via: from docx_lib.editing import ...)
     'editing',
 ]

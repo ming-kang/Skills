@@ -5,18 +5,15 @@ NOTE: Uses lxml throughout for better namespace handling.
 """
 
 import os
+import shutil
+import tempfile
 import zipfile
 from pathlib import Path
+from lxml import etree
 from typing import Optional
 
 from ..constants import NS
-from ..workspace import RuntimeWorkspace, create_runtime_workspace
 from .xml_tolerance import safe_parse_xml
-
-try:
-    from ._lxml import etree
-except ImportError:
-    from _lxml import etree
 
 
 class DocxEditError(Exception):
@@ -39,11 +36,6 @@ class CommentNotFoundError(DocxEditError):
     pass
 
 
-class InvalidDocxError(DocxEditError):
-    """Raised when a docx package cannot be opened safely for editing."""
-    pass
-
-
 class DocxContext:
     """
     Context manager for editing docx files.
@@ -56,181 +48,94 @@ class DocxContext:
             insert_text(ctx, "The method", after="method", new_text=" and materials")
         # Automatically saves and repacks on exit
 
-        with DocxContext(
-            "input.docx",
-            "output.docx",
-            work_root="debug-workspaces",
-            keep_workspace=True,
-        ) as ctx:
-            insert_text(ctx, "The method", after="method", new_text=" and materials")
-        # Successful runs can be retained under an explicit visible work root
-
     Attributes (for internal use by editing functions):
         work_dir: Path to extracted docx
         doc_tree: Parsed document.xml ElementTree
         body: document.xml body element
     """
 
-    def __init__(
-        self,
-        input_path: str,
-        output_path: str,
-        *,
-        task_root: str | Path | None = None,
-        work_root: str | Path | None = None,
-        keep_workspace: bool | None = None,
-        keep_failed_workspace: bool = True,
-    ):
+    def __init__(self, input_path: str, output_path: str):
         """
         Initialize context.
 
         Args:
             input_path: Path to input docx file
             output_path: Path for output docx file
-            task_root: Optional visible task root override for workspace resolution
-            work_root: Optional visible work root override for this editing session
-            keep_workspace: Optional override for successful-workspace retention
-            keep_failed_workspace: Whether failed sessions retain their workspace
         """
         self.input_path = Path(input_path)
         self.output_path = Path(output_path)
-        self.task_root = task_root
-        self.work_root_override = work_root
-        self.keep_workspace = keep_workspace
-        self.keep_failed_workspace = keep_failed_workspace
         self.work_dir: Optional[Path] = None
         self.doc_tree: Optional[etree._ElementTree] = None
         self.body = None
-        self._workspace: Optional[RuntimeWorkspace] = None
-        self.preflight_result = None
+        self._temp_dir = None
 
     def __enter__(self) -> 'DocxContext':
         """Unzip and parse document."""
-        self._validate_paths()
-
         # Validate input file exists
         if not self.input_path.exists():
-            raise FileNotFoundError(
-                f"Input file not found: {self.input_path}. "
-                "Pass a .docx path that exists relative to the task directory, or run "
-                "`docx preflight <file.docx>` first for external templates."
-            )
+            raise FileNotFoundError(f"Input file not found: {self.input_path}")
 
-        self._workspace = create_runtime_workspace(
-            "edit",
-            task_root=self.task_root,
-            work_root=self.work_root_override,
-            keep_success=self.keep_workspace,
-            keep_failure=self.keep_failed_workspace,
-        )
-        self.work_dir = self._workspace.work_dir
+        # Create temp directory
+        self._temp_dir = tempfile.mkdtemp(prefix='docx_edit_')
+        self.work_dir = Path(self._temp_dir)
 
-        try:
-            # Unzip
-            try:
-                with zipfile.ZipFile(self.input_path, 'r') as z:
-                    z.extractall(self.work_dir)
-            except zipfile.BadZipFile as exc:
-                raise InvalidDocxError(
-                    f"Input is not a valid .docx package: {self.input_path}. "
-                    "Run `docx preflight <file.docx>` first to normalize or inspect the package."
-                ) from exc
+        # Unzip
+        with zipfile.ZipFile(self.input_path, 'r') as z:
+            z.extractall(self.work_dir)
 
-            # Parse document.xml
-            doc_path = self.work_dir / 'word' / 'document.xml'
-            if not doc_path.exists():
-                raise InvalidDocxError(
-                    f"Invalid docx package: {self.input_path} is missing word/document.xml. "
-                    "Run `docx preflight <file.docx>` first to inspect the extracted package."
-                )
-            try:
-                self.doc_tree = safe_parse_xml(doc_path)
-            except Exception as exc:
-                raise InvalidDocxError(
-                    f"Could not parse word/document.xml in {self.input_path}. "
-                    "Run `docx preflight <file.docx>` first and inspect the preserved workspace."
-                ) from exc
+        # Parse document.xml
+        doc_path = self.work_dir / 'word' / 'document.xml'
+        self.doc_tree = safe_parse_xml(doc_path)
 
-            self.body = self.doc_tree.getroot().find(f'.//{{{NS["w"]}}}body')
+        self.body = self.doc_tree.getroot().find(f'.//{{{NS["w"]}}}body')
 
-            if self.body is None:
-                raise InvalidDocxError(
-                    f"Invalid docx package: document body not found in {self.input_path}. "
-                    "Run `docx preflight <file.docx>` first and inspect the preserved workspace."
-                )
+        if self.body is None:
+            raise DocxEditError("Invalid docx: document body not found")
 
-            return self
-        except Exception:
-            if self._workspace is not None:
-                self._workspace.cleanup(success=False)
-            raise
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Save, repack, and cleanup."""
-        run_succeeded = False
+        if exc_type is None:
+            # Save document.xml using lxml serialization
+            doc_path = self.work_dir / 'word' / 'document.xml'
+            xml_bytes = etree.tostring(
+                self.doc_tree.getroot(),
+                encoding='utf-8',
+                xml_declaration=True
+            )
+            with open(doc_path, 'wb') as f:
+                f.write(xml_bytes)
 
-        try:
-            if exc_type is None:
-                self.output_path.parent.mkdir(parents=True, exist_ok=True)
+            # Repack with correct file order (OOXML requirement)
+            with zipfile.ZipFile(self.output_path, 'w', zipfile.ZIP_DEFLATED) as z:
+                all_files = []
+                for root, dirs, files in os.walk(self.work_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, self.work_dir)
+                        all_files.append((file_path, arcname))
 
-                # Save document.xml using lxml serialization
-                doc_path = self.work_dir / 'word' / 'document.xml'
-                xml_bytes = etree.tostring(
-                    self.doc_tree.getroot(),
-                    encoding='utf-8',
-                    xml_declaration=True
-                )
-                with open(doc_path, 'wb') as f:
-                    f.write(xml_bytes)
+                # Sort by OOXML required order
+                def sort_key(item):
+                    arcname = item[1]
+                    if arcname == '[Content_Types].xml':
+                        return (0, arcname)
+                    elif arcname.startswith('_rels'):
+                        return (1, arcname)
+                    elif arcname.startswith('word/_rels'):
+                        return (2, arcname)
+                    else:
+                        return (3, arcname)
 
-                # Repack with correct file order (OOXML requirement)
-                with zipfile.ZipFile(self.output_path, 'w', zipfile.ZIP_DEFLATED) as z:
-                    all_files = []
-                    for root, dirs, files in os.walk(self.work_dir):
-                        for file in files:
-                            file_path = os.path.join(root, file)
-                            arcname = os.path.relpath(file_path, self.work_dir)
-                            all_files.append((file_path, arcname))
+                for file_path, arcname in sorted(all_files, key=sort_key):
+                    z.write(file_path, arcname)
 
-                    # Sort by OOXML required order
-                    def sort_key(item):
-                        arcname = item[1]
-                        if arcname == '[Content_Types].xml':
-                            return (0, arcname)
-                        elif arcname.startswith('_rels'):
-                            return (1, arcname)
-                        elif arcname.startswith('word/_rels'):
-                            return (2, arcname)
-                        else:
-                            return (3, arcname)
-
-                    for file_path, arcname in sorted(all_files, key=sort_key):
-                        z.write(file_path, arcname)
-                run_succeeded = True
-        finally:
-            if self._workspace is not None:
-                self._workspace.cleanup(success=run_succeeded)
+        # Cleanup temp directory
+        if self._temp_dir and os.path.exists(self._temp_dir):
+            shutil.rmtree(self._temp_dir)
 
         return False  # Don't suppress exceptions
-
-    def _validate_paths(self) -> None:
-        if self.input_path.suffix.lower() != '.docx':
-            raise DocxEditError(
-                f"Editing input must be a .docx file: {self.input_path}. "
-                "If this is an incoming template, run `docx preflight <file.docx>` before editing."
-            )
-
-        if self.output_path.suffix.lower() != '.docx':
-            raise DocxEditError(
-                f"Editing output must end with .docx: {self.output_path}. "
-                "Use a sibling path such as '<name>-edited.docx'."
-            )
-
-        if self.input_path.expanduser().resolve(strict=False) == self.output_path.expanduser().resolve(strict=False):
-            raise DocxEditError(
-                "Editing input and output must be different files. "
-                "Preserve the source package by writing to a sibling path such as '<name>-edited.docx'."
-            )
 
     def find_para(self, text: str):
         """

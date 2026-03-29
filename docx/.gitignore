@@ -1,4 +1,0 @@
-# Local Python caches from CLI, tests, and editing helpers.
-scripts/**/__pycache__/
-scripts/**/*.py[cod]
-scripts/**/.pytest_cache/

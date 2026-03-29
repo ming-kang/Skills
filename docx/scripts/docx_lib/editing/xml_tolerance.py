@@ -9,16 +9,12 @@ NOTE: This module now returns lxml objects directly for better namespace handlin
 """
 
 import re
-
-try:
-    from ._lxml import etree
-except ImportError:
-    from _lxml import etree
+from lxml import etree
 
 __all__ = [
-    'fix_duplicate_attributes',
-    'safe_parse_xml',
-    'safe_parse_xml_string',
+    "fix_duplicate_attributes",
+    "safe_parse_xml",
+    "safe_parse_xml_string",
 ]
 
 
@@ -62,7 +58,7 @@ def _fix_duplicate_attributes(xml_content: str) -> str:
 
 
 def fix_duplicate_attributes(xml_content: str) -> str:
-    """Public wrapper used by tests and callers that need pre-parse cleanup only."""
+    """Public wrapper for duplicate-attribute repair."""
     return _fix_duplicate_attributes(xml_content)
 
 
@@ -73,7 +69,7 @@ def _fix_common_issues(xml_content: str) -> str:
         xml_content = xml_content[1:]
 
     # Fix duplicate attributes (must be done pre-parse)
-    xml_content = _fix_duplicate_attributes(xml_content)
+    xml_content = fix_duplicate_attributes(xml_content)
 
     return xml_content
 

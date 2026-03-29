@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 validate_docx.py - Custom business rule validation (not covered by OpenXML SDK)
 Usage: python validate_docx.py <file.docx>
@@ -17,59 +17,88 @@ Output format (high density, LLM-friendly):
 
 import sys
 import zipfile
+import tempfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
 # Import from shared library
 from docx_lib import (
+    W_NS,
     check_table_grid_consistency,
     check_image_aspect_ratio,
     check_comments_integrity,
-    check_document_settings,
 )
-from docx_lib.workspace import create_runtime_workspace
+
+
+def check_document_settings(extract_dir):
+    """Check document settings (like TOC update)"""
+    errors = []
+    warnings = []
+    extract_dir = Path(extract_dir)
+
+    settings_path = extract_dir / 'word' / 'settings.xml'
+    if settings_path.exists():
+        settings_tree = ET.parse(settings_path)
+        settings_root = settings_tree.getroot()
+
+        # Check updateFields (TOC auto-update)
+        update_fields = settings_root.find('.//{%s}updateFields' % W_NS)
+
+        # Check if there is TOC
+        doc_path = extract_dir / 'word' / 'document.xml'
+        if doc_path.exists():
+            doc_tree = ET.parse(doc_path)
+            doc_root = doc_tree.getroot()
+
+            # Find TOC related field code
+            field_codes = doc_root.findall('.//{%s}instrText' % W_NS)
+            has_toc = any('TOC' in (fc.text or '') for fc in field_codes)
+
+            if has_toc and update_fields is None:
+                # This is a warning not error, TOC can be manually updated
+                warnings.append(
+                    "TOC: consider adding <w:updateFields w:val=\"true\"/> in settings.xml for auto-update"
+                )
+
+    return errors, warnings
 
 
 def validate_document(docx_path):
     """Validate docx document"""
     errors = []
     warnings = []
-    run_succeeded = False
-    workspace = create_runtime_workspace("validate-docx", contents_dir="extracted")
-    extract_dir = workspace.work_dir
 
     try:
-        # Extract docx
-        with zipfile.ZipFile(docx_path, 'r') as zf:
-            zf.extractall(extract_dir)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            extract_dir = Path(tmpdir) / 'extracted'
 
-        # Check required files
-        doc_path = extract_dir / 'word' / 'document.xml'
-        if not doc_path.exists():
-            errors.append("STRUCTURE: word/document.xml missing")
-            return errors, warnings
+            # Extract docx
+            with zipfile.ZipFile(docx_path, 'r') as zf:
+                zf.extractall(extract_dir)
 
-        # Parse document.xml
-        tree = ET.parse(doc_path)
-        root = tree.getroot()
+            # Check required files
+            doc_path = extract_dir / 'word' / 'document.xml'
+            if not doc_path.exists():
+                errors.append("STRUCTURE: word/document.xml missing")
+                return errors, warnings
 
-        # Business rule checks
-        errors.extend(check_table_grid_consistency(root))
-        errors.extend(check_image_aspect_ratio(root, extract_dir))
-        errors.extend(check_comments_integrity(extract_dir))
+            # Parse document.xml
+            tree = ET.parse(doc_path)
+            root = tree.getroot()
 
-        doc_errors, doc_warnings = check_document_settings(extract_dir)
-        errors.extend(doc_errors)
-        warnings.extend(doc_warnings)
+            # Business rule checks
+            errors.extend(check_table_grid_consistency(root))
+            errors.extend(check_image_aspect_ratio(root, extract_dir))
+            errors.extend(check_comments_integrity(extract_dir))
 
-        run_succeeded = not errors
+            doc_errors, doc_warnings = check_document_settings(extract_dir)
+            errors.extend(doc_errors)
+            warnings.extend(doc_warnings)
 
     except zipfile.BadZipFile:
         errors.append("STRUCTURE: File corrupted or not valid docx")
     except Exception as e:
         errors.append(f"PARSE: {str(e)}")
-    finally:
-        workspace.cleanup(success=run_succeeded)
 
     return errors, warnings
 

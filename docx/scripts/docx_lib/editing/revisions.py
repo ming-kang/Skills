@@ -8,6 +8,7 @@ import os
 import copy
 import random
 from typing import Optional
+from lxml import etree
 from xml.sax.saxutils import escape as xml_escape
 
 from ..constants import NS
@@ -20,13 +21,9 @@ from .helpers import (
     register_rsid,
     utc_now,
     _write_xml,
+    W16DU_NS,
 )
 from .xml_tolerance import safe_parse_xml
-
-try:
-    from ._lxml import etree
-except ImportError:
-    from _lxml import etree
 
 
 def insert_paragraph(
@@ -73,11 +70,11 @@ def insert_paragraph(
     safe_text = xml_escape(new_text)
 
     new_para = etree.fromstring(f'''
-    <w:p xmlns:w="{NS['w']}" xmlns:w14="{NS['w14']}"
+    <w:p xmlns:w="{NS['w']}" xmlns:w14="{NS['w14']}" xmlns:w16du="{W16DU_NS}"
          w14:paraId="{para_id}" w14:textId="{text_id}"
          w:rsidR="{rsid}" w:rsidRDefault="{rsid}">
       {pPr_xml}
-      <w:ins w:author="{safe_author}" w:date="{timestamp}" w:id="{random.randint(1, 10000)}">
+      <w:ins w:author="{safe_author}" w:date="{timestamp}" w:id="{random.randint(1, 10000)}" w16du:dateUtc="{timestamp}">
         <w:r w:rsidR="{rsid}">{rPr_xml}<w:t>{safe_text}</w:t></w:r>
       </w:ins>
     </w:p>''')
@@ -130,6 +127,7 @@ def insert_text(
     ins_elem.set(f"{{{NS['w']}}}author", author)
     ins_elem.set(f"{{{NS['w']}}}date", timestamp)
     ins_elem.set(f"{{{NS['w']}}}id", str(random.randint(1, 10000)))
+    ins_elem.set(f"{{{W16DU_NS}}}dateUtc", timestamp)
 
     new_run = etree.SubElement(ins_elem, f"{{{NS['w']}}}r")
     new_run.set(f"{{{NS['w']}}}rsidR", rsid)
@@ -206,6 +204,7 @@ def _convert_run_to_deletion(para, run, author, timestamp, del_id):
     del_elem.set(f"{{{NS['w']}}}id", str(del_id))
     del_elem.set(f"{{{NS['w']}}}author", author)
     del_elem.set(f"{{{NS['w']}}}date", timestamp)
+    del_elem.set(f"{{{W16DU_NS}}}dateUtc", timestamp)
 
     # Put run inside del
     del_elem.append(run)
@@ -244,6 +243,7 @@ def reject_insertion(
                 del_elem.set(f"{{{NS['w']}}}author", author)
                 del_elem.set(f"{{{NS['w']}}}date", timestamp)
                 del_elem.set(f"{{{NS['w']}}}id", str(random.randint(1, 10000)))
+                del_elem.set(f"{{{W16DU_NS}}}dateUtc", timestamp)
 
                 for child in list(run):
                     del_elem.append(child)
@@ -285,6 +285,7 @@ def restore_deletion(
                 ins_elem.set(f"{{{NS['w']}}}author", author)
                 ins_elem.set(f"{{{NS['w']}}}date", timestamp)
                 ins_elem.set(f"{{{NS['w']}}}id", str(random.randint(1, 10000)))
+                ins_elem.set(f"{{{W16DU_NS}}}dateUtc", timestamp)
 
                 ins_r = etree.SubElement(ins_elem, f"{{{NS['w']}}}r")
                 ins_r.set(f"{{{NS['w']}}}rsidR", rsid)

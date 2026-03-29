@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 generate_chart.py - Only for complex charts (heatmaps, 3D, radar, etc.)
 
@@ -11,66 +11,11 @@ Use this script only for:
 
 Color scheme: Morandi low-saturation palette
 """
+import matplotlib.pyplot as plt
+import numpy as np
 import os
-import sys
 
-plt = None
-np = None
-
-
-def print_usage():
-    script_name = os.path.basename(sys.argv[0])
-    print(f"Usage: python {script_name} [output-dir]")
-    print("Generates local PNG chart assets for unsupported or analysis-heavy chart types.")
-    print("Output directory: explicit [output-dir], DOCX_ASSET_OUTPUT_DIR, or the current working directory.")
-    print("Dependencies: matplotlib + numpy.")
-    print("Local PNG assets are working files, not shipped skill outputs.")
-
-
-def load_chart_dependencies():
-    global plt, np
-
-    missing = []
-    try:
-        import matplotlib.pyplot as imported_plt
-    except ImportError:
-        imported_plt = None
-        missing.append("matplotlib")
-
-    try:
-        import numpy as imported_np
-    except ImportError:
-        imported_np = None
-        missing.append("numpy")
-
-    if missing:
-        print(
-            f"Missing dependency for chart asset generation: {', '.join(missing)}",
-            file=sys.stderr,
-        )
-        print("Install them with: python -m pip install matplotlib numpy", file=sys.stderr)
-        print("These PNG assets are local working files, not shipped skill outputs.", file=sys.stderr)
-        raise SystemExit(1)
-
-    plt = imported_plt
-    np = imported_np
-
-    plt.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'DejaVu Sans']
-    plt.rcParams['axes.unicode_minus'] = False
-    plt.rcParams['axes.prop_cycle'] = plt.cycler(color=CHART_COLORS)
-
-def resolve_output_dir():
-    if len(sys.argv) > 1 and sys.argv[1] not in ("-h", "--help", "help"):
-        return os.path.abspath(sys.argv[1])
-
-    env_dir = os.environ.get("DOCX_ASSET_OUTPUT_DIR")
-    if env_dir:
-        return os.path.abspath(env_dir)
-
-    return os.getcwd()
-
-
-OUTPUT_DIR = resolve_output_dir()
+OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Morandi Color Palette - low saturation, elegant
 MORANDI = {
@@ -91,6 +36,11 @@ CHART_COLORS = [
     MORANDI['rose'],
     MORANDI['sage'],
 ]
+
+# Font configuration - cross-platform
+plt.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['axes.prop_cycle'] = plt.cycler(color=CHART_COLORS)
 
 def create_bar_chart():
     """Create bar chart - Quarterly business growth comparison"""
@@ -317,12 +267,6 @@ def create_pie_chart():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help", "help"):
-        print_usage()
-        raise SystemExit(0)
-
-    load_chart_dependencies()
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
     create_bar_chart()
     create_line_chart()
     create_area_chart()

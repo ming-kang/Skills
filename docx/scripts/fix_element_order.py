@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 fix_element_order.py - Auto-fix OpenXML element ordering issues in docx files
 
@@ -18,13 +18,13 @@ This script modifies the docx file IN PLACE.
 
 import sys
 import zipfile
+import tempfile
 import shutil
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
 # Import from shared library
 from docx_lib import fix_element_order_in_tree, fix_settings
-from docx_lib.workspace import create_runtime_workspace
 
 
 def fix_docx(docx_path):
@@ -35,11 +35,11 @@ def fix_docx(docx_path):
         print(f"Error: File not found: {docx_path}")
         return False
 
-    run_succeeded = False
-    workspace = create_runtime_workspace("fix-element-order", contents_dir="extracted")
-    extract_dir = workspace.work_dir
+    # Create temp directory
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        extract_dir = tmpdir / 'extracted'
 
-    try:
         # Extract docx
         try:
             with zipfile.ZipFile(docx_path, 'r') as zf:
@@ -110,7 +110,6 @@ def fix_docx(docx_path):
 
         if total_fixes == 0:
             # Silent when nothing to fix
-            run_succeeded = True
             return True
 
         # Repack docx with correct file order
@@ -142,10 +141,7 @@ def fix_docx(docx_path):
         backup_path.unlink()
 
         print(f"Fixed {total_fixes} element order issues")
-        run_succeeded = True
         return True
-    finally:
-        workspace.cleanup(success=run_succeeded)
 
 
 def main():

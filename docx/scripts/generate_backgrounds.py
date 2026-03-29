@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Background Example - DO NOT COPY, create your own design.
 
@@ -17,42 +17,10 @@ Design Directions (pick one, then create original):
 
 Technical: 794×1123px, device_scale_factor=2, center clear for text, low saturation.
 """
+from playwright.sync_api import sync_playwright
 import os
-import sys
 
-
-def print_usage():
-    script_name = os.path.basename(sys.argv[0])
-    print(f"Usage: python {script_name} [output-dir]")
-    print("Generates local PNG background assets for cover, back cover, and body pages.")
-    print("Output directory: explicit [output-dir], DOCX_ASSET_OUTPUT_DIR, or the current working directory.")
-    print("Dependencies: playwright + Chromium (`python -m playwright install chromium`).")
-    print("Local PNG assets are working files, not shipped skill outputs.")
-
-
-def load_playwright():
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        print("Missing dependency for background asset generation: playwright", file=sys.stderr)
-        print("Install it with: python -m pip install playwright", file=sys.stderr)
-        print("Then install Chromium with: python -m playwright install chromium", file=sys.stderr)
-        raise SystemExit(1)
-
-    return sync_playwright
-
-def resolve_output_dir():
-    if len(sys.argv) > 1 and sys.argv[1] not in ("-h", "--help", "help"):
-        return os.path.abspath(sys.argv[1])
-
-    env_dir = os.environ.get("DOCX_ASSET_OUTPUT_DIR")
-    if env_dir:
-        return os.path.abspath(env_dir)
-
-    return os.getcwd()
-
-
-OUTPUT_DIR = resolve_output_dir()
+OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 PAGE_W = 794
 PAGE_H = 1123
@@ -326,20 +294,8 @@ body {{
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help", "help"):
-        print_usage()
-        return
-
-    sync_playwright = load_playwright()
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-
     with sync_playwright() as p:
-        try:
-            browser = p.chromium.launch()
-        except Exception:
-            print("Chromium is required for background asset generation.", file=sys.stderr)
-            print("Install it with: python -m playwright install chromium", file=sys.stderr)
-            raise SystemExit(1)
+        browser = p.chromium.launch()
         page = browser.new_page(
             viewport={'width': PAGE_W, 'height': PAGE_H},
             device_scale_factor=2
@@ -347,15 +303,15 @@ def main():
 
         page.set_content(COVER_BG_HTML)
         page.screenshot(path=os.path.join(OUTPUT_DIR, 'cover_bg.png'), type='png')
-        print(f"cover_bg.png -> {OUTPUT_DIR}")
+        print("cover_bg.png")
 
         page.set_content(BACKCOVER_BG_HTML)
         page.screenshot(path=os.path.join(OUTPUT_DIR, 'backcover_bg.png'), type='png')
-        print(f"backcover_bg.png -> {OUTPUT_DIR}")
+        print("backcover_bg.png")
 
         page.set_content(BODY_BG_HTML)
         page.screenshot(path=os.path.join(OUTPUT_DIR, 'body_bg.png'), type='png')
-        print(f"body_bg.png -> {OUTPUT_DIR}")
+        print("body_bg.png")
 
         browser.close()
     print("Done - Morandi (no glass frames)")
