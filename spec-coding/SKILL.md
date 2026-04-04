@@ -3,7 +3,7 @@ name: spec-coding
 description: >-
   Triggers when the user mentions "spec coding" / "spec-coding", or invokes
   /spec-coding in Claude Code.
-version: 1.1.2
+version: 1.1.3
 ---
 
 # Spec-Coding
@@ -195,6 +195,8 @@ After loading state from COMPASS.md, populate **TaskCreate** with the active pha
    - The desired skill name (e.g., `spec-coding-<project-name>`)
    - Content outline (see below)
 
+   **If `skill-creator` is not installed**: Tell the user that generating a project-specific sub-skill requires skill-creator to be installed. Instruct them to run: `npx skills add anthropics/skills --skill skill-creator`. Do NOT install it on their behalf.
+
 3. The generated sub-skill must instruct the agent to:
    - Always read `.spec/COMPASS.md` at the start of every conversation
    - Populate **TaskCreate** with pending subtasks before doing any work
@@ -289,7 +291,7 @@ Once Phase 5 is confirmed, development proceeds as a series of **Tasks** (not Ph
    - Check `.spec/archived/` for existing folders with today's date and increment `NN` accordingly
    - Example: `.spec/archived/2026-03-26-01/`
 
-3. Move all current working artifacts into the archive folder, preserving internal structure:
+3. Use filesystem operations to move all current working artifacts into the archive folder, preserving internal structure:
    ```
    .spec/archived/YYYY-MM-DD-NN/
    ├── COMPASS.md
