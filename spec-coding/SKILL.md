@@ -3,7 +3,7 @@ name: spec-coding
 description: >-
   Triggers when the user mentions "spec coding" / "spec-coding", or invokes
   /spec-coding in Claude Code.
-version: 1.1.1
+version: 1.1.2
 ---
 
 # Spec-Coding
@@ -46,7 +46,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 - **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or task, what has already been completed, and continue from exactly where the previous conversation ended. Do NOT restart from Phase 0.
 - **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to Phase 0.
 
-After loading state from COMPASS.md, populate **TodoWrite** with the active phase's pending items. Set in-progress tasks to "in-progress", remaining tasks to "todo", and map priorities as P0=high, P1=medium, P2=low.
+After loading state from COMPASS.md, populate **TaskCreate** with the active phase's pending items. Set in-progress tasks to "in_progress", remaining tasks to "pending", and map priorities as P0=high, P1=medium, P2=low.
 
 ---
 
@@ -58,7 +58,7 @@ After loading state from COMPASS.md, populate **TodoWrite** with the active phas
 
 1. Ask the user to describe their goal in natural language if they haven't already.
 
-2. Use `askUserQuestionTool` to ask structured clarifying questions. Design the questions with predefined options where possible so the user can confirm intent quickly rather than writing long answers. At minimum, cover:
+2. Use `AskUserQuestion` to ask structured clarifying questions. Design the questions with predefined options where possible so the user can confirm intent quickly rather than writing long answers. At minimum, cover:
    - **Scope**: Which parts of the project are in scope?
    - **Target state**: What does the result look like? (e.g., migrated to Rust, extracted into microservices)
    - **Hard constraints**: Backward compatibility, specific libraries, deployment targets, timeline?
@@ -77,7 +77,6 @@ After loading state from COMPASS.md, populate **TodoWrite** with the active phas
 **Subagent**: Delegate analysis work to the built-in **`Explore`** subagent. Launch multiple `Explore` instances in parallel across different areas of the codebase to reduce total analysis time.
 
 **Instructions for `Explore` subagents**:
-
 - Focus on facts, not opinions. Record what exists, not what should exist.
 - Note every module's responsibility, public API surface, and approximate size.
 - Map internal dependencies between modules and external library dependencies.
@@ -191,14 +190,14 @@ After loading state from COMPASS.md, populate **TodoWrite** with the active phas
 
 1. Install the sub-skill at **project scope** (`.claude/skills/` or equivalent project-local location) by default. This keeps it tied to the project and discarded when the cycle is archived.
 
-2. Delegate creation to the platform's native **`skill-creator`** skill, providing:
+2. Delegate creation using the **`skill-creator`** skill (via the `Skill` tool), providing:
    - Task context from Phase 0
    - The desired skill name (e.g., `spec-coding-<project-name>`)
    - Content outline (see below)
 
 3. The generated sub-skill must instruct the agent to:
    - Always read `.spec/COMPASS.md` at the start of every conversation
-   - Populate **TodoWrite** with pending subtasks before doing any work
+   - Populate **TaskCreate** with pending subtasks before doing any work
    - After completing each subtask: check the box in the relevant progress file AND update the completion count and **Current Status** in COMPASS.md
    - Apply the technology-specific coding standards and conventions relevant to this transformation
    - When all checkboxes in COMPASS.md are marked `[x]`, trigger the Archive phase
@@ -250,13 +249,13 @@ Once Phase 5 is confirmed, development proceeds as a series of **Tasks** (not Ph
 **At the start of every Task**:
 1. Read `.spec/COMPASS.md` to confirm current position and re-read **Assumptions & Constraints**
 2. Open the relevant `.spec/progress/task-N-<name>.md`
-3. Populate **TodoWrite** with pending subtasks
+3. Populate **TaskCreate** with pending subtasks
 
 **During each Task**:
 - Work through subtasks one at a time
 - After completing a subtask: check its box in the progress file, update COMPASS.md counts
 - Record any decisions, surprises, or blockers in the Notes section of the progress file
-- Dual-write: TodoWrite (real-time visibility) + Markdown files (cross-conversation persistence)
+- Dual-write: **TaskCreate** (real-time visibility) + Markdown files (cross-conversation persistence)
 
 **Blocked Protocol** — if a subtask fails twice in a row, or if you encounter a constraint conflict you cannot resolve without user input:
 1. Stop immediately. Do not attempt further workarounds.
@@ -320,7 +319,7 @@ Once Phase 5 is confirmed, development proceeds as a series of **Tasks** (not Ph
 3. **Document decisions.** If you make a judgment call, record it in the relevant progress file's Notes section.
 4. **Progress updates are mandatory.** After completing any subtask, immediately update the checkbox AND COMPASS.md counts.
 5. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
-6. **Dual-write progress.** TodoWrite for real-time visibility; Markdown files for cross-conversation persistence.
+6. **Dual-write progress.** **TaskCreate** for real-time visibility; Markdown files for cross-conversation persistence.
 7. **Archive is not optional.** When all Tasks are done, always archive. Don't leave stale artifacts in the working area.
 8. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
 9. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, invoke the Blocked Protocol immediately. Attempting a third workaround without user input is not persistence — it is wasted context.
