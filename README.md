@@ -7,7 +7,7 @@ A collection of Claude Code skills for common tasks. These skills can be used wi
 | Skill | Description |
 |-------|-------------|
 | `docx` | Generate and edit Word documents (.docx) with professional styling, charts, and track changes |
-| `spec-coding` | Spec-driven workflow for complex development tasks with Phase 0-6 preparation, cross-session progress tracking, and archive workflow |
+| `spec-coding` | Spec-driven workflow for complex development (v2.0.2) — Phase 0-6 preparation, cross-session tracking, archive workflow |
 
 ## Directory Structure
 
@@ -27,18 +27,15 @@ skills-root/
 │   └── validator/          # Pre-compiled OpenXML validator
 │
 └── spec-coding/            # Spec-driven complex development workflow skill
-    ├── SKILL.md            # Entry point + behavioral rules (Phase 0-6 + Archive summaries)
+    ├── SKILL.md            # Entry point + Phase 0-6 + Archive workflow
     ├── references/
-    │   ├── phase-*.md       # Detailed instructions for each phase (9 files)
-    │   ├── blocked-protocol.md
-    │   └── subagents/
-    │       ├── explore-brief.md  # Explore subagent prompt template
-    │       └── plan-brief.md     # Plan subagent prompt template
+    │   ├── blocked-protocol.md  # Blocked task handling protocol
+    │   └── subagents.md         # Explore and Plan subagent templates
     └── assets/templates/
-        ├── COMPASS.md           # Incremental control file template
+        ├── COMPASS.md           # Control file template
         ├── analysis/            # architecture.md, module-map.md, risk-register.md
-        ├── plan/               # task-breakdown.md, milestones.md
-        └── progress/           # task.md (per-task progress tracker)
+        ├── plan/                # task-breakdown.md, milestones.md
+        └── progress/            # task.md (per-task progress tracker)
 ```
 
 ## Installation Guide
