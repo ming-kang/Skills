@@ -6,6 +6,11 @@ This file is a prompt template for dispatching Explore subagents during Phase 1.
 
 ## Prompt Template
 
+> **Before dispatching**: Replace every `[BRACKETED]` section in the template below with
+> actual content. Lines 38-39 (the `For [architecture.md...]` block) must either be filled
+> in with file-specific instructions for your assigned analysis area, or removed entirely.
+> Never send bracketed placeholder text to a subagent.
+
 ```
 You are performing a focused codebase analysis for a spec-coding workflow.
 

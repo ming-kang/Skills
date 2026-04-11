@@ -11,7 +11,9 @@ For each Task in `task-breakdown.md`, create `.spec/progress/task-N-<short-name>
 Use the template at `assets/templates/progress/task.md`. For each file:
 - Copy the subtasks from `task-breakdown.md` for that Task
 - Copy the acceptance criteria inline under each subtask
-- Set Status to `IN_PROGRESS` for the first Task, `pending` for all others (note: "pending" is not a valid Status header value — leave it blank or omit the header for not-yet-started tasks; use `IN_PROGRESS` only when work begins)
+- Set `**Status**` in each progress file: `IN_PROGRESS` for the first Task, `PENDING` for all others
+  (This is the progress file's own Status header — it uses the enum: PENDING | IN_PROGRESS | BLOCKED | COMPLETE | SKIPPED)
+- COMPASS.md Task Overview uses `[ ]` checkboxes — those are separate and already templated; do not modify them here
 - Leave Blocked by and Resume point as `N/A`
 - Leave the Notes section empty
 

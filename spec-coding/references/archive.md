@@ -45,7 +45,7 @@ Move all current working artifacts into the archive folder, preserving internal 
 
 ### 5. Remove the Sub-skill
 
-Delete the project-scoped sub-skill installed in Phase 6 from `.claude/skills/`. It was specific to this cycle and is no longer needed.
+Delete the project-scoped sub-skill installed in Phase 6 from `.claude/skills/`. It was specific to this cycle and is no longer needed. If Phase 6 was skipped and no sub-skill was installed, skip this step.
 
 ### 6. Confirm to the User
 

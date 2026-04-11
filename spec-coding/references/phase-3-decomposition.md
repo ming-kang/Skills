@@ -10,7 +10,7 @@ Confirm that `.spec/plan/` exists and that the two template files are in place:
 - `.spec/plan/task-breakdown.md`
 - `.spec/plan/milestones.md`
 
-If they are missing, copy them from `assets/templates/plan/` in the spec-coding skill directory.
+If `.spec/plan/` does not exist, create it. Then copy the templates from `assets/templates/plan/` in the spec-coding skill directory. Do not create the files from scratch.
 
 Confirm COMPASS.md contains a confirmed architecture direction. If it does not, Phase 2 was not completed — do not proceed.
 

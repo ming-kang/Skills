@@ -1,6 +1,6 @@
 # Task N: `<name>`
 
-**Status**: IN_PROGRESS | BLOCKED | COMPLETE | SKIPPED
+**Status**: PENDING | IN_PROGRESS | BLOCKED | COMPLETE | SKIPPED
 **Blocked by**: <!-- Root cause + what was already attempted. "N/A" if not blocked. -->
 **Resume point**: <!-- Which subtask to start from next session. "N/A" if not in progress. -->
 

@@ -13,7 +13,6 @@
 
 **Target criteria**: <!-- What must be true for this milestone to be reached? -->
 **Reached after**: Task N
-**Status**: pending
 
 ---
 
@@ -21,7 +20,6 @@
 
 **Target criteria**:
 **Reached after**: Task N
-**Status**: pending
 
 ---
 

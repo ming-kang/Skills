@@ -3,7 +3,7 @@ name: spec-coding
 description: >-
   Triggers when the user mentions "spec coding" / "spec-coding", or directly /spec-coding in Claude Code.
 metadata:
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # Spec-Coding
