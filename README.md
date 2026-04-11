@@ -7,7 +7,7 @@ A collection of Claude Code skills for common tasks. These skills can be used wi
 | Skill | Description |
 |-------|-------------|
 | `docx` | Generate and edit Word documents (.docx) with professional styling, charts, and track changes |
-| `spec-coding` | Spec-driven workflow for complex development (v2.0.2) — Phase 0-6 preparation, cross-session tracking, archive workflow |
+| `spec-coding` | Modular workflow for complex development (v2.1.0) — reusable analysis, cycle planning in COMPASS, and single-task execution tracking |
 
 ## Directory Structure
 
@@ -26,15 +26,13 @@ skills-root/
 │   ├── assets/templates/   # C# templates (Example.cs, CJKExample.cs)
 │   └── validator/          # Pre-compiled OpenXML validator
 │
-└── spec-coding/            # Spec-driven complex development workflow skill
-    ├── SKILL.md            # Entry point + Phase 0-6 + Archive workflow
+└── spec-coding/            # Modular workflow for complex development
+    ├── SKILL.md            # Entry point + 3 capability modules + archive workflow
     ├── references/
-    │   ├── blocked-protocol.md  # Blocked task handling protocol
-    │   └── subagents.md         # Explore and Plan subagent templates
+    │   └── blocked-protocol.md  # Blocked task handling protocol
     └── assets/templates/
-        ├── COMPASS.md           # Control file template
-        ├── analysis/            # architecture.md, module-map.md, risk-register.md
-        ├── plan/                # task-breakdown.md, milestones.md
+        ├── COMPASS.md           # Current-cycle control file template
+        ├── analysis/            # architecture.md, module-map.md
         └── progress/            # task.md (per-task progress tracker)
 ```
 

@@ -1,27 +1,33 @@
 # Task N: `<name>`
 
-## Status
+## Summary
 
-**Current**: N.1
+**Status**: pending
+**Depends on**: none
+**Acceptance summary**: <!-- Copy the one-line Task acceptance summary from COMPASS.md. -->
 
 ---
 
 ## Subtasks
 
-<!-- Copy subtasks from task-breakdown.md for this Task.
-     Check boxes as you complete them. Mark [blocked] on a subtask if it is stuck. -->
+<!-- Add the concrete subtasks for this Task.
+     Check boxes as you complete them. Use [blocked] if a subtask is blocked. -->
 
-- [ ] N.1 <!-- subtask description -->
-  - Acceptance: <!-- what makes this subtask done -->
-- [ ] N.2
-  - Acceptance:
-- [ ] N.3
-  - Acceptance:
+- [ ] N.1 <subtask description>
+  - Acceptance: <what makes this subtask done>
+- [ ] N.2 <subtask description>
+  - Acceptance: <what makes this subtask done>
+
+---
+
+## Verification
+
+- Pending
 
 ---
 
 ## Notes
 
 <!-- Record decisions, blockers, surprises, and discovered context here.
-     Write to this section — not to the conversation. Conversation text will be lost.
-     Format each note as: [date] <note> -->
+     Use this section for blocked detail, attempted fixes, and missing decisions.
+     Format each note as: [YYYY-MM-DD] <note> -->

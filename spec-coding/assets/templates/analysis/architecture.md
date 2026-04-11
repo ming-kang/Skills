@@ -1,33 +1,32 @@
 # Architecture
 
-<!-- Written: spec-coding Phase 1 (Explore subagent) -->
-<!-- Purpose: Overall architecture, technology stack, entry points, build system -->
+<!-- Long-lived project facts reused across cycles. -->
 
 ---
 
-## Technology Stack
+## Project Snapshot
 
-| Layer | Technology | Version / Notes |
-|:-----:|:---------:|:---------------:|
-| Language | | |
-| Framework | | |
-| Build tool | | |
-| Package manager | | |
-| Test runner | | |
-| Other | | |
+| Category | Details |
+|:--------:|:-------:|
+| Project / product type | |
+| Primary language / runtime | |
+| Frameworks / libraries | |
+| Build / package tools | |
+| Test / lint tools | |
+| Runtime / deployment targets | |
 
 ## Entry Points
 
-<!-- List all entry points: main files, CLI commands, server start commands, exported root modules -->
+<!-- Main files, CLI commands, servers, exported roots, or other top-level entry points. -->
 
 | Entry Point | Path | Purpose |
 |:-----------:|:----:|:-------:|
 | | | |
 
-## Build & Run Commands
+## Common Commands
 
-```
-# Build:
+```text
+# Setup:
 
 # Run:
 
@@ -36,22 +35,21 @@
 # Lint / format:
 ```
 
-## High-Level Architecture
+## Architecture Notes
 
-<!-- Describe the overall structure in prose. 2-5 paragraphs.
-     Cover: how the system is organized, what the main layers are, how data flows,
-     what the key architectural patterns are (MVC, layered, event-driven, etc.) -->
+<!-- Summarize the overall structure in concise prose.
+     Cover how the system is organized, how data flows, and the patterns that matter to future planning. -->
 
 ## Architectural Patterns in Use
 
-<!-- List patterns explicitly observed in the code, with evidence (file paths) -->
+<!-- List patterns explicitly observed in the code, with evidence when useful. -->
 
 - 
 
 ## External Integrations
 
-<!-- APIs, databases, message queues, file systems, external services -->
+<!-- APIs, databases, queues, file systems, external services, or platform dependencies. -->
 
 | Integration | Type | Where Used |
-|:----------:|:----:|:---------:|
+|:-----------:|:----:|:----------:|
 | | | |

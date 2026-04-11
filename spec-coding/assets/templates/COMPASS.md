@@ -1,57 +1,46 @@
 # COMPASS
 
-**Task Definition**: <!-- One paragraph. What is being built or changed, and why. -->
+**Goal**: <!-- One paragraph. What is being built or changed, and why. -->
 
 **Assumptions & Constraints**:
-<!-- Non-negotiable boundaries. Every implementation decision is checked against this list.
-     Examples: "must not break public API", "stdlib only", "must support Node 18+", "no new dependencies" -->
+<!-- Non-negotiable boundaries. Every implementation decision is checked against this list. -->
 
 - 
 
 ---
 
-<!-- The sections below are filled in incrementally. Do not fill them until the relevant Phase is complete. -->
-
-## Analysis  <!-- Added at end of Phase 1 -->
-
-**Architecture direction confirmed**: <!-- One sentence: which option was chosen and why. -->
+## Analysis
 
 | Document | Path |
 |:--------:|:----:|
 | Architecture | [architecture.md](./analysis/architecture.md) |
 | Module Map | [module-map.md](./analysis/module-map.md) |
-| Risk Register | [risk-register.md](./analysis/risk-register.md) |
 
-## Plan  <!-- Added at end of Phase 3 -->
+## Task Overview
 
-| Document | Path |
-|:--------:|:----:|
-| Task Breakdown | [task-breakdown.md](./plan/task-breakdown.md) |
-| Milestones | [milestones.md](./plan/milestones.md) |
+<!-- Summary only. Keep subtask detail inside the progress files. -->
 
-### Task Overview
+- [pending] Task N: <name> — Depends on: <none or Task IDs> — Acceptance: <one-line summary> — [details](./progress/task-N-<name>.md)
+- [active] Task N: <name> — Depends on: <none or Task IDs> — Acceptance: <one-line summary> — [details](./progress/task-N-<name>.md)
+- [blocked] Task N: <name> — Depends on: <none or Task IDs> — Acceptance: <one-line summary> — [details](./progress/task-N-<name>.md)
+- [done] Task N: <name> — Depends on: <none or Task IDs> — Acceptance: <one-line summary> — [details](./progress/task-N-<name>.md)
 
-<!-- Format is as follows -->
+## Risk Watchlist
 
-- [ ] Task N: <name> — [details](./progress/task-N-<name>.md)
-- [x] Task N: <name> — [details](./progress/task-N-<name>.md)
-- [blocked] Task N: <name> — [details](./progress/task-N-<name>.md)
+<!-- Keep this short. One line each: risk name, affected Task(s), signal, where to look next. -->
 
-
-### Milestones
-
-<!-- Format is as follows -->
-
-- [ ] M 1: <name> — <target criteria>
-- [x] M 1: <name> — <target criteria>
+- 
 
 ---
 
-## Status  <!-- Updated continuously during implementation -->
+## Status
 
-**Current Status**: <!-- Which Task is active, what was last completed -->
+**Current Status**: <!-- One or two sentences. -->
 
-**Next Steps**: <!-- What a fresh agent should do immediately upon reading this file. Max 3 bullet points. -->
+**Active Task**: <!-- Task N or "none" -->
+
+**Next Step**:
+<!-- What a fresh agent should do immediately upon reading this file. Max 3 bullet points. -->
 
 ---
 
