@@ -6,7 +6,7 @@
 
 ### When to Use
 
-Phase 1: Deep Project Analysis. Dispatch multiple Explore subagents in parallel, each assigned to a distinct architectural boundary.
+Phase 1: Deep Project Analysis. Dispatch `Explore` subagents in parallel, each assigned to a distinct architectural boundary.
 
 ### Prompt Template
 
@@ -44,7 +44,7 @@ For each module or component in your assigned area, record:
 ---
 
 When you are done, provide:
-1) a structured findings list that the main agent can paste into `.spec/analysis/*`
+1) a structured findings list
 2) the most important finding in 2–3 sentences
 3) any confidence gaps or unknowns
 ```
@@ -56,7 +56,7 @@ When you are done, provide:
   - Agent B: infrastructure layer (DB, external APIs, file I/O)
   - Agent C: entry points, routing, public API surface
 - Dispatch all in parallel.
-- If the project is small (<~20 files), a single Explore pass is sufficient.
+- If the project is small (<~20 files), a single `Explore` pass is sufficient.
 - The main agent consolidates all reports and performs all writes to `.spec/analysis/*`.
 
 ---
@@ -65,11 +65,11 @@ When you are done, provide:
 
 ### When to Use
 
-Phase 3: Task Decomposition. Dispatch one Plan subagent after all three analysis files are complete and the architecture direction is confirmed in COMPASS.md.
+Phase 3: Task Decomposition. Dispatch one `Plan` subagent after all three analysis files are complete and the architecture direction is confirmed in `COMPASS.md`.
 
 ### Prompt Template
 
-> **Before dispatching**: Fill in all three bracketed context sections with actual content from COMPASS.md. Ensure `.spec/plan/` exists and both template files are in place — Plan cannot create directories.
+> **Before dispatching**: Fill in all three bracketed context sections with actual content from `COMPASS.md`. Ensure `.spec/plan/` exists and both template files are in place.
 
 ```
 You are performing task decomposition for a spec-coding workflow. Your job is to produce a concrete, complete, actionable plan — no placeholders, no deferred decisions.
@@ -90,7 +90,7 @@ Analysis documents to read before doing anything else:
 - .spec/analysis/module-map.md
 - .spec/analysis/risk-register.md
 
-Output files (templates are already in place — fill them, do not create new files):
+Output files (templates in `assets\templates\plan`):
 - .spec/plan/task-breakdown.md
 - .spec/plan/milestones.md
 
@@ -108,8 +108,8 @@ If you cannot fully specify something yet, stop and think harder — do not writ
 
 **For each Task, define:**
 - Description: what to do, specifically
-- Priority: P0 (must have), P1 (should have), P2 (nice to have)
-- Effort: S (hours), M (1-2 days), L (3-5 days), XL (>1 week)
+- Priority: P1 (must have), P2 (should have), P3 (nice to have)
+- Effort: Small, Medium, High
 - Dependencies: which other Tasks must be complete first
 - Acceptance criteria: the conditions that make this Task done — concrete and checkable
 

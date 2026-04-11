@@ -1,12 +1,12 @@
 # Module Map
 
-<!-- Written by: spec-coding Phase 1 (Explore subagent) -->
+<!-- Written: spec-coding Phase 1 (Explore subagent) -->
 <!-- Purpose: Every module in the project with responsibility, dependencies, and complexity -->
 
 ---
 
 <!-- Repeat the entry below for every significant module or component.
-     "Module" means a file, directory, package, or logical unit — pick the right granularity for the project.
+     "Module" means a file, directory, package, or logical unit -- pick the right granularity for the project.
      Do not omit modules because they seem unimportant. Flag them as "trivial" if needed. -->
 
 ## `<module-name>`

@@ -1,6 +1,6 @@
 # Risk Register
 
-<!-- Written by: spec-coding Phase 1 (Explore subagent) -->
+<!-- Written: spec-coding Phase 1 (Explore subagent) -->
 <!-- Purpose: Technical risks, compatibility concerns, and complexity hotspots that could affect the plan -->
 
 ---

@@ -1,37 +1,40 @@
 ---
 name: spec-coding
 description: >-
-  Triggers when the user mentions "spec coding" / "spec-coding", or directly /spec-coding in Claude Code.
+  Triggers only when the user wants to do spec coding.
 metadata:
-  version: "2.0.1"
+  version: "2.0.2"
 ---
 
 # Spec-Coding
 
-You are executing the **Spec-Coding** workflow — a structured pre-development pipeline for large-scale, complex tasks. Complete all preparation Phases before any implementation begins.
+You are executing the **Spec-Coding** workflow — a structured pre-development pipeline for large-scale, complex tasks.
+
+Complete all preparation Phases before any implementation begins.
+
+If you don't have specific tools mentioned like `Taskcreate`, use alternatives you have.
 
 ---
 
 ## Behavioral Rules
 
-1. **No code before approval.** No code, scaffolding, or pseudo-code until the user approves the plan at Phase 4.
-2. **Give opinions directly.** Take a position on architectural choices. State your recommendation and the evidence that would change it.
-3. **Adversarial-test the recommendation.** Before presenting an option as recommended, attack it: what would make it fail? Harden or discard based on the result.
-4. **No placeholders in approved plans.** Forbidden: TBD, TODO, "implement later", "similar to Task N", "details to be determined". A plan with placeholders is not approvable.
-5. **Confirm the working path.** Verify `.spec/` is in `.gitignore` before writing any files.
-6. **Never skip phases.** Even for small projects, produce lightweight versions of each phase's outputs.
-7. **Confirm at every phase boundary.** Every phase transition is a checkpoint.
-8. **COMPASS.md is your memory.** New conversation = read COMPASS.md first, non-negotiable.
-9. **Dual-write progress.** TaskCreate for real-time visibility; Markdown files for cross-conversation persistence.
-10. **Stop before you spiral.** Two failures or one constraint conflict → Blocked Protocol. Immediately.
-11. **Archive is not optional.** When all Tasks are done, always archive. Do not leave stale artifacts.
-12. **`.spec/` is always gitignored.** Verify at the start of every fresh session.
+1. **COMPASS.md is your memory.** New conversation = read COMPASS.md first, non-negotiable.
+2. **Never skip phases.** Even for small projects, produce lightweight versions of each phase's outputs.
+3. **Confirm at phase boundaries.** Every phase transition is a checkpoint.
+4. **Stop before you spiral.** Two failures or one constraint conflict → Blocked Protocol. Immediately.
+5. **Archive is not optional.** When all Tasks are done, always archive. Do not leave stale artifacts.
+6. **`.spec/` is always gitignored.** Verify at the start of every fresh session.
+7. **No code before approval.** No code, scaffolding, or pseudo-code until the user approves the plan at Phase 4.
+8. **Give opinions directly.** Take a position on architectural choices. State your recommendation and the evidence that would change it.
+
+
+**No placeholders in approved plans.** Forbidden: TBD, TODO, "implement later", "similar to Task N", "details to be determined". A plan with placeholders is not approvable.
 
 ---
 
 ## Directory Structure
 
-All spec-coding artifacts live under `.spec/`. This directory is **never committed to version control** — ensure `.spec/` is in `.gitignore` before creating any files.
+All spec-coding artifacts live under `.spec/`. This directory is **never committed to version control**.
 
 ```
 .spec/
@@ -44,12 +47,12 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 │   ├── task-breakdown.md         # Includes Mermaid dependency graph
 │   └── milestones.md
 ├── progress/
-│   └── task-N-<short-name>.md   # One file per Task
+│   └── task-N-<short-name>.md  	  # One file per Task
 └── archived/
     └── YYYY-MM-DD-NN/            # Completed development cycles
 ```
 
-Templates for all files above are in `assets/templates/` in this skill directory.
+Templates for all files above are in skill directory `assets/templates/`.
 
 ---
 
@@ -66,11 +69,11 @@ After loading state from COMPASS.md, populate **TaskCreate** with the active pha
 
 ## Phase 0: Intent Recognition & Confirmation
 
-### Stage 0: Quick Scan (Silent)
+### Stage 0: Quick Scan
 
-Before speaking, spend 30 seconds orienting. Write nothing — this step exists only to make your questions grounded.
+This exists to help you orient and make your questions grounded.
 
-- Read `README.md`, `CLAUDE.md`, `AGENTS.md` if they exist
+- Read `README.md`, `CLAUDE.md`, `AGENTS.md`,  etc.
 - Scan the top-level directory structure
 - Identify technology stack signals: `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, etc.
 
@@ -94,7 +97,8 @@ Confirm at minimum: scope, hard constraints (backward compatibility, libraries, 
 
 Summarize your complete understanding and get explicit user confirmation before proceeding.
 
-**Phase 0 output**: Create `.spec/COMPASS.md` from `assets/templates/COMPASS.md`. Fill in only:
+**Phase 0 output**: Create `.spec/COMPASS.md` from `assets/templates/`. Fill in only:
+
 - **Task Definition**
 - **Assumptions & Constraints**
 
@@ -108,25 +112,21 @@ Leave all other sections as-is. Do not fill in what you do not yet know.
 
 ### Before You Begin
 
-Confirm that `.spec/analysis/` exists and that the three template files are in place:
-- `.spec/analysis/architecture.md`
-- `.spec/analysis/module-map.md`
-- `.spec/analysis/risk-register.md`
+Create `architecture.md` `module-map.md` `risk-register.md` from `assets/templates/analysis`.
 
-If they are missing, copy them from `assets/templates/analysis/` in the spec-coding skill directory. Do not create them from scratch.
-
-### Dispatching Explore Subagents
+### Dispatch `Explore`
 
 Read `references/subagents.md` — Explore section — for the prompt template. Adapt it for each subagent you dispatch.
 
-**Split the work by architectural boundary**, not by file count. One agent per logical area is more effective than one agent per directory. Examples:
+**If the project is small** (roughly 20 files or fewer), a single Explore pass is sufficient. 
+
+Otherwise, **split the work by architectural boundary**, not by file count. One agent per logical area is more effective than one agent per directory. Examples:
+
 - Core domain logic + data models
 - Infrastructure layer (DB, external APIs, file I/O)
 - Entry points, routing, public API surface
 
-Dispatch all agents in parallel. Each agent reports findings back to the main agent. The main agent is the single writer for `.spec/analysis/*` and consolidates all findings into the three output files.
-
-**If the project is small** (roughly 20 files or fewer), a single Explore pass is sufficient.
+Dispatch all agents in parallel. After `Explore` subagents report findings back to you, write`.spec/analysis/*`and consolidates all findings into the three output files.
 
 ### Output: `.spec/analysis/`
 
@@ -163,9 +163,9 @@ Propose **2–3 options**. Always include one minimal option.
 For each option:
 
 | Field | Content |
-|-------|---------|
+|:-----:|:-------:|
 | **Summary** | One sentence: what this approach does |
-| **Effort** | S / M / L / XL |
+| **Effort** | Small/Medium/High |
 | **Risk** | What could go wrong |
 | **Builds on** | Which existing code or patterns it leverages |
 
@@ -203,18 +203,16 @@ Proceed to Phase 3.
 
 ### Before You Begin
 
-Confirm `.spec/plan/` exists with both template files in place:
-- `.spec/plan/task-breakdown.md`
-- `.spec/plan/milestones.md`
+Confirm `COMPASS.md` has a confirmed architecture direction — if not, Phase 2 was not completed.
 
-If missing, create `.spec/plan/` and copy the templates from `assets/templates/plan/`. Confirm COMPASS.md has a confirmed architecture direction — if not, Phase 2 was not completed.
+Create `task-breakdown.md` `milestones.md` from `assets/templates/plan`.
 
-### Dispatching the Plan Subagent
+### Dispatch `Plan`
 
 Read `references/subagents.md` — Plan section — for the prompt template. Fill in:
-- The task definition from COMPASS.md
-- The confirmed architecture direction from COMPASS.md
-- The full Assumptions & Constraints from COMPASS.md
+- The task definition from `COMPASS.md`
+- The confirmed architecture direction from `COMPASS.md`
+- The full Assumptions & Constraints from `COMPASS.md`
 
 Dispatch Plan after the template is filled.
 
@@ -228,8 +226,8 @@ If any found: send Plan back with a list of every occurrence and the instruction
 
 ### Output: `.spec/plan/`
 
-- **task-breakdown.md**: every Task with description, priority (P0/P1/P2), effort (S/M/L/XL), dependencies, subtasks, acceptance criteria; Mermaid dependency graph; Tasks ordered by dependency
-- **milestones.md**: 3–5 milestones, each an end-to-end working state or retired risk, with explicit demonstrable target criteria
+- **task-breakdown.md**: every Task with description, priority (P1/P2/P3), effort (Small/Medium/High), dependencies, subtasks, acceptance criteria; Mermaid dependency graph; Tasks ordered by dependency.
+- **milestones.md**: 3–5 milestones, each an end-to-end working state or retired risk, with explicit demonstrable target criteria.
 
 ### Phase Boundary
 
@@ -263,7 +261,7 @@ Explicitly ask the user to check:
 Diagnose the root cause before acting:
 
 | Feedback type | Root cause | Action |
-|--------------|-----------|--------|
+|:------------:|:---------:|:------:|
 | Task description unclear, wrong granularity, missing functionality | Plan output incomplete | Return to Phase 3: re-dispatch Plan with corrected instructions |
 | Analysis missed a module, factual gap | Phase 1 analysis wrong | Return to Phase 1: targeted Explore, update analysis file, re-run Phase 3 |
 | Architecture direction wrong | Phase 2 decision wrong | Return to Phase 2: re-present options, new confirmation, re-run Phase 3 |
@@ -276,7 +274,7 @@ State the diagnosis to the user before acting. Confirm with the user before retu
 
 Phase 4 is complete when the user explicitly approves the plan (e.g., "looks good", "approved", "proceed").
 
-Update COMPASS.md: add links to both plan documents, fill in the Task Overview table (all Tasks, initial `[ ]`), fill in the Milestones table (all milestones, initial `[ ]`).
+Update `COMPASS.md`: add links to both plan documents, fill in the Task Overview table (all Tasks, initial `[ ]`), fill in the Milestones table (all milestones, initial `[ ]`).
 
 Proceed to Phase 5.
 
@@ -288,15 +286,15 @@ Proceed to Phase 5.
 
 ### Step 1: Create Progress Files
 
-For each Task in `task-breakdown.md`, create `.spec/progress/task-N-<short-name>.md`.
+For each Task in `task-breakdown.md`, create `task-N-<short-name>.md` from `assets/templates/progress/task.md`. 
 
-Use `assets/templates/progress/task.md`. For each file:
+For each file:
+
 - Copy the subtasks and acceptance criteria from `task-breakdown.md`
 - Set **Current** to the first subtask of that Task (e.g., `1.1`); leave other tasks' Current blank until active
 - Leave the Notes section empty
 
-Naming convention: short (2–4 word) kebab-case derived from the Task name.
-Example: Task 3 "Refactor authentication layer" → `task-3-refactor-auth.md`
+Naming example: Task 3 "Refactor authentication layer" → `task-3-refactor-auth.md`
 
 ### Step 2: Complete COMPASS.md
 
@@ -305,13 +303,14 @@ Fill in the two remaining sections:
 **Current Status**: "Phase 5 complete. Ready to begin Task 1: `<name>`."
 
 **Next Steps**:
+
 - Read `.spec/plan/task-breakdown.md` to understand the full scope
 - Open `.spec/progress/task-1-<name>.md` and begin the first subtask
 - Re-read Assumptions & Constraints before touching any code
 
 ### Phase Boundary
 
-Phase 5 is complete when one progress file exists per Task and COMPASS.md Current Status and Next Steps are filled. Proceed to Phase 6.
+Phase 5 is complete when progress files exists and `COMPASS.md`'s Current Status and Next Steps are filled. Proceed to Phase 6.
 
 ---
 
@@ -319,9 +318,11 @@ Phase 5 is complete when one progress file exists per Task and COMPASS.md Curren
 
 **Goal**: Generate a project-scoped sub-skill that encodes this project's implementation standards and continuity protocol.
 
-Install at **project scope only**: `.claude/skills/` in the project root. Name it `spec-coding-<project-name>`. It is removed when the Archive Phase runs.
+Install at **project scope only**: `./.claude/skills/`.
 
-Delegate creation to **`skill-creator`** via the `Skill` tool. Provide it the task context from COMPASS.md, the sub-skill name, and the content outline below.
+Name it `spec-coding-<project-name>`. It is removed when the Archive Phase runs.
+
+Delegate creation to `skill-creator`. Provide it the task context from `COMPASS.md`, the sub-skill name, and the content outline below.
 
 **If `skill-creator` is not installed**: Tell the user it is required and instruct them to install it with `npx skills add anthropics/skills --skill skill-creator`. Do not install it on their behalf. Once installed, return to this phase.
 
@@ -330,32 +331,34 @@ Delegate creation to **`skill-creator`** via the `Skill` tool. Provide it the ta
 The generated sub-skill must instruct the agent to do the following.
 
 **Session Startup** (every conversation, non-negotiable):
+
 1. Read `.spec/COMPASS.md` first — before any other file, before any action
 2. Identify the active Task from the Task Overview table
 3. Open that Task's progress file in `.spec/progress/`
-4. Populate TaskCreate with all unchecked subtasks; set the current subtask to `in_progress`, remainder to `pending`
+4. Populate `TaskCreate` with all unchecked subtasks.
 5. Re-read Assumptions & Constraints before touching any code
 
 **During Implementation**:
-- Before each implementation decision, check it against Assumptions & Constraints — if it conflicts, stop and invoke the Blocked Protocol
-- After completing a subtask: check its box `[x]` in the progress file, update **Current** to the next subtask, mark the TaskCreate item complete
-- Record decisions, surprises, and discovered context in the progress file Notes section — not in conversation text
-- Dual-write: TaskCreate for real-time visibility; Markdown files for cross-conversation persistence
 
-**Blocked Protocol**: Include the full content of `references/blocked-protocol.md` from the spec-coding skill directory verbatim. Do not paraphrase it.
+- Before each implementation decision, check it against Assumptions & Constraints — if it conflicts, stop and invoke the Blocked Protocol.
+- After completing a subtask: check its box `[x]` in the progress file, update **Current** to the next subtask, use `TaskUpdate` to mark the item as completed.
+- Record decisions, surprises, and discovered context in the progress file Notes section — not in conversation text
+- Dual-write: `TaskCreate` for real-time visibility; Markdown files for cross-conversation persistence
+
+**Blocked Protocol**: Include the full content of `references/blocked-protocol.md` .
 
 **Task Completion**:
 - Verify all acceptance criteria before marking complete
-- Mark `[x]` in COMPASS.md Task Overview
-- Update Current Status and Next Steps in COMPASS.md
-- Check `milestones.md`: if this Task satisfies a milestone's criteria, mark it `[x]` in COMPASS.md and notify the user
+- Mark `[x]` in `COMPASS.md` Task Overview
+- Update Current Status and Next Steps in `COMPASS.md`
+- Check `milestones.md`: if this Task satisfies a milestone's criteria, mark it `[x]` in `COMPASS.md` and notify the user
 - When all Tasks are `[x]`, trigger the Archive Phase automatically
 
 **Project-Specific Standards**: Fill in from Phase 0 and Phase 1 analysis — tech stack conventions, naming rules, file organization, testing requirements.
 
 ### Phase Boundary
 
-Phase 6 is complete when the sub-skill is installed and visible. Proceed to Handoff.
+Phase 6 is complete when the project-scope sub-skill is installed and visible. Proceed to Handoff.
 
 ---
 
@@ -395,21 +398,22 @@ Once Handoff is confirmed, development proceeds as a series of **Tasks**.
 **At the start of every Task**:
 1. Read `.spec/COMPASS.md` — confirm position, re-read Assumptions & Constraints
 2. Open `.spec/progress/task-N-<name>.md`
-3. Populate TaskCreate with pending subtasks
+3. Populate `TaskCreate` with subtasks
 
 **During each Task**:
-- Work through subtasks one at a time
-- After each subtask: check its box `[x]` in the progress file, update **Current** to the next subtask, mark TaskCreate item complete
-- Record decisions, surprises, blockers in the progress file Notes section — not in conversation text
-- Dual-write: TaskCreate (real-time) + Markdown files (cross-conversation persistence)
-- If a subtask fails twice or hits a constraint conflict → invoke the **Blocked Protocol** immediately
+- Work through subtasks one at a time.
+- After each subtask: check its box `[x]` in the progress file, update **Current** to the next subtask, use `TaskUpdate` to mark the item as completed.
+- Record decisions, surprises, blockers in the progress file Notes section — not in conversation text.
+- Dual-write: `TaskCreate` (real-time) + Markdown files (cross-conversation persistence).
+- If a subtask fails twice or hits a constraint conflict → invoke the **Blocked Protocol** immediately.
 
 **At the end of every Task**:
-- Verify all acceptance criteria
-- Mark `[x]` in COMPASS.md Task Overview
-- Update Current Status and Next Steps in COMPASS.md
-- Check `milestones.md`: if this Task satisfies a milestone's criteria, mark it `[x]` in COMPASS.md and notify the user
-- When all Tasks are `[x]`: trigger the Archive Phase
+
+- Verify all acceptance criteria.
+- Mark `[x]` in `COMPASS.md` Task Overview.
+- Update Current Status and Next Steps in `COMPASS.md`.
+- Check `milestones.md`: if this Task satisfies a milestone's criteria, mark it `[x]` in `COMPASS.md` and notify the user.
+- When all Tasks are `[x]`: trigger the Archive Phase.
 
 ---
 
@@ -419,19 +423,19 @@ See [references/blocked-protocol.md](references/blocked-protocol.md) for the ful
 
 **Trigger**: A subtask has failed twice, OR an implementation decision conflicts with Assumptions & Constraints and cannot be resolved without user input.
 
-**Core rule**: Stop immediately. Do not attempt a third workaround. Mark the subtask `[blocked]` in the progress file, mark the Task `[blocked]` in COMPASS.md, then report to the user with root cause and what is needed to unblock.
+**Core rule**: Stop immediately. Do not attempt a third workaround. Mark the subtask `[blocked]` in the progress file, mark the Task `[blocked]` in `COMPASS.md`, then report to the user with root cause and what is needed to unblock.
 
 ---
 
 ## Archive Phase
 
-**Trigger**: All Tasks in COMPASS.md are marked `[x]`.
+**Trigger**: All Tasks in `COMPASS.md` are marked `[x]`.
 
 ### Steps
 
 1. **Announce** to the user that all Tasks are complete and the Archive Phase is beginning.
 
-2. **Git Snapshot**: If the project is a git repository — prompt the user to commit any pending code changes. Once committed, record the commit hash in `**Final commit**` in COMPASS.md. If the user declines, record `none (user skipped)`. If not a git repo, skip.
+2. **Git Snapshot**: If the project is a git repository — prompt the user to commit any pending code changes. Once committed, record the commit hash in `Final commit` in `COMPASS.md`. If the user declines, record `none (user skipped)`. If not a git repo, skip.
 
 3. **Determine archive folder name**: Format `YYYY-MM-DD-NN`. Check `.spec/archived/` for existing folders with today's date and increment `NN` accordingly (starting at `01`).
 
@@ -450,7 +454,7 @@ See [references/blocked-protocol.md](references/blocked-protocol.md) for the ful
     └── task-N-*.md
 ```
 
-5. **Remove the sub-skill** from `.claude/skills/`. If Phase 6 was skipped, skip this step.
+5. **Remove the project-scope sub-skill** from `.claude/skills/`.
 
 6. **Confirm to the user**: what was archived and its location, the final commit hash (if applicable), that `.spec/` is clean and ready for the next cycle.
 

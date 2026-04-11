@@ -1,6 +1,6 @@
 # Architecture
 
-<!-- Written by: spec-coding Phase 1 (Explore subagent) -->
+<!-- Written: spec-coding Phase 1 (Explore subagent) -->
 <!-- Purpose: Overall architecture, technology stack, entry points, build system -->
 
 ---
@@ -8,7 +8,7 @@
 ## Technology Stack
 
 | Layer | Technology | Version / Notes |
-|-------|-----------|-----------------|
+|:-----:|:---------:|:---------------:|
 | Language | | |
 | Framework | | |
 | Build tool | | |
@@ -21,7 +21,7 @@
 <!-- List all entry points: main files, CLI commands, server start commands, exported root modules -->
 
 | Entry Point | Path | Purpose |
-|-------------|------|---------|
+|:-----------:|:----:|:-------:|
 | | | |
 
 ## Build & Run Commands
@@ -53,5 +53,5 @@
 <!-- APIs, databases, message queues, file systems, external services -->
 
 | Integration | Type | Where Used |
-|------------|------|-----------|
+|:----------:|:----:|:---------:|
 | | | |
