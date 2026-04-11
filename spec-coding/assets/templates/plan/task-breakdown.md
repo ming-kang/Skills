@@ -1,6 +1,6 @@
 # Task Breakdown
 
-<!-- Written by: spec-coding Phase 3 (Plan subagent) -->
+<!-- Written: spec-coding Phase 3 (Plan subagent) -->
 <!-- Purpose: All Tasks with full detail, plus dependency graph -->
 
 ---
@@ -23,8 +23,8 @@ graph TD
 
 ## Task N: `<name>`
 
-**Priority**: P0 / P1 / P2
-**Effort**: S / M / L / XL
+**Priority**: P1/P2/P3
+**Effort**: Small/Medium/High
 **Dependencies**: Task X, Task Y (or "none")
 
 **Description**:
@@ -37,8 +37,8 @@ graph TD
 
 **Acceptance criteria**:
 <!-- The conditions that make this Task done. Each criterion must be concrete and checkable. -->
-- 
-- 
+- N.1: 
+- N.2: 
 
 ---
 
