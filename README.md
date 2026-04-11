@@ -27,7 +27,18 @@ skills-root/
 │   └── validator/          # Pre-compiled OpenXML validator
 │
 └── spec-coding/            # Spec-driven complex development workflow skill
-    └── SKILL.md            # 5-phase workflow definition
+    ├── SKILL.md            # Entry point + behavioral rules (Phase 0–6 summaries)
+    ├── references/
+    │   ├── phase-*.md       # Detailed instructions for each phase (9 files)
+    │   ├── blocked-protocol.md
+    │   └── subagents/
+    │       ├── explore-brief.md  # Explore subagent prompt template
+    │       └── plan-brief.md     # Plan subagent prompt template
+    └── assets/templates/
+        ├── COMPASS.md           # Incremental control file template
+        ├── analysis/            # architecture.md, module-map.md, risk-register.md
+        ├── plan/               # task-breakdown.md, milestones.md
+        └── progress/           # task.md (per-task progress tracker)
 ```
 
 ## Installation Guide
