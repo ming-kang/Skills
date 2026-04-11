@@ -2,6 +2,7 @@
 name: spec-coding
 description: >-
   Triggers only when the user wants to do spec coding.
+disable-model-invocation: true
 metadata:
   version: "2.0.2"
 ---
@@ -12,7 +13,7 @@ You are executing the **Spec-Coding** workflow — a structured pre-development 
 
 Complete all preparation Phases before any implementation begins.
 
-If you don't have specific tools mentioned like `Taskcreate`, use alternatives you have.
+If a specific tool mentioned here is unavailable, use the closest equivalent available in your environment.
 
 ---
 
@@ -26,9 +27,7 @@ If you don't have specific tools mentioned like `Taskcreate`, use alternatives y
 6. **`.spec/` is always gitignored.** Verify at the start of every fresh session.
 7. **No code before approval.** No code, scaffolding, or pseudo-code until the user approves the plan at Phase 4.
 8. **Give opinions directly.** Take a position on architectural choices. State your recommendation and the evidence that would change it.
-
-
-**No placeholders in approved plans.** Forbidden: TBD, TODO, "implement later", "similar to Task N", "details to be determined". A plan with placeholders is not approvable.
+9. **No placeholders in approved plans.** A plan with placeholders is not approvable.
 
 ---
 
@@ -52,7 +51,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
     └── YYYY-MM-DD-NN/            # Completed development cycles
 ```
 
-Templates for all files above are in skill directory `assets/templates/`.
+Templates for all files above are in the skill directory at `assets/templates/`.
 
 ---
 
@@ -73,7 +72,7 @@ After loading state from COMPASS.md, populate **TaskCreate** with the active pha
 
 This exists to help you orient and make your questions grounded.
 
-- Read `README.md`, `CLAUDE.md`, `AGENTS.md`,  etc.
+- Read `README.md`, `CLAUDE.md`, `AGENTS.md`, etc.
 - Scan the top-level directory structure
 - Identify technology stack signals: `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, etc.
 
@@ -126,7 +125,7 @@ Otherwise, **split the work by architectural boundary**, not by file count. One 
 - Infrastructure layer (DB, external APIs, file I/O)
 - Entry points, routing, public API surface
 
-Dispatch all agents in parallel. After `Explore` subagents report findings back to you, write`.spec/analysis/*`and consolidates all findings into the three output files.
+Dispatch all agents in parallel. After `Explore` subagents report findings back to you, write `.spec/analysis/*` and consolidate all findings into the three output files.
 
 ### Output: `.spec/analysis/`
 
@@ -310,7 +309,7 @@ Fill in the two remaining sections:
 
 ### Phase Boundary
 
-Phase 5 is complete when progress files exists and `COMPASS.md`'s Current Status and Next Steps are filled. Proceed to Phase 6.
+Phase 5 is complete when progress files exist and `COMPASS.md`'s Current Status and Next Steps are filled. Proceed to Phase 6.
 
 ---
 
@@ -345,7 +344,7 @@ The generated sub-skill must instruct the agent to do the following.
 - Record decisions, surprises, and discovered context in the progress file Notes section — not in conversation text
 - Dual-write: `TaskCreate` for real-time visibility; Markdown files for cross-conversation persistence
 
-**Blocked Protocol**: Include the full content of `references/blocked-protocol.md` .
+**Blocked Protocol**: Include the full content of `references/blocked-protocol.md`.
 
 **Task Completion**:
 - Verify all acceptance criteria before marking complete
