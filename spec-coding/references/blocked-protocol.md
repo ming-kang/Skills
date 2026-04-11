@@ -14,12 +14,11 @@ Two failures is the limit. A third attempt without user input is not persistence
 1. **Stop immediately.** Do not attempt further workarounds or alternatives.
 
 2. **Update the progress file**:
-   - Set `**Status**` to `BLOCKED`
-   - Fill `**Blocked by**` with the root cause and what was already attempted (be specific — "tried X, got error Y; tried Z, got error W")
-   - Set `**Resume point**` to the exact subtask where you stopped
+   - Mark the stuck subtask as `[blocked]` (replace `[ ]` with `[blocked]`)
+   - Add a note in the Notes section: root cause and what was already attempted (be specific — "tried X, got error Y; tried Z, got error W")
 
 3. **Update COMPASS.md**:
-   - Change the Task entry from `- [ ]` to `- [!]` and append `⚠ BLOCKED`
+   - Change the Task entry from `- [ ] Task N` to `- [blocked] Task N`
    - Update **Current Status** to reflect the blocked state
 
 4. **Report to the user** with three things:
@@ -29,7 +28,7 @@ Two failures is the limit. A third attempt without user input is not persistence
 
 ## After the User Responds
 
-- If the user provides a decision: update **Assumptions & Constraints** in COMPASS.md if it changes a constraint, update `**Blocked by**` to `N/A`, restore `**Status**` to `IN_PROGRESS`, restore the Task entry to `- [ ]` in COMPASS.md, and resume from `**Resume point**`.
-- If the user instructs you to skip this Task: set `**Status**` to `SKIPPED`, mark `- [~]` in COMPASS.md, and proceed to the next Task.
+- If the user provides a decision: update **Assumptions & Constraints** in COMPASS.md if it changes a constraint, restore the subtask from `[blocked]` to `[ ]`, restore the Task entry to `- [ ]` in COMPASS.md, update **Current Status**, and resume from the previously blocked subtask.
+- If the user instructs you to skip this Task: mark it `[x]` in COMPASS.md with a "SKIPPED" note inline, and proceed to the next Task.
 
 **Do not proceed to the next Task unless the user explicitly instructs you to skip this one.**

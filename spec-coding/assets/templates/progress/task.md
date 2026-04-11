@@ -1,15 +1,13 @@
 # Task N: `<name>`
 
-**Status**: PENDING | IN_PROGRESS | BLOCKED | COMPLETE | SKIPPED
-**Blocked by**: <!-- Root cause + what was already attempted. "N/A" if not blocked. -->
-**Resume point**: <!-- Which subtask to start from next session. "N/A" if not in progress. -->
+**Current**: N.1
 
 ---
 
 ## Subtasks
 
 <!-- Copy subtasks from task-breakdown.md for this Task.
-     Check boxes as you complete them. Do not remove unchecked boxes. -->
+     Check boxes as you complete them. Mark [blocked] on a subtask if it is stuck. -->
 
 - [ ] N.1 <!-- subtask description -->
   - Acceptance: <!-- what makes this subtask done -->

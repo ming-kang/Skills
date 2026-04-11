@@ -31,17 +31,16 @@
 ### Task Overview
 
 <!-- Format:
-- [ ] Task N: <name> (0/X subtasks) — [details](./progress/task-N-<name>.md)
-- [!] Task N: <name> (K/X subtasks) ⚠ BLOCKED — [details](./progress/task-N-<name>.md)
-- [~] Task N: <name> — SKIPPED
-- [x] Task N: <name> (X/X subtasks) — [details](./progress/task-N-<name>.md)
+- [ ] Task N: <name> — [details](./progress/task-N-<name>.md)
+- [x] Task N: <name> — [details](./progress/task-N-<name>.md)
+- [blocked] Task N: <name> — [details](./progress/task-N-<name>.md)
 -->
 
 ### Milestones
 
 <!-- Format:
 - [ ] M1: <name> — <target criteria>
-- [x] M1: <name> — reached after Task N
+- [x] M1: <name> — <target criteria>
 -->
 
 ---
