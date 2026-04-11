@@ -7,7 +7,7 @@ A collection of Claude Code skills for common tasks. These skills can be used wi
 | Skill | Description |
 |-------|-------------|
 | `docx` | Generate and edit Word documents (.docx) with professional styling, charts, and track changes |
-| `spec-coding` | Spec-driven workflow for complex development tasks with 5-phase planning and cross-session progress tracking |
+| `spec-coding` | Spec-driven workflow for complex development tasks with Phase 0-6 preparation, cross-session progress tracking, and archive workflow |
 
 ## Directory Structure
 
@@ -27,7 +27,7 @@ skills-root/
 │   └── validator/          # Pre-compiled OpenXML validator
 │
 └── spec-coding/            # Spec-driven complex development workflow skill
-    ├── SKILL.md            # Entry point + behavioral rules (Phase 0–6 summaries)
+    ├── SKILL.md            # Entry point + behavioral rules (Phase 0-6 + Archive summaries)
     ├── references/
     │   ├── phase-*.md       # Detailed instructions for each phase (9 files)
     │   ├── blocked-protocol.md

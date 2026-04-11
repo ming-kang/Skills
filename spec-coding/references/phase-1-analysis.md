@@ -25,7 +25,7 @@ Read `references/subagents/explore-brief.md` for the prompt template. Adapt it f
 - Infrastructure layer (DB, external APIs, file I/O)
 - Entry points, routing, public API surface
 
-Dispatch all agents in parallel. Each agent should write its findings to a designated section of the relevant output file, or write to a scratch area that you consolidate afterward — decide the approach before dispatching and include it in the brief.
+Dispatch all agents in parallel. Each agent reports its findings back to the main agent with precise file evidence and line references. The main agent is the single writer for `.spec/analysis/*` and is responsible for consolidating all findings into the three output files.
 
 **If the project is small** (roughly 20 files or fewer), a single Explore pass is sufficient.
 

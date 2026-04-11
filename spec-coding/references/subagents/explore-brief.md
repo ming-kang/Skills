@@ -12,7 +12,7 @@ You are performing a focused codebase analysis for a spec-coding workflow.
 Your target area: [SPECIFY — e.g., "the authentication and session management modules", "all database access layers", "the public API surface and routing layer"]
 
 Working directory: [PROJECT ROOT]
-Output file: .spec/analysis/[FILENAME] — write your findings directly to this file using the template already present there.
+Output mode: Report findings back to the main agent in your final message. Do not write to `.spec/analysis/*` files directly.
 
 ---
 
@@ -36,11 +36,14 @@ For each module or component in your assigned area, record:
 6. **Complexity signals** — Anything that would make this hard to change: complex algorithms, platform-specific code, tightly coupled state, missing tests, undocumented behavior
 
 For [architecture.md / module-map.md / risk-register.md — pick the relevant one]:
-[Add file-specific instructions here based on which file this Explore instance is writing to]
+[Add file-specific instructions here based on which analysis document this finding should contribute to]
 
 ---
 
-When you are done, confirm the file has been written and summarize in 2-3 sentences what the most important finding was in your assigned area.
+When you are done, provide:
+1) a structured findings list that the main agent can paste into `.spec/analysis/*`,
+2) the most important finding in 2-3 sentences,
+3) any confidence gaps or unknowns.
 ```
 
 ---
@@ -54,6 +57,6 @@ Example splits for a medium-sized project:
 - Agent B: infrastructure layer (DB, external APIs, file I/O)
 - Agent C: entry points, routing, public API surface
 
-Each agent writes to a different section of the same output file, or writes to a scratch area that the main agent consolidates. Decide the approach before dispatching and include it in the brief.
+Each agent reports findings to the main agent. The main agent consolidates all reports and performs all writes to `.spec/analysis/*`.
 
 If the project is small (< ~20 files), a single Explore pass is sufficient.

@@ -41,8 +41,7 @@ Templates for all files above are in `assets/templates/` in this skill directory
 **Before starting any phase**, check whether `.spec/COMPASS.md` exists.
 
 - **Exists**: Read it immediately. You are resuming a session. Identify the current phase or task, what was completed, and continue from exactly where the previous conversation ended. Do NOT restart from Phase 0.
-- **`.spec/progress/` exists but `COMPASS.md` does not**: COMPASS.md may have been lost. Attempt to reconstruct it from the progress files and notify the user before continuing.
-- **Neither exists**: Fresh start. Verify `.spec/` is in `.gitignore` — add it if not. Then proceed to Phase 0.
+- **Does not exist**: Treat this as a fresh start. Verify `.spec/` is in `.gitignore` — add it if not. Then proceed to Phase 0.
 
 After loading state from COMPASS.md, populate **TaskCreate** with the active phase's pending items.
 
@@ -92,7 +91,7 @@ Leave all other sections as-is. Do not fill in what you do not yet know.
 
 See [references/phase-1-analysis.md](references/phase-1-analysis.md) for full instructions.
 
-**Summary**: Dispatch `Explore` subagents in parallel across different architectural areas. Use the prompt template in `references/subagents/explore-brief.md`. Each agent writes to the relevant section of the analysis files.
+**Summary**: Dispatch `Explore` subagents in parallel across different architectural areas. Use the prompt template in `references/subagents/explore-brief.md`. Each agent reports findings back to the main agent. The main agent consolidates and writes `.spec/analysis/` files.
 
 **Output**: `.spec/analysis/` — three files fully populated, no template placeholders remaining.
 

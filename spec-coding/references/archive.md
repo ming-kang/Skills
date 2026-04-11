@@ -16,14 +16,14 @@ Tell the user all Tasks are complete and the Archive Phase is beginning.
 
 Check whether the project is a git repository.
 
-- **If yes**: Prompt the user to commit any pending code changes from this cycle. Once committed, record the commit hash at the top of `.spec/COMPASS.md` as `**Final commit**: <hash>`. If the user declines, record `**Final commit**: none (user skipped)` and continue.
+- **If yes**: Prompt the user to commit any pending code changes from this cycle. Once committed, record the commit hash in the `**Final commit**` field at the end of `.spec/COMPASS.md` as `<hash>`. If the user declines, record `none (user skipped)` in that same field and continue.
 - **If no**: Skip this step.
 
 ### 3. Determine Archive Folder Name
 
 Format: `YYYY-MM-DD-NN` where `NN` is a two-digit sequence starting at `01`.
 
-Check `.spec/archived/` for existing folders with today's date. If `.spec/archived/2026-04-11-01/` exists, use `02`, and so on.
+Check `.spec/archived/` for existing folders with the current date. Example: if today's date is `YYYY-MM-DD` and `.spec/archived/YYYY-MM-DD-01/` exists, use `02`, and so on.
 
 ### 4. Move Artifacts
 
