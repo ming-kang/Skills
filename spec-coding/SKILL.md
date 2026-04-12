@@ -23,7 +23,7 @@ If a file or tool mentioned here is unavailable, use the closest equivalent avai
 2. **`COMPASS.md` is the control file for the current cycle.** It holds the Goal, Task overview, current status, and the global Risk Watchlist.
 3. **Progress files are task-local.** Subtasks, detailed notes, verification, and blocked context belong in `.spec/progress/task-N-<name>.md`.
 4. **No implementation before plan approval.** Analysis and planning come first; code starts only after the Goal and Task list are confirmed.
-5. **Only one active Task at a time.** Do not run multiple Tasks in parallel inside this workflow.
+5. **Only one `ACTIVE` Task at a time.** Do not run multiple Tasks in parallel inside this workflow.
 6. **Blocked means stop.** Do not silently move to the next Task; update state and ask the user to resolve it.
 7. **Verify before claiming done.** If something was not verified, say so explicitly in the progress file and to the user.
 8. **Keep project facts separate from cycle decisions.** `.spec/analysis/` is long-lived; cycle-specific decisions belong in `COMPASS.md` and progress files.
@@ -55,11 +55,58 @@ Templates for all files above are in the skill directory at `assets/templates/`.
 
 ---
 
+## Task State Model
+
+Use the same Task-level states everywhere in the current cycle:
+
+- `**PENDING**`
+- `**ACTIVE**`
+- `**BLOCKED**`
+- `**DONE**`
+
+### Where Each State Appears
+
+- In `COMPASS.md`, write Task states as `**PENDING**`, `**ACTIVE**`, `**BLOCKED**`, or `**DONE**`.
+- In each progress file, keep `## Summary > **Status**` aligned with the same Task-level state shown in `COMPASS.md`.
+- Inside `## Subtasks`, use markdown checkboxes for subtask progress:
+  - `[ ]` for not done yet
+  - `[x]` for done
+  - `- [ ] N.x **BLOCKED**: <subtask description>` when a specific subtask is blocked
+- Write blocked detail, attempts, and missing decisions in `## Notes`, not in the subtask line itself.
+
+### State Definitions
+
+- **`PENDING`**: The Task belongs to the current cycle but is not being worked right now. This may mean not started yet, waiting on dependencies, or deliberately deferred. Use `Depends on`, `Current Status`, `Next Step`, and notes to explain which case applies.
+- **`ACTIVE`**: The single Task currently being executed. Only one Task may be `ACTIVE` at a time.
+- **`BLOCKED`**: The current interruption point. This Task cannot continue without user input, missing information, or a plan change. Do not silently move to another Task.
+- **`DONE`**: The Task is closed for the current cycle. Usually this means completed with verification. If the user explicitly skips or cancels it, it may still be marked `DONE`, but the reason must be recorded clearly.
+
+### Transition Rules
+
+- `**PENDING** -> **ACTIVE**`: Allowed when dependencies are satisfied, the user has approved execution, and no other Task is `ACTIVE`.
+- `**PENDING** -> **DONE**`: Allowed only when the user explicitly cancels or skips the Task.
+- `**ACTIVE** -> **DONE**`: Allowed after acceptance is met and verification is recorded.
+- `**ACTIVE** -> **BLOCKED**`: Allowed when blocked conditions are met.
+- `**ACTIVE** -> **PENDING**`: Allowed only when the user explicitly changes the plan and defers the current Task.
+- `**BLOCKED** -> **ACTIVE**`: Allowed when the user resolves the block and execution resumes on the same Task.
+- `**BLOCKED** -> **PENDING**`: Allowed when the user decides to defer the blocked Task instead of resolving it now.
+- `**BLOCKED** -> **DONE**`: Allowed only when the user explicitly skips or cancels the Task.
+- `**DONE** -> **PENDING**` or `**DONE** -> **ACTIVE**`: Avoid by default. Reopen only if the earlier `DONE` judgment was wrong. If scope expands, create a new Task instead.
+
+### Dependency and Active Task Rules
+
+- `Depends on` controls readiness, not automatic status changes.
+- If Task N is `BLOCKED`, downstream Tasks that depend on it stay `**PENDING**`. Do not automatically mark them `**BLOCKED**`.
+- `**Active Task**` in `COMPASS.md` must name the current `Task N` when one Task is `ACTIVE`.
+- Set `**Active Task**` to `none` whenever no Task is currently executable, including blocked waiting states and final review before archive.
+
+---
+
 ## Continuity Check
 
 Before doing any work, inspect `.spec/` and determine which state you are in.
 
-- **`COMPASS.md` exists**: Read it first. You are resuming the current cycle. Find the `active` or `blocked` Task and continue from there.
+- **`COMPASS.md` exists**: Read it first. You are resuming the current cycle. If there is one `**ACTIVE**` Task, continue there. If the cycle is `**BLOCKED**` or `**Active Task**` is `none`, resolve the current waiting state before implementation resumes.
 - **`COMPASS.md` is missing but `progress/` contains files**: Treat this as an ambiguous state. Inspect the progress files, summarize what you found, and ask the user whether to resume, rebuild `COMPASS.md`, or archive the stale cycle before proceeding.
 - **Only `analysis/` exists**: Treat this as a fresh cycle on an already-known project. Reuse the analysis after a quick freshness check.
 - **Nothing under `.spec/` exists yet**: Fresh start. Ensure `.spec/` is gitignored, then begin with Project Analysis.
@@ -121,14 +168,14 @@ Before reusing old analysis, quickly confirm that the tech stack, entry points, 
 3. Get explicit user approval on the chosen direction before implementation begins.
 4. Create or replace `.spec/COMPASS.md` from the template.
 5. Write the Task overview directly into `COMPASS.md`. Each Task entry must include:
-   - status: `pending`, `active`, `blocked`, or `done`
+   - status: `**PENDING**`, `**ACTIVE**`, `**BLOCKED**`, or `**DONE**`
    - a short Task name
    - dependency information (`Depends on`)
    - a short acceptance summary
    - a link to its progress file
 6. Create **all** progress files in `.spec/progress/` immediately after the Task list is approved. Planning and setup are done here, not during execution.
 7. Add a short **Risk Watchlist** to `COMPASS.md`. Keep it to the few risks that matter right now. New risks found during execution may be added later.
-8. Set exactly one Task to `active` when implementation is ready to begin. Leave the rest as `pending`.
+8. Set exactly one Task to `**ACTIVE**` when implementation is ready to begin. Leave the rest as `**PENDING**`. Mirror those same Task-level states in each progress file summary.
 
 ### Planning Boundaries
 
@@ -145,7 +192,7 @@ Before reusing old analysis, quickly confirm that the tech stack, entry points, 
 ### Start of Every Task
 
 1. Read `.spec/COMPASS.md`.
-2. Identify the single `active` Task.
+2. Identify the single `**ACTIVE**` Task. If `**Active Task**` is `none`, inspect `Current Status` before doing any implementation. You may be waiting on blocked resolution, final review, or an explicit plan update.
 3. Open that Task's progress file in `.spec/progress/`.
 4. Re-read the Goal, Assumptions & Constraints, dependency notes, and Task acceptance summary before changing code.
 
@@ -153,8 +200,22 @@ Before reusing old analysis, quickly confirm that the tech stack, entry points, 
 
 - Work subtask by subtask inside the current progress file.
 - Record real implementation detail in the progress file: decisions, surprises, verification, and blockers.
+- Keep the progress file `**Status**` aligned with the parent Task state in `COMPASS.md`.
 - Keep `COMPASS.md` at summary level. Do not mirror subtask detail there.
 - If execution reveals a change that affects the overall cycle, update `COMPASS.md` after you have written the local detail in the progress file.
+
+### Risk Recording and Escalation
+
+When execution reveals a new risk, record it in the current progress file `## Notes` first.
+
+Then decide whether it stays task-local, becomes cross-task tracking, or escalates to `**BLOCKED**`:
+
+- Keep it in `Notes` only when it affects only the current Task's execution and can still be handled within the current Task.
+- Add or refresh an item in `COMPASS.md > Risk Watchlist` when it may affect other Tasks, later verification, or later planning decisions across the current cycle.
+- Escalate to `**BLOCKED**` when it affects the overall reliability of the current `COMPASS` plan, or when it is uncertain enough that user intervention is required before the current `**ACTIVE**` Task can continue.
+
+`Risk Watchlist` is for cross-task visibility, not for local implementation noise.
+Keep it short, summary-level, and limited to unresolved risks that still matter to the current cycle.
 
 ### Blocked Handling
 
@@ -164,14 +225,18 @@ Use the Blocked Protocol when:
 
 - a subtask has already failed twice
 - an implementation decision conflicts with Assumptions & Constraints and needs user input
-- enough new risks appear that the current plan may no longer be trustworthy
+- a required dependency is missing or unavailable and the current `**ACTIVE**` Task cannot continue without it
+- a newly discovered risk affects the overall `COMPASS` plan or requires user intervention before the current `**ACTIVE**` Task can continue
 
 When a subtask is blocked:
 
-1. Mark that subtask `[blocked]` in the current progress file and write the exact reason there.
-2. Mark the parent Task `blocked` in `COMPASS.md`.
-3. Update `Current Status`, `Active Task`, `Next Step`, and the `Risk Watchlist` if needed.
-4. Stop and ask the user to intervene.
+1. Mark that subtask as `- [ ] N.x **BLOCKED**: <description>` in the current progress file and write the exact reason in `Notes`.
+2. Change the current progress file `**Status**` to `**BLOCKED**`.
+3. Mark the parent Task `**BLOCKED**` in `COMPASS.md`.
+4. Set `**Active Task**` to `none`.
+5. Leave downstream dependent Tasks as `**PENDING**`. Do not mark them `**BLOCKED**` automatically.
+6. Update `Current Status`, `Next Step`, and the `Risk Watchlist` if needed.
+7. Stop and ask the user to intervene.
 
 Do **not** move to another Task unless the user explicitly changes the plan.
 
@@ -180,16 +245,27 @@ Do **not** move to another Task unless the user explicitly changes the plan.
 When the current Task is complete:
 
 1. Verify the Task against its acceptance summary and the progress file evidence.
-2. Mark the Task `done` in `COMPASS.md`.
-3. Update `Current Status` and `Active Task`.
-4. If another pending Task is now unblocked and ready, mark that Task `active` and update `Next Step`.
-5. If the Goal is complete, run the Archive step.
+2. Mark the current progress file `**Status**` as `**DONE**`.
+3. Mark the Task `**DONE**` in `COMPASS.md`.
+4. Update `Current Status` and `Active Task`.
+5. If another `**PENDING**` Task is now unblocked and ready, mark that Task `**ACTIVE**` and update `Next Step`.
+6. If the Goal is complete, run the Final Review Checkpoint before Archive.
+
+### Final Review Checkpoint
+
+When the last Task becomes `**DONE**`:
+
+1. Set `**Active Task**` to `none`.
+2. Ask the user whether `.spec/analysis/` should be refreshed before archive.
+3. If the user wants an analysis refresh, update `.spec/analysis/` first and summarize what changed.
+4. Ask the user to review the completed cycle and confirm whether a final commit hash should be recorded.
+5. Only proceed to archive after the user explicitly confirms the cycle is ready.
 
 ### Archive
 
-When the cycle is complete:
+When the user has confirmed the cycle is ready:
 
-1. If the project is a git repository, ask the user whether they want to record a final commit hash. Write the hash or `none (user skipped)` in `COMPASS.md`.
+1. If the project is a git repository and the user wants to record a final commit hash, write the confirmed hash in `COMPASS.md`. Otherwise write `none (user skipped)`.
 2. Create `.spec/archived/YYYY-MM-DD-NN/`.
 3. Move the current `COMPASS.md` and the current `progress/` folder into that archive directory.
 4. Leave `.spec/analysis/` and `.spec/archived/` in place for future cycles.
