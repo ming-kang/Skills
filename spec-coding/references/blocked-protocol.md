@@ -27,9 +27,8 @@ Two failed attempts is the default limit. Do not keep trying the same subtask wi
 
 3. **Update `COMPASS.md`**:
    - Change the parent Task entry to `- **BLOCKED** Task N`
-   - Update **Current Status**
+   - Update **Current Status** to say which Task is blocked and what decision, input, or dependency is missing
    - Set **Active Task** to `none`
-   - Update **Next Step**
    - Add or refresh the related item in **Risk Watchlist** if needed
    - Leave downstream dependent Tasks as `**PENDING**`
 
@@ -40,7 +39,7 @@ Two failed attempts is the default limit. Do not keep trying the same subtask wi
 
 ## After the User Responds
 
-- If the user provides a decision: update **Assumptions & Constraints** in `COMPASS.md` if needed, restore the blocked subtask to a normal unchecked line if work remains, restore the progress file `**Status**` and the parent Task entry to `**ACTIVE**` or `**PENDING**`, update **Current Status**, **Active Task**, and **Next Step**, then resume only when one Task is explicitly `**ACTIVE**`.
+- If the user provides a decision: update **Assumptions & Constraints** in `COMPASS.md` if needed, restore the blocked subtask to a normal unchecked line if work remains, restore the progress file `**Status**` and the parent Task entry to `**ACTIVE**` or `**PENDING**`, update **Current Status** and **Active Task**, then resume only when one Task is explicitly `**ACTIVE**`.
 - If the user changes the plan: update `COMPASS.md` first, then update the affected progress files. Use `**PENDING**` for deferred Tasks unless the user explicitly reactivates one.
 - If the user instructs you to skip this Task: mark it `**DONE**` in `COMPASS.md` with a `SKIPPED` note inline, change the progress file `**Status**` to `**DONE**`, record the skip reason in `Notes`, and move on only after the user confirms the next active Task or confirms final review.
 

@@ -19,7 +19,9 @@
 ## Task Overview
 
 <!-- Summary only. Keep subtask detail inside the progress files.
-     Use uppercase bold Task states. Keep exactly one **ACTIVE** Task.
+     Use uppercase bold Task states. Keep at most one **ACTIVE** Task.
+     Zero **ACTIVE** Tasks is valid when planning is complete, between Tasks while
+     waiting for user instruction, during blocked waiting states, or during final review.
      If one Task is the current interruption point, mark only that Task **BLOCKED**.
      Downstream Tasks that depend on it stay **PENDING**. -->
 
@@ -33,7 +35,9 @@
 <!-- Keep this short. This list is for unresolved risks that may affect other Tasks
      or cross-task planning in the current cycle. Do not put task-local implementation
      issues here if they can be handled inside one Task. One line each:
-     risk name, affected Task(s), signal, where to look next. -->
+     risk name, affected Task(s), signal, where to look next.
+     This is a working list. It should be empty before archive. If the user accepts
+     a residual risk, move the summary into Final Review and clear it from here. -->
 
 - 
 
@@ -41,13 +45,24 @@
 
 ## Status
 
-**Current Status**: <!-- One or two sentences. -->
+**Current Status**:
+<!-- Describe the current phase and stopping point in one or two sentences.
+     Examples:
+     - Planning complete; implementation has not started.
+     - Task 1 in progress; 1.1 and 1.2 are done, 1.3 remains.
+     - Task 1 done; waiting for user instruction to start Task 2.
+     - Task 2 blocked; waiting for a user decision about API choice. -->
 
-**Active Task**: <!-- Task N or "none". Use "none" when blocked or during final review before archive. -->
-
-**Next Step**:
-<!-- What a fresh agent should do immediately upon reading this file. Max 3 bullet points. -->
+**Active Task**: <!-- Task N or "none". Use "none" before implementation starts, between Tasks while waiting for user instruction, during blocked waiting states, and during final review before archive. -->
 
 ---
 
-**Final commit**: <!-- Filled in after explicit user review at archive time. Format: <hash> or "none (user skipped)" -->
+## Final Review
+
+**Analysis refresh before archive**: <!-- Leave blank until final review. Final value: Refreshed or Skipped. -->
+
+**Residual risk disposition**: <!-- Leave blank until final review. Final value: None or Accepted by user: <summary>. -->
+
+**Final commit**: <!-- Leave blank until final review. Final value: <hash> or Skipped. -->
+
+**Ready to archive**: <!-- Leave blank until the user explicitly confirms. Final value: Confirmed. -->

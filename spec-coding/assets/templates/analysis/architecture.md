@@ -4,6 +4,17 @@
 
 ---
 
+## Baseline Reference
+
+| Field | Value |
+|:-----:|:------|
+| Checked against | `<git commit>` or `none (non-git repo)` |
+| Working tree | `clean` or `dirty` |
+| Checked on | `YYYY-MM-DD` |
+| Review type | `full refresh` or `targeted revalidation` |
+
+---
+
 ## Project Snapshot
 
 | Category | Details |

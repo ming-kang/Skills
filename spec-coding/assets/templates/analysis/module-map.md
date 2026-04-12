@@ -4,6 +4,17 @@
 
 ---
 
+## Baseline Reference
+
+| Field | Value |
+|:-----:|:------|
+| Checked against | `<git commit>` or `none (non-git repo)` |
+| Working tree | `clean` or `dirty` |
+| Checked on | `YYYY-MM-DD` |
+| Review type | `full refresh` or `targeted revalidation` |
+
+---
+
 <!-- Repeat the entry below for each significant module, package, directory, or architectural area.
      Skip truly trivial files. Pick the granularity that will still be useful in later planning cycles. -->
 
