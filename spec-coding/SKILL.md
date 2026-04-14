@@ -1,14 +1,13 @@
 ---
 name: spec-coding
 description: >-
-  Triggers when the user mentions "spec coding" / "spec-coding", or invokes
-  /spec-coding in Claude Code.
-version: 1.1.3
+  Triggers when the user mentions "spec coding" / "spec-coding", or directly /spec-coding.
+version: 1.1.4
 ---
 
 # Spec-Coding
 
-You are executing the **Spec-Coding** workflow — a standardized pre-development pipeline for large-scale complex tasks. Complete all preparation Phases before any implementation begins. Once preparation is done, the actual development work proceeds as a series of **Tasks**.
+A skill for **Spec-Coding** workflow: Standardized development pipeline for complex tasks.
 
 ---
 
@@ -23,50 +22,49 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 │   ├── project-overview.md
 │   ├── module-inventory.md
 │   └── risk-assessment.md
-├── plan/
-│   ├── task-breakdown.md
-│   ├── dependency-graph.md
-│   └── milestones.md
-├── progress/
-│   └── task-N-<short-name>.md   # One file per Task
+├── tasks/
+│   └── task-N-<short-name>.md    # One file per Task
 └── archived/
     └── YYYY-MM-DD-NN/            # Completed development cycles
         ├── COMPASS.md
         ├── analysis/
-        ├── plan/
-        └── progress/
+        └── tasks/
 ```
 
 ---
 
-## Before You Begin: Continuity Check
+## Behavioral Rules
 
-**CRITICAL**: Before starting any phase, check whether `.spec/COMPASS.md` exists.
-
-- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or task, what has already been completed, and continue from exactly where the previous conversation ended. Do NOT restart from Phase 0.
-- **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to Phase 0.
-
-After loading state from COMPASS.md, populate **TaskCreate** with the active phase's pending items. Set in-progress tasks to "in_progress", remaining tasks to "pending", and map priorities as P0=high, P1=medium, P2=low.
+1. **Never skip User's Confirmation.** Confirm with the user at each phase boundary. This includes archiving — never archive without explicit user approval.
+2. **Document decisions.** If you make a judgment call, record it in the relevant task file's Notes section.
+3. **Progress updates are mandatory.** After completing any subtask, immediately update the checkbox AND COMPASS.md counts.
+4. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
+5. **Archive when done.** When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
+6. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
+7. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, invoke the Blocked Protocol immediately.
 
 ---
 
-## Phase 0: Intent Recognition & Confirmation
+## Continuity Check
 
-**Goal**: Understand exactly what the user wants and eliminate all ambiguity before any analysis begins.
+**CRITICAL**: Before starting any phase, check whether `.spec/COMPASS.md` exists.
+
+- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or task, what has already been completed, and continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
+- **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
+
+---
+
+## Begin: Intent Recognition
+
+**Goal**: Understand exactly what the user wants before any analysis begins.
 
 **Actions**:
 
-1. Ask the user to describe their goal in natural language if they haven't already.
+1. Ask the user to describe their goal if they haven't already. A brief description is enough — detailed planning questions will follow in Phase 2 after codebase analysis.
 
-2. Use `AskUserQuestion` to ask structured clarifying questions. Design the questions with predefined options where possible so the user can confirm intent quickly rather than writing long answers. At minimum, cover:
-   - **Scope**: Which parts of the project are in scope?
-   - **Target state**: What does the result look like? (e.g., migrated to Rust, extracted into microservices)
-   - **Hard constraints**: Backward compatibility, specific libraries, deployment targets, timeline?
-   - **Priority**: What matters most — performance, maintainability, feature parity, speed of delivery?
+2. Confirm your understanding of the high-level intent with the user before proceeding.
 
-3. Summarize your understanding back to the user and get explicit confirmation before proceeding to Phase 1.
-
-**Output**: A clear, confirmed task definition that guides all subsequent phases.
+**Output**: A rough task direction. Proceed to Phase 1.
 
 ---
 
@@ -74,141 +72,69 @@ After loading state from COMPASS.md, populate **TaskCreate** with the active pha
 
 **Goal**: Build a comprehensive understanding of the current codebase.
 
-**Subagent**: Delegate analysis work to the built-in **`Explore`** subagent. Launch multiple `Explore` instances in parallel across different areas of the codebase to reduce total analysis time.
+**Action**: Spawn analyzer subagents that read `agents/analyzer.md`. Scale the number of subagents to the size and complexity of the codebase — more subagents for larger projects, a single one for small ones.
 
-**Instructions for `Explore` subagents**:
-- Focus on facts, not opinions. Record what exists, not what should exist.
-- Note every module's responsibility, public API surface, and approximate size.
-- Map internal dependencies between modules and external library dependencies.
-- Flag anything that looks risky: complex algorithms, platform-specific code, tightly coupled components, missing tests.
-- Do not suggest solutions — only analyze and document.
+**Output**: Complete `.spec/analysis/` directory with three documents:
+- `project-overview.md` — Architecture, tech stack, entry points, build system
+- `module-inventory.md` — Every module with: responsibility, dependencies, size, complexity rating
+- `risk-assessment.md` — Technical risks, compatibility risks, complexity hotspots
 
-**Actions**:
-
-1. Analyze the project:
-   - Directory structure and layout
-   - Technology stack (languages, frameworks, build tools, dependency managers)
-   - Entry points and build/run commands
-   - Module inventory: responsibility, public API, approximate size per module
-   - Dependency graph: internal module deps + external library deps
-   - Architectural and design patterns in use
-
-2. Assess transformation-specific concerns:
-   - Which modules will be hardest to transform and why?
-   - Where are the key risks (complex algorithms, platform-specific code, tight coupling)?
-   - What external integration points constrain the approach?
-
-3. Write analysis documents to `.spec/analysis/`:
-   - `project-overview.md` — Architecture, tech stack, entry points, build system
-   - `module-inventory.md` — Every module with: responsibility, dependencies, size, complexity rating
-   - `risk-assessment.md` — Technical risks, compatibility risks, complexity hotspots
-
-**Output**: Complete `.spec/analysis/` directory with three documents.
+When analysis is complete, present a brief summary of findings to the user and confirm before proceeding to Phase 2.
 
 ---
 
-## Phase 2: Task Decomposition
+## Phase 2: Plan Refinement
+
+**Goal**: Refine the task definition using analysis findings, then lock in a confirmed plan.
+
+**Action**: Use analysis findings to ask targeted clarifying questions with `AskUserQuestion`. Cover any concerns surfaced by analysis that affect scope, approach, or constraints.
+
+**After confirming the plan**, create `.spec/COMPASS.md` with the following sections:
+
+```markdown
+# COMPASS
+
+## Task Definition
+<Confirmed description of what is being built or transformed>
+
+## Assumptions & Constraints
+<Non-negotiable boundaries, e.g.:>
+- Must not break public API
+- stdlib only
+- Must support Node 18+
+
+## Analysis
+- [project-overview.md](./analysis/project-overview.md)
+- [module-inventory.md](./analysis/module-inventory.md)
+- [risk-assessment.md](./analysis/risk-assessment.md)
+
+## Task Overview
+<Populated by Phase 3>
+
+## Current Status
+Phase 2 complete. Proceeding to Phase 3: Task Decomposition.
+
+## Next Steps
+Spawn architect subagent to decompose the confirmed task.
+```
+
+**Output**: `.spec/COMPASS.md` with a confirmed task definition.
+
+---
+
+## Phase 3: Task Decomposition
 
 **Goal**: Break the transformation into concrete, trackable Tasks organized into logical groups.
 
-**Subagent**: Delegate decomposition work to the built-in **`Plan`** subagent.
+**Action**: Spawn an architect subagent that reads `agents/architect.md`. The architect reads both `.spec/COMPASS.md` and the analysis documents, then produces the task files and updates COMPASS.
 
-**Instructions for `Plan` subagent**:
-- Read all three analysis documents from `.spec/analysis/` before proposing any structure.
-- Order tasks by dependency: foundational components before dependent ones.
-- Each task group should be independently testable or verifiable.
-- Every task must have: description, priority (P0/P1/P2), estimated effort (S/M/L/XL), dependencies, and acceptance criteria.
-- Express dependencies as a Mermaid diagram.
-- Do not pad the plan — if something is simple, say so.
+**Output**: Complete `.spec/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview.
 
-**Actions**:
-
-1. Design a logical task grouping based on the analysis:
-   - Identify natural boundaries (e.g., core libraries → application layer → integrations)
-   - Each group should be independently verifiable
-
-2. For each Task, define:
-   - Clear description of what to do
-   - Priority level (P0/P1/P2)
-   - Estimated effort (S/M/L/XL)
-   - Dependencies on other Tasks
-   - Acceptance criteria
-
-3. Define milestones: meaningful checkpoints where the project reaches a demonstrably better state.
-
-4. Write planning documents to `.spec/plan/`:
-   - `task-breakdown.md` — All task groups and Tasks with full detail
-   - `dependency-graph.md` — Mermaid diagram of task/group dependencies
-   - `milestones.md` — Milestone definitions with target criteria
-
-**Output**: Complete `.spec/plan/` directory with three documents.
+When decomposition is complete, present the full task breakdown to the user and confirm before proceeding.
 
 ---
 
-## Phase 3: Progress Tracking Setup
-
-**Goal**: Create a document-driven progress tracking system that persists across conversations.
-
-**Actions**:
-
-1. Create the **main control file** `.spec/COMPASS.md` with the following sections, in this order:
-   - **Task Definition**: The confirmed task description from Phase 0
-   - **Assumptions & Constraints**: All hard constraints confirmed in Phase 0 — non-negotiable boundaries (e.g., "must not break public API", "stdlib only", "must support Node 18+"). These are the red lines the agent checks before making any implementation decision.
-   - **Analysis Documents**: Links to all three files in `.spec/analysis/`
-   - **Plan Documents**: Links to all three files in `.spec/plan/`
-   - **Task Overview**: A summary table of all Tasks with completion status and link to detail file
-   - **Current Status**: Which Task is currently active, what was last completed
-   - **Next Steps**: What the agent should do next — written so a fresh agent can orient itself in under 30 seconds
-
-2. Create **one progress file per Task**: `.spec/progress/task-N-<short-name>.md`
-
-   Each file must begin with a status header:
-   ```
-   **Status**: IN_PROGRESS | BLOCKED | COMPLETE
-   **Blocked by**: <describe the blocker, or N/A>
-   **Resume point**: <which subtask to start from next session, or N/A>
-   ```
-   Followed by:
-   - The Task's subtasks as checkboxes: `- [ ] Subtask description`
-   - Acceptance criteria inline for each subtask
-   - A **Notes** section for decisions, blockers, and context discovered during implementation
-
-3. COMPASS.md task overview format:
-   - Incomplete: `- [ ] Task N: <name> (0/X subtasks) — [details](./progress/task-N-<name>.md)`
-   - Blocked:    `- [!] Task N: <name> (K/X subtasks) ⚠ BLOCKED — [details](./progress/task-N-<name>.md)`
-   - Complete:   `- [x] Task N: <name> (X/X subtasks) — [details](./progress/task-N-<name>.md)`
-
-**Output**: `.spec/COMPASS.md` and one progress file per Task.
-
----
-
-## Phase 4: Task-Specific Sub-Skill Generation
-
-**Goal**: Generate a sub-skill tailored to this specific development cycle, encoding implementation standards and the continuity protocol.
-
-**Actions**:
-
-1. Install the sub-skill at **project scope** (`.claude/skills/` or equivalent project-local location) by default. This keeps it tied to the project and discarded when the cycle is archived.
-
-2. Delegate creation using the **`skill-creator`** skill (via the `Skill` tool), providing:
-   - Task context from Phase 0
-   - The desired skill name (e.g., `spec-coding-<project-name>`)
-   - Content outline (see below)
-
-   **If `skill-creator` is not installed**: Tell the user that generating a project-specific sub-skill requires skill-creator to be installed. Instruct them to run: `npx skills add anthropics/skills --skill skill-creator`. Do NOT install it on their behalf.
-
-3. The generated sub-skill must instruct the agent to:
-   - Always read `.spec/COMPASS.md` at the start of every conversation
-   - Populate **TaskCreate** with pending subtasks before doing any work
-   - After completing each subtask: check the box in the relevant progress file AND update the completion count and **Current Status** in COMPASS.md
-   - Apply the technology-specific coding standards and conventions relevant to this transformation
-   - When all checkboxes in COMPASS.md are marked `[x]`, trigger the Archive phase
-
-**Output**: A project-scoped sub-skill installed and ready for the implementation stage.
-
----
-
-## Phase 5: Handoff
+## Phase 4: Hand-off
 
 **Goal**: Present all preparation artifacts and confirm readiness to begin implementation.
 
@@ -216,10 +142,8 @@ After loading state from COMPASS.md, populate **TaskCreate** with the active pha
 
 1. Present a structured summary:
    - Confirmed task definition
-   - Key findings from analysis (high-level only)
-   - Task overview with group names and subtask counts
-   - Description of the progress tracking setup
-   - Sub-skill name and install location
+   - Key findings from analysis
+   - Task overview with task names and subtask counts
 
 2. List all generated artifacts:
    ```
@@ -229,58 +153,49 @@ After loading state from COMPASS.md, populate **TaskCreate** with the active pha
    │   ├── project-overview.md
    │   ├── module-inventory.md
    │   └── risk-assessment.md
-   ├── plan/
-   │   ├── task-breakdown.md
-   │   ├── dependency-graph.md
-   │   └── milestones.md
-   └── progress/
+   └── tasks/
        └── task-N-*.md  (one per Task)
    ```
-   Plus the generated sub-skill at its install location.
 
-3. Ask the user: **"Preparation complete. Ready to start Task 1?"**
+3. Ask the user: **"Preparation complete. Ready to start Implementation Phase?"**
 
 **Output**: User confirmation to begin implementation.
 
 ---
 
-## Implementation: Tasks
-
-Once Phase 5 is confirmed, development proceeds as a series of **Tasks** (not Phases — Tasks are the unit of implementation work, not planning).
+## Implementation
 
 **At the start of every Task**:
 1. Read `.spec/COMPASS.md` to confirm current position and re-read **Assumptions & Constraints**
-2. Open the relevant `.spec/progress/task-N-<name>.md`
-3. Populate **TaskCreate** with pending subtasks
+2. Open the relevant `.spec/tasks/task-N-<name>.md` and set **Status** to `IN_PROGRESS`
 
 **During each Task**:
 - Work through subtasks one at a time
-- After completing a subtask: check its box in the progress file, update COMPASS.md counts
-- Record any decisions, surprises, or blockers in the Notes section of the progress file
-- Dual-write: **TaskCreate** (real-time visibility) + Markdown files (cross-conversation persistence)
+- After completing a subtask: check its box in the task file, update the completion count in COMPASS.md
+- Record any decisions, surprises, or blockers in the task file's Notes section
 
 **Blocked Protocol** — if a subtask fails twice in a row, or if you encounter a constraint conflict you cannot resolve without user input:
 1. Stop immediately. Do not attempt further workarounds.
-2. Set the progress file's status header to `BLOCKED`, fill in **Blocked by** with the root cause and what was already attempted, and set **Resume point** to the current subtask.
+2. Set the task file's **Status** to `BLOCKED`. Fill in **Blocked by** with the root cause and what was already attempted. Set **Resume point** to the current subtask.
 3. Mark the Task as `[!] BLOCKED` in COMPASS.md and update **Current Status** accordingly.
 4. Report to the user: what was blocked, why, and what decision or information is needed to unblock. Do not proceed to the next Task unless the user explicitly instructs you to skip this one.
 
 **At the end of every Task**:
 - Verify all acceptance criteria are met
-- Set the progress file's status header to `COMPLETE`
+- Set the task file's **Status** to `COMPLETE`
 - Mark the Task complete in COMPASS.md
 - Update **Current Status** and **Next Steps** in COMPASS.md
 - Inform the user which Task was completed and what comes next
 
-**When all Tasks are complete**: Trigger the Archive phase automatically.
+**When all Tasks are complete**: Inform the user that all Tasks are done and suggest archiving the cycle's artifacts. Wait for explicit confirmation before proceeding to the Archive phase.
 
 ---
 
-## Archive Phase
+## Archive
 
-**Trigger**: All checkboxes in `.spec/COMPASS.md` are marked `[x]`.
+**Trigger**: All tasks in `.spec/COMPASS.md` are marked `[x]`, and the user has confirmed they are ready to archive.
 
-**Goal**: Preserve this development cycle's artifacts in a structured archive so the next development cycle starts clean.
+**Goal**: Preserve this development cycle's artifacts so the next cycle starts clean.
 
 **Actions**:
 
@@ -289,39 +204,35 @@ Once Phase 5 is confirmed, development proceeds as a series of **Tasks** (not Ph
 2. Determine the archive folder name:
    - Format: `YYYY-MM-DD-NN` where `NN` is a two-digit sequence starting at `01`
    - Check `.spec/archived/` for existing folders with today's date and increment `NN` accordingly
-   - Example: `.spec/archived/2026-03-26-01/`
+   - Example: `.spec/archived/2026-04-13-01/`
 
-3. Use filesystem operations to move all current working artifacts into the archive folder, preserving internal structure:
+3. Move all current working artifacts into the archive folder, preserving internal structure:
    ```
    .spec/archived/YYYY-MM-DD-NN/
    ├── COMPASS.md
    ├── analysis/
-   ├── plan/
-   └── progress/
+   └── tasks/
    ```
 
-4. Remove the project-scoped sub-skill created in Phase 4 (it was specific to this cycle).
+4. The `.spec/` root is now empty (except `archived/`), ready for the next development cycle.
 
-5. The `.spec/` root is now empty (except `archived/`), ready for the next development cycle.
+5. Confirm to the user:
+   - What was archived and where.
+   - That `.spec/` is clean and ready for the next cycle.
+   - Suggest committing any production code changes from this cycle to version control if not already done.
 
-6. Confirm to the user:
-   - What was archived and where
-   - That the sub-skill has been removed
-   - That `.spec/` is ready for the next cycle
-   - Suggest committing any production code changes from this cycle to version control if not already done
-
-**Output**: A clean `.spec/` workspace. Past cycle preserved. Next cycle can begin immediately with Phase 0.
+**Output**: A clean `.spec/` workspace. Past cycle preserved.
 
 ---
 
-## Behavioral Rules
+## Reference Files
 
-1. **Never skip phases.** Even for small projects, at minimum create lightweight versions of each phase's outputs.
-2. **Confirm with the user at each phase boundary.** Every handoff is a checkpoint.
-3. **Document decisions.** If you make a judgment call, record it in the relevant progress file's Notes section.
-4. **Progress updates are mandatory.** After completing any subtask, immediately update the checkbox AND COMPASS.md counts.
-5. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
-6. **Dual-write progress.** **TaskCreate** for real-time visibility; Markdown files for cross-conversation persistence.
-7. **Archive is not optional.** When all Tasks are done, always archive. Don't leave stale artifacts in the working area.
-8. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
-9. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, invoke the Blocked Protocol immediately. Attempting a third workaround without user input is not persistence — it is wasted context.
+The `agents/` directory contains instructions for specialized subagents. Read them when you need to spawn the relevant subagent.
+
+- `agents/analyzer.md` — How to analyze the codebase and what to output.
+- `agents/architect.md` — How to turn the confirmed plan into tasks and what to output.
+
+The `references/templates/` directory contains document templates.
+
+- `references/templates/analysis.md` — Templates for the three analysis documents.
+- `references/templates/task.md` — Template for task files in `.spec/tasks/`.
