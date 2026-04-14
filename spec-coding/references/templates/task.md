@@ -9,7 +9,7 @@ This template defines the structure for each `task-N-<short-name>.md` file in `.
 ```markdown
 # Task N: <Task Name>
 
-**Status**: IN_PROGRESS | BLOCKED | COMPLETE
+**Status**: PENDING | IN_PROGRESS | BLOCKED | SKIPPED | COMPLETE
 **Blocked by**: <describe the blocker, or N/A>
 **Resume point**: <which subtask to continue from next session, or N/A>
 
@@ -48,7 +48,12 @@ This template defines the structure for each `task-N-<short-name>.md` file in `.
 
 ## Usage Notes
 
-- **Status header**: Update `Status` to `IN_PROGRESS` when starting, `BLOCKED` when stuck, `COMPLETE` when done.
+- **Status header**: 
+  - `PENDING`: Task not yet started
+  - `IN_PROGRESS`: Currently working on this Task
+  - `BLOCKED`: Stuck, waiting for resolution
+  - `SKIPPED`: User decided to skip this Task
+  - `COMPLETE`: All subtasks and acceptance criteria met
 - **Blocked by**: Fill in when blocked — root cause + what was already attempted.
 - **Resume point**: Set to the first unchecked subtask when leaving a task mid-session, so the next conversation knows exactly where to pick up.
 - **Subtasks**: Write them in execution order. Each subtask should be completable in one focused step.

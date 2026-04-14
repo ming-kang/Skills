@@ -56,10 +56,17 @@ Replace the `## Task Overview` section placeholder with the actual task list. Us
 ```markdown
 ## Task Overview
 
-- [ ] task-1-<name>: <goal> (0/N subtasks) — [details](./tasks/task-1-<name>.md)
-- [ ] task-2-<name>: <goal> (0/N subtasks) — [details](./tasks/task-2-<name>.md)
+- [ ] Task 1: setup-build (0/5) — [details](./tasks/task-1-setup-build.md)
+- [ ] Task 2: migrate-core (0/8) — [details](./tasks/task-2-migrate-core.md)
 ...
 ```
+
+Status symbols:
+- `[ ]` = Pending (not started)
+- `[~]` = In Progress (mark with `← Active`)
+- `[x]` = Complete
+- `[!]` = Blocked
+- `[-]` = Skipped
 
 Update **Current Status** to:
 ```

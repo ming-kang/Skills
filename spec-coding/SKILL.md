@@ -2,7 +2,7 @@
 name: spec-coding
 description: >-
   Triggers when the user mentions "spec coding" / "spec-coding", or directly /spec-coding.
-version: 1.1.4
+version: 1.2.0
 ---
 
 # Spec-Coding
@@ -36,8 +36,8 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 ## Behavioral Rules
 
 1. **Never skip User's Confirmation.** Confirm with the user at each phase boundary. This includes archiving — never archive without explicit user approval.
-2. **Document decisions.** If you make a judgment call, record it in the relevant task file's Notes section.
-3. **Progress updates are mandatory.** After completing any subtask, immediately update the checkbox AND COMPASS.md counts.
+2. **Document decisions.** Record important technical decisions and plan changes in COMPASS.md's Decision Log. Record implementation details in the relevant Task file's Notes section.
+3. **Progress updates are mandatory.** After completing any subtask: check its box in the Task file, immediately update the (X/N) count in COMPASS.md.
 4. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
 5. **Archive when done.** When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
 6. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
@@ -49,7 +49,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 
 **CRITICAL**: Before starting any phase, check whether `.spec/COMPASS.md` exists.
 
-- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or task, what has already been completed, and continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
+- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task, what has already been completed, and continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
 - **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
 
 ---
@@ -72,7 +72,13 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 
 **Goal**: Build a comprehensive understanding of the current codebase.
 
-**Action**: Spawn analyzer subagents that read `agents/analyzer.md`. Scale the number of subagents to the size and complexity of the codebase — more subagents for larger projects, a single one for small ones.
+**Action**: 
+1. Pass the user's intent and codebase path to each analyzer subagent
+2. Scale the number of subagents based on codebase complexity (use your judgment)
+3. Collect analyzer outputs and synthesize into the three analysis documents:
+   - project-overview.md
+   - module-inventory.md
+   - risk-assessment.md
 
 **Output**: Complete `.spec/analysis/` directory with three documents:
 - `project-overview.md` — Architecture, tech stack, entry points, build system
@@ -111,6 +117,12 @@ When analysis is complete, present a brief summary of findings to the user and c
 ## Task Overview
 <Populated by Phase 3>
 
+## Skipped Tasks
+<Populated during Implementation if Tasks are skipped>
+
+## Decision Log
+<Record important technical decisions and plan changes during Implementation>
+
 ## Current Status
 Phase 2 complete. Proceeding to Phase 3: Task Decomposition.
 
@@ -126,7 +138,7 @@ Spawn architect subagent to decompose the confirmed task.
 
 **Goal**: Break the transformation into concrete, trackable Tasks organized into logical groups.
 
-**Action**: Spawn an architect subagent that reads `agents/architect.md`. The architect reads both `.spec/COMPASS.md` and the analysis documents, then produces the task files and updates COMPASS.
+**Action**: Spawn an architect subagent that reads `agents/architect.md`. The architect reads both `.spec/COMPASS.md` and the analysis documents, then produces the Task files and updates COMPASS.
 
 **Output**: Complete `.spec/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview.
 
@@ -143,7 +155,7 @@ When decomposition is complete, present the full task breakdown to the user and 
 1. Present a structured summary:
    - Confirmed task definition
    - Key findings from analysis
-   - Task overview with task names and subtask counts
+   - Task overview with Task names and subtask counts
 
 2. List all generated artifacts:
    ```
@@ -168,32 +180,91 @@ When decomposition is complete, present the full task breakdown to the user and 
 **At the start of every Task**:
 1. Read `.spec/COMPASS.md` to confirm current position and re-read **Assumptions & Constraints**
 2. Open the relevant `.spec/tasks/task-N-<name>.md` and set **Status** to `IN_PROGRESS`
+3. In COMPASS.md: mark the Task as `[~]` and add `← Active` indicator
 
 **During each Task**:
 - Work through subtasks one at a time
-- After completing a subtask: check its box in the task file, update the completion count in COMPASS.md
-- Record any decisions, surprises, or blockers in the task file's Notes section
+- After completing a subtask: 
+  - Check its box in the Task file
+  - Immediately update the (X/N) count in COMPASS.md
+- Record any decisions, surprises, or blockers in the Task file's Notes section
+- Record important technical decisions in COMPASS.md's Decision Log
 
 **Blocked Protocol** — if a subtask fails twice in a row, or if you encounter a constraint conflict you cannot resolve without user input:
-1. Stop immediately. Do not attempt further workarounds.
-2. Set the task file's **Status** to `BLOCKED`. Fill in **Blocked by** with the root cause and what was already attempted. Set **Resume point** to the current subtask.
-3. Mark the Task as `[!] BLOCKED` in COMPASS.md and update **Current Status** accordingly.
-4. Report to the user: what was blocked, why, and what decision or information is needed to unblock. Do not proceed to the next Task unless the user explicitly instructs you to skip this one.
+
+**Entering BLOCKED state:**
+1. In the Task file:
+   - Set **Status** to `BLOCKED`
+   - Set **Blocked by** to `[DECISION|TECHNICAL|INFO] <specific description>`
+   - Set **Resume point** to the current subtask number
+   - In **Notes**: record what was attempted and why it failed
+
+2. In COMPASS.md:
+   - Mark the Task as `[!]`
+   - Update **Current Status** to `Task N blocked: <brief reason>`
+
+3. Report to the user:
+   - What is blocked
+   - Why it's blocked (what was already tried)
+   - What is needed to unblock (decision/information/technical solution)
+
+**Exiting BLOCKED state:**
+
+After the user provides a solution:
+1. In the Task file:
+   - Set **Status** to `IN_PROGRESS`
+   - Set **Blocked by** to `N/A`
+   - In **Notes**: add `YYYY-MM-DD: Unblocked — <solution>`
+   - Keep **Resume point** until that subtask is completed
+
+2. In COMPASS.md:
+   - Change `[!]` to `[~]`
+   - Update **Current Status** to `Task N resumed: <brief note>`
+
+3. Continue from the Resume point
+
+**Skipping BLOCKED Tasks:**
+
+If the user explicitly instructs to skip a blocked Task:
+1. In the Task file:
+   - Set **Status** to `SKIPPED`
+   - In **Notes**: record skip reason and potential impact
+
+2. In COMPASS.md:
+   - Change `[!]` to `[-]`
+   - Add entry to **Skipped Tasks** section: `Task N: <name> — Reason: <why skipped>`
+
+3. Continue to the next Task, but check dependencies before starting each subsequent Task
 
 **At the end of every Task**:
 - Verify all acceptance criteria are met
-- Set the task file's **Status** to `COMPLETE`
-- Mark the Task complete in COMPASS.md
+- Set the Task file's **Status** to `COMPLETE`
+- In COMPASS.md: mark the Task as `[x]` and remove `← Active` indicator
 - Update **Current Status** and **Next Steps** in COMPASS.md
 - Inform the user which Task was completed and what comes next
 
 **When all Tasks are complete**: Inform the user that all Tasks are done and suggest archiving the cycle's artifacts. Wait for explicit confirmation before proceeding to the Archive phase.
 
+**Analysis Document Updates:**
+
+If during implementation you discover the analysis is outdated:
+
+- **Minor discrepancies** (don't affect overall plan): Record in the Task file's Notes section only
+- **Major discrepancies** (affect subsequent Tasks):
+  1. Pause current Task
+  2. Update the relevant analysis document(s)
+  3. In COMPASS.md Analysis section, mark: `*(Updated YYYY-MM-DD)*`
+  4. Add entry to Decision Log: `Analysis updated: <reason>`
+  5. Evaluate if subsequent Tasks need adjustment:
+     - Update affected Task files if needed, explain in Notes
+     - Create new Task files if necessary, update Task Overview
+  6. Report changes to user and confirm before continuing
+
 ---
 
 ## Archive
 
-**Trigger**: All tasks in `.spec/COMPASS.md` are marked `[x]`, and the user has confirmed they are ready to archive.
+**Trigger**: All Tasks in `.spec/COMPASS.md` are marked `[x]` or `[-]`, and the user has confirmed they are ready to archive.
 
 **Goal**: Preserve this development cycle's artifacts so the next cycle starts clean.
 
