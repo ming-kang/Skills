@@ -1,0 +1,12 @@
+{
+  "name": "biu",
+  "description": "Spec-driven workflow for complex development tasks with structured analysis and task decomposition",
+  "version": "1.0.0",
+  "author": {
+    "name": "ming-kang"
+  },
+  "homepage": "https://github.com/ming-kang/Skills",
+  "repository": "https://github.com/ming-kang/Skills",
+  "license": "MIT",
+  "keywords": ["spec-coding", "workflow", "task-management", "development"]
+}
