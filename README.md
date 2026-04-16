@@ -4,59 +4,34 @@
 
 Personal Claude Code plugin marketplace for distributing commonly used plugins and skills.
 
-## Overview
+## Quick Start
 
-This repository serves as a plugin marketplace for Claude Code, providing curated plugins for enhanced development workflows.
+```bash
+# 1. Add marketplace (lowercase repo name required)
+/plugin marketplace add ming-kang/skills
+
+# 2. Install plugin
+/plugin install biu@ming-kang-skills
+
+# 3. Use it
+/biu:spec-coding
+```
+
+> To update: `/plugin marketplace update ming-kang-skills`
 
 ## Available Plugins
 
 ### biu (v1.0.0)
 
-Spec-driven workflow for complex development tasks with structured analysis and task decomposition.
+Spec-driven workflow for complex development tasks.
 
-**Features:**
-- Structured workflow phases for complex tasks
-- Codebase analysis with custom agents
-- Task decomposition and planning
-- COMPASS methodology templates
-- Cross-session continuity via `.spec/` artifacts
-- Formal blocker protocol
-
-**Installation:**
-
-```bash
-# Add this marketplace
-/plugin marketplace add ming-kang/Skills
-
-# Install the biu plugin
-/plugin install biu@ming-kang-skills
-```
-
-**Usage:**
-
-```bash
-/biu:spec-coding
-```
-
-## For Users
-
-### Adding the Marketplace
-
-```bash
-/plugin marketplace add ming-kang/Skills
-```
-
-### Installing Plugins
-
-```bash
-/plugin install biu@ming-kang-skills
-```
-
-### Updating Plugins
-
-```bash
-/plugin marketplace update ming-kang-skills
-```
+| Feature | Description |
+|---------|-------------|
+| Structured workflow | Phased analysis and task decomposition |
+| Custom agents | Codebase analysis and planning subagents |
+| COMPASS templates | Consistent task and analysis documentation |
+| Cross-session state | `.spec/` artifacts persist between sessions |
+| Blocker protocol | Formal handling for blocked tasks |
 
 ## For Developers
 
@@ -65,10 +40,10 @@ This marketplace follows the [Claude Code plugin marketplace specification](http
 ### Testing Locally
 
 ```bash
-# Add local marketplace
+# Add local repository as marketplace
 /plugin marketplace add ./path/to/Skills
 
-# Install plugin for testing
+# Install plugin
 /plugin install biu@ming-kang-skills
 ```
 
