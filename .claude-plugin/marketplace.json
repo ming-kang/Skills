@@ -14,7 +14,7 @@
       "name": "biu",
       "source": "./plugins/biu",
       "description": "Spec-driven workflow for complex development tasks with structured analysis and task decomposition",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "ming-kang"
       },

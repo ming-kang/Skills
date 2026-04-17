@@ -1,7 +1,8 @@
 ---
 name: spec-coding
 description: >-
-  Triggers when the user mentions "spec coding" / "spec-coding", or directly /spec-coding.
+  Structured multi-phase workflow (Analyze → Plan → Decompose → Hand-off → Implement → Archive) for complex tasks. Invoke explicitly with /biu:spec-coding.
+disable-model-invocation: true
 ---
 
 # Spec-Coding
@@ -41,15 +42,18 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 5. **Archive when done.** When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
 6. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
 7. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, invoke the Blocked Protocol immediately.
+8. **Respect verification gates.** If a `SubagentStop` hook blocks the analyzer or architect subagent with a missing-artifact list, re-invoke the same subagent with that list as its next task — do not advance to the next phase until the gate passes.
 
 ---
 
 ## Continuity Check
 
-**CRITICAL**: Before starting any phase, check whether `.spec/COMPASS.md` exists.
+**CRITICAL**: Before starting any phase, check the session state.
 
-- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task, what has already been completed, and continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
-- **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
+- **If a `<biu-session-state>` block was injected at the start of this session by the Biu `SessionStart` hook, trust it.** It already tells you whether a cycle is active, what phase you're in, task counts, and the current status. Skip the COMPASS existence probe and proceed based on that block.
+- **If no `<biu-session-state>` block is present** (hook not available, or fresh install), fall back to checking whether `.spec/COMPASS.md` exists:
+  - **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task, what has already been completed, and continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
+  - **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
 
 ---
 
@@ -71,13 +75,10 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 
 **Goal**: Build a comprehensive understanding of the current codebase.
 
-**Action**: 
-1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context
-2. For large codebases, you may spawn multiple analyzer subagents in parallel to analyze different modules
-3. Collect analyzer outputs and synthesize into the three analysis documents:
-   - project-overview.md
-   - module-inventory.md
-   - risk-assessment.md
+**Action**:
+1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. The analyzer writes `.spec/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
+2. For large codebases, you may spawn multiple analyzer subagents in parallel — but each one must be scoped to a **non-overlapping file** to avoid write races (e.g., one writes `module-inventory.md` while another writes `risk-assessment.md`).
+3. A `SubagentStop` hook verifies that all three files exist, are non-empty, and contain the required headings. If verification fails, re-invoke the analyzer with the missing-artifact list.
 
 Example invocation:
 ```

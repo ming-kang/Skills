@@ -21,7 +21,7 @@ Personal Claude Code plugin marketplace for distributing commonly used plugins a
 
 ## Available Plugins
 
-### biu (v1.0.0)
+### biu (v1.0.1)
 
 Spec-driven workflow for complex development tasks.
 
@@ -32,6 +32,9 @@ Spec-driven workflow for complex development tasks.
 | COMPASS templates | Consistent task and analysis documentation |
 | Cross-session state | `.spec/` artifacts persist between sessions |
 | Blocker protocol | Formal handling for blocked tasks |
+| Lifecycle hooks | Session-state injection, subagent verification gates, destructive-command guard |
+
+**Requirements**: biu's hooks are bash scripts that shell out to Python. On Windows, install [Git for Windows](https://git-scm.com/download/win) so `bash` is available on PATH. Python 3 (preferred) or Python 2 must also be available.
 
 ## For Developers
 
