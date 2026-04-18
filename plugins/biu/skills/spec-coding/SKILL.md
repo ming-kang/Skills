@@ -152,15 +152,11 @@ Agent({
 })
 ```
 
-**Output**: Complete `.spec/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview. Present the full task breakdown to the user and confirm before proceeding.
+**Output**: Complete `.spec/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview.
 
----
+### Hand-off (Phase 3 exit gate)
 
-## Phase 4: Hand-off
-
-**Goal**: Present all preparation artifacts and confirm readiness to begin implementation.
-
-**Actions**:
+After decomposition, before advancing to Phase 4, run the hand-off ritual:
 
 1. Present a structured summary:
    - Confirmed task definition
@@ -181,11 +177,11 @@ Agent({
 
 3. Ask the user: **"Preparation complete. Ready to start Implementation Phase?"**
 
-**Output**: User confirmation to begin implementation.
+Only after explicit user confirmation, advance to Phase 4. Hand-off is a transient event, not a persistent state — it is not a numbered phase because nothing about it is recoverable from disk (`compute-state.sh` reports `phase: 3 "Task Decomposition (complete)"` throughout this wait).
 
 ---
 
-## Phase 5: Implementation
+## Phase 4: Implementation
 
 Load `references/implementation.md` when you enter this phase. It covers the per-Task start/during/end loop, COMPASS update contract, and analysis-update protocol.
 
@@ -193,7 +189,7 @@ If a subtask fails twice in a row, or you hit an unresolvable constraint conflic
 
 ---
 
-## Phase 6: Archive
+## Phase 5: Archive
 
 When all Tasks are complete and the user has confirmed readiness to archive, load `references/archive.md`. It covers archive folder naming (`YYYY-MM-DD-NN`), artifact relocation, and final reporting.
 
@@ -208,8 +204,8 @@ The plugin's `agents/` directory contains specialized subagents that are automat
 
 The `references/` directory contains lazy-loaded procedure files:
 
-- `references/implementation.md` — Implementation Phase loop (load at Phase 5)
+- `references/implementation.md` — Implementation Phase loop (load at Phase 4)
 - `references/blocked-protocol.md` — BLOCKED state entry/exit/skip procedure
-- `references/archive.md` — Archive Phase procedure (load at Phase 6)
+- `references/archive.md` — Archive Phase procedure (load at Phase 5)
 - `references/templates/analysis.md` — Templates for the three analysis documents
 - `references/templates/task.md` — Template for task files in `.spec/tasks/`

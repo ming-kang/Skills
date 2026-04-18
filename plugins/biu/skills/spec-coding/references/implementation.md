@@ -1,6 +1,6 @@
 # Implementation Phase
 
-Load this file when you enter the Implementation Phase (after Phase 4 hand-off is confirmed by the user).
+Load this file when you enter the Implementation Phase (Phase 4, after the Phase 3 hand-off is confirmed by the user).
 
 ---
 
