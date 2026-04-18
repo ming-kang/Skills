@@ -27,14 +27,15 @@ Spec-driven workflow for complex development tasks.
 
 | Feature | Description |
 |---------|-------------|
-| Structured workflow | Phased analysis and task decomposition |
-| Custom agents | Codebase analysis and planning subagents |
-| COMPASS templates | Consistent task and analysis documentation |
-| Cross-session state | `.spec/` artifacts persist between sessions |
-| Blocker protocol | Formal handling for blocked tasks |
-| Lifecycle hooks | Session-state injection, subagent verification gates, destructive-command guard |
+| Structured workflow | Phased analysis, planning, decomposition, implementation, archive |
+| Custom agents | Codebase analysis (analyzer) and task decomposition (architect) subagents |
+| COMPASS-based continuity | Single-file `.spec/COMPASS.md` as cross-session memory; no hidden state cache |
+| Templates | Canonical structures for COMPASS, tasks, and analysis documents |
+| Blocker protocol | Formal handling for blocked tasks with resume/skip workflow |
+| Verification gates | `SubagentStop` hooks verify analyzer/architect produced well-formed artifacts |
+| Task-complete reminder | `PostToolUse` hook injects a STOP reminder when a Task is marked COMPLETE |
 
-**Requirements**: biu's hooks are bash scripts that shell out to Python. On Windows, install [Git for Windows](https://git-scm.com/download/win) so `bash` is available on PATH. Python 3 (preferred) or Python 2 must also be available.
+**Requirements**: biu's hooks are pure bash scripts — no Python or other runtime dependencies. On Windows, install [Git for Windows](https://git-scm.com/download/win) so `bash` is available on PATH. macOS and Linux have bash out of the box.
 
 ## For Developers
 
