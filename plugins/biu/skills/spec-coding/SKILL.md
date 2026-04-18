@@ -48,12 +48,10 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 
 ## Continuity Check
 
-**CRITICAL**: Before starting any phase, check the session state.
+**CRITICAL**: Before starting any phase, check whether `.spec/COMPASS.md` exists.
 
-- **If a `<biu-session-state>` block was injected at the start of this session by the Biu `SessionStart` hook, trust it.** It already tells you whether a cycle is active, what phase you're in, task counts, and the current status. Skip the COMPASS existence probe and proceed based on that block.
-- **If no `<biu-session-state>` block is present** (hook not available, or fresh install), fall back to checking whether `.spec/COMPASS.md` exists:
-  - **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task, what has already been completed, and continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
-  - **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
+- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Current Status, Task Overview, and the per-task files in `.spec/tasks/`. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
+- **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
 
 ---
 
@@ -77,7 +75,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 **Action**:
 1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. The analyzer writes `.spec/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
 2. For large codebases, you may spawn multiple analyzer subagents in parallel — but each one must be scoped to a **non-overlapping file** to avoid write races.
-3. A `SubagentStop` hook verifies that all three files exist, are non-empty, and contain the required headings. If verification fails, re-invoke the analyzer with the missing-artifact list.
+3. A `SubagentStop` hook verifies that all three files exist, are non-empty, and contain at least one section heading. If verification fails, re-invoke the analyzer with the missing-artifact list.
 
 Example invocation:
 ```
@@ -177,7 +175,7 @@ After decomposition, before advancing to Phase 4, run the hand-off ritual:
 
 3. Ask the user: **"Preparation complete. Ready to start Implementation Phase?"**
 
-Only after explicit user confirmation, advance to Phase 4. Hand-off is a transient event, not a persistent state — it is not a numbered phase because nothing about it is recoverable from disk (`compute-state.sh` reports `phase: 3 "Task Decomposition (complete)"` throughout this wait).
+Only after explicit user confirmation, advance to Phase 4. Hand-off is a transient event, not a persistent state — it is not a numbered phase because nothing about it is recoverable from disk.
 
 ---
 

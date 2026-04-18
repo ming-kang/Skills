@@ -1,62 +1,9 @@
 {
-  "description": "Biu plugin hooks: session-state injection, dangerous-command guard, subagent context injection and artifact verification",
+  "description": "Biu plugin hooks: subagent artifact verification (pure bash, zero runtime deps)",
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume|clear|compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "if": "Bash(rm *)",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-dangerous.sh"
-          },
-          {
-            "type": "command",
-            "if": "Bash(git reset *)",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-dangerous.sh"
-          },
-          {
-            "type": "command",
-            "if": "Bash(git push *)",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-dangerous.sh"
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": "(^|:)analyzer$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-analyzer-context.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "(^|:)architect$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-architect-context.sh"
-          }
-        ]
-      }
-    ],
     "SubagentStop": [
       {
-        "matcher": "(^|:)analyzer$",
+        "matcher": "^analyzer$",
         "hooks": [
           {
             "type": "command",
@@ -65,7 +12,7 @@
         ]
       },
       {
-        "matcher": "(^|:)architect$",
+        "matcher": "^architect$",
         "hooks": [
           {
             "type": "command",

@@ -48,7 +48,7 @@ Review every task against the **Assumptions & Constraints** section of COMPASS.m
 
 ### Step 4: Write Task Files
 
-Write one file per Task to `.spec/tasks/` using the template whose absolute path is provided in the injected `<biu-task-context role="architect">` block (under **Template to follow**). Read that template before writing task files.
+Write one file per Task to `.spec/tasks/` using the structure in `references/templates/task.md` (under the spec-coding skill directory; use Glob `**/templates/task.md` to locate the absolute path). Read that template before writing task files.
 
 File naming: `task-N-<short-name>.md` where N is a sequential number starting at 1 and `<short-name>` is a 1–3 word kebab-case description.
 

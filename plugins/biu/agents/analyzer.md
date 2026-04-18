@@ -51,13 +51,13 @@ For each logical module, package, or component, document:
 
 ## Required Outputs
 
-Follow the exact section structure in the template file whose absolute path is provided in the injected `<biu-task-context role="analyzer">` block (under **Template to follow**). Read that template before writing. Write these three files under `.spec/analysis/`:
+Follow the structure in `references/templates/analysis.md` (under the spec-coding skill directory; use Glob `**/templates/analysis.md` to locate the absolute path). Read that template before writing. Write these three files under `.spec/analysis/`:
 
-- `project-overview.md` — Summary, Technology Stack, Entry Points, Directory Layout, Architecture. Must contain a `## Technology Stack` heading.
-- `module-inventory.md` — One entry per logical module. Must contain at least one `## <module-path>` heading.
-- `risk-assessment.md` — Ranked risks with Location / Description / Impact / Suggested Mitigation. Must contain a `## Critical Risks` or `## High Risks` heading.
+- `project-overview.md` — Summary, Technology Stack, Entry Points, Directory Layout, Architecture.
+- `module-inventory.md` — One entry per logical module.
+- `risk-assessment.md` — Ranked risks with Location / Description / Impact / Suggested Mitigation.
 
-A `SubagentStop` hook verifies these three files exist, are non-empty, and contain the required headings. If anything is missing, the hook will block your stop and feed back the list — address each item before concluding.
+A `SubagentStop` hook verifies these three files exist, are non-empty (≥ 200 bytes), and contain at least one `## ` section heading. If anything is missing, the hook will block your stop and feed back the list — address each item before concluding.
 
 If multiple analyzers are spawned in parallel, each must be scoped to a non-overlapping file to avoid write races.
 
