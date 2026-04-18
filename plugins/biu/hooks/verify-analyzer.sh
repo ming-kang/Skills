@@ -31,7 +31,7 @@ for fname in project-overview.md module-inventory.md risk-assessment.md; do
     missing+=("analysis/$fname is too short (${bytes:-0} bytes, minimum ${MIN_BYTES})")
     continue
   fi
-  headings=$(grep -E -c $'^## \r?' "$path" 2>/dev/null || echo 0)
+  headings=$(grep -E -c $'^## \r?' "$path" 2>/dev/null || true)
   if [ "$headings" -lt "$MIN_HEADINGS" ]; then
     missing+=("analysis/$fname has insufficient structure ($headings headings, minimum ${MIN_HEADINGS})")
   fi

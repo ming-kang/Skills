@@ -43,12 +43,11 @@ if ! grep -qE '^\*\*Status\*\*:[[:space:]]*COMPLETE' "$file_path" 2>/dev/null; t
 fi
 
 # Static reminder — no dynamic interpolation, no JSON-escaping landmines.
+# Newlines inside additionalContext are emitted as literal backslash-n so the
+# wire format stays strict JSON; Claude Code's JSON parser unescapes them to
+# real newlines at display time.
 cat <<'EOF'
-{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"<biu-task-completed>
-A task file was just marked Status: COMPLETE.
-
-STOP this turn now. Do NOT begin the next Task automatically. Per Behavioral Rule #2 in spec-coding SKILL.md, you must inform the user that the Task is complete and wait for explicit instruction (e.g. 'continue with Task N+1') before starting any new work.
-</biu-task-completed>"}}
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"<biu-task-completed>\nA task file was just marked Status: COMPLETE.\n\nSTOP this turn now. Do NOT begin the next Task automatically. Per Behavioral Rule #2 in spec-coding SKILL.md, you must inform the user that the Task is complete and wait for explicit instruction (e.g. 'continue with Task N+1') before starting any new work.\n</biu-task-completed>"}}
 EOF
 
 exit 0

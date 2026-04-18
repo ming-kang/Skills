@@ -66,7 +66,7 @@ Follow the structure in `references/templates/analysis.md` (under the spec-codin
 - `module-inventory.md` — One entry per logical module.
 - `risk-assessment.md` — Ranked risks with Location / Description / Impact / Suggested Mitigation.
 
-A `SubagentStop` hook verifies these three files exist, are non-empty (≥ 200 bytes), and contain at least one `## ` section heading. If anything is missing, the hook will block your stop and feed back the list — address each item before concluding.
+A `SubagentStop` hook verifies these three files exist, are at least 500 bytes, and contain at least 3 `## ` section headings. If anything is missing, the hook will block your stop and feed back the list — address each item before concluding.
 
 ## Final Response
 

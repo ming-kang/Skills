@@ -30,7 +30,7 @@ Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, referenc
 
 ## Task Overview
 
-<Populated by Phase 3 (architect subagent). One line per Task.>
+<Populated by Phase 3>
 
 - [ ] Task 1: setup-build (0/5) — [details](./tasks/task-1-setup-build.md)
 - [ ] Task 2: migrate-core (0/8) — [details](./tasks/task-2-migrate-core.md)
