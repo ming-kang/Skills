@@ -30,6 +30,7 @@ Invoke the Blocked Protocol immediately — see `blocked-protocol.md`.
 - In COMPASS.md: mark the Task as `[x]` and remove the `← Active` indicator.
 - Update **Current Status** and **Next Steps** in COMPASS.md.
 - Inform the user which Task was completed and what comes next.
+- **STOP here.** Do NOT start the next Task automatically. Wait for the user to explicitly instruct "continue with Task N+1" (or equivalent). Auto-advancing to the next Task is a violation of the workflow contract.
 
 ## When all Tasks are complete
 

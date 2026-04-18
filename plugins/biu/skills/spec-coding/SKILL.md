@@ -36,13 +36,14 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 ## Behavioral Rules
 
 1. **Never skip User's Confirmation.** Confirm with the user at each phase boundary. This includes archiving — never archive without explicit user approval.
-2. **Document decisions.** Record important technical decisions and plan changes in COMPASS.md's Decision Log. Record implementation details in the relevant Task file's Notes section.
-3. **Progress updates are mandatory.** After completing any subtask: check its box in the Task file, immediately update the (X/N) count in COMPASS.md.
-4. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
-5. **Archive when done.** When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
-6. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
-7. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, load `references/blocked-protocol.md` and follow it.
-8. **Respect verification gates.** If a `SubagentStop` hook blocks the analyzer or architect subagent with a missing-artifact list, re-invoke the same subagent with that list as its next task — do not advance to the next phase until the gate passes.
+2. **One Task at a time. Never auto-advance.** When a Task is marked COMPLETE, STOP. Do NOT begin the next Task in the same turn. Always wait for the user to explicitly instruct "continue with Task N+1" (or equivalent) before starting any work on the next Task.
+3. **Document decisions.** Record important technical decisions and plan changes in COMPASS.md's Decision Log. Record implementation details in the relevant Task file's Notes section.
+4. **Progress updates are mandatory.** After completing any subtask: check its box in the Task file, immediately update the (X/N) count in COMPASS.md.
+5. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
+6. **Archive when done.** When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
+7. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
+8. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, load `references/blocked-protocol.md` and follow it.
+9. **Respect verification gates.** If a `SubagentStop` hook blocks the analyzer or architect subagent with a missing-artifact list, re-invoke the same subagent with that list as its next task — do not advance to the next phase until the gate passes.
 
 ---
 
@@ -74,8 +75,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 
 **Action**:
 1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. The analyzer writes `.spec/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
-2. For large codebases, you may spawn multiple analyzer subagents in parallel — but each one must be scoped to a **non-overlapping file** to avoid write races.
-3. A `SubagentStop` hook verifies that all three files exist, are non-empty, and contain at least one section heading. If verification fails, re-invoke the analyzer with the missing-artifact list.
+2. A `SubagentStop` hook verifies that all three files exist, are non-empty, and contain at least one section heading. If verification fails, re-invoke the analyzer with the missing-artifact list.
 
 Example invocation:
 ```

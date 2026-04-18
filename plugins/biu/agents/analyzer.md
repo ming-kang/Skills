@@ -59,8 +59,6 @@ Follow the structure in `references/templates/analysis.md` (under the spec-codin
 
 A `SubagentStop` hook verifies these three files exist, are non-empty (≥ 200 bytes), and contain at least one `## ` section heading. If anything is missing, the hook will block your stop and feed back the list — address each item before concluding.
 
-If multiple analyzers are spawned in parallel, each must be scoped to a non-overlapping file to avoid write races.
-
 ## Final Response
 
 After writing all three files, reply to the parent with a concise summary (roughly 10–20 lines) covering:
