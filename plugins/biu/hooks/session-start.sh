@@ -6,7 +6,7 @@
 #
 # Silent no-op when .spec/ does not exist (project not using biu).
 
-set -u
+set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 SPEC_DIR="$PROJECT_DIR/.spec"
@@ -15,13 +15,11 @@ if [ ! -d "$SPEC_DIR" ]; then
   exit 0
 fi
 
-PY=$(command -v python3 || command -v python)
-if [ -z "$PY" ]; then
-  exit 0
-fi
+# shellcheck source=lib/require-python.sh
+. "${CLAUDE_PLUGIN_ROOT}/hooks/lib/require-python.sh"
 
 # Compute state on-demand; compute-state.sh prints the JSON to stdout on success.
-STATE_JSON=$(bash "${CLAUDE_PLUGIN_ROOT}/hooks/lib/compute-state.sh" 2>/dev/null)
+STATE_JSON="$(bash "${CLAUDE_PLUGIN_ROOT}/hooks/lib/compute-state.sh" 2>/dev/null || true)"
 
 if [ -z "$STATE_JSON" ]; then
   # compute-state failed or spec/ missing — stay silent.
@@ -30,7 +28,7 @@ fi
 
 # Render state into <biu-session-state> block via python.
 # Pass JSON via env var to avoid any shell interpolation pitfalls.
-BIU_STATE="$STATE_JSON" "$PY" - <<'PYEOF'
+BIU_STATE="$STATE_JSON" "$BIU_PY" - <<'PYEOF'
 import json, os, sys
 
 state = json.loads(os.environ["BIU_STATE"])

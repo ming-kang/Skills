@@ -36,7 +36,7 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "analyzer",
+        "matcher": "(^|:)analyzer$",
         "hooks": [
           {
             "type": "command",
@@ -45,7 +45,7 @@
         ]
       },
       {
-        "matcher": "architect",
+        "matcher": "(^|:)architect$",
         "hooks": [
           {
             "type": "command",
@@ -56,7 +56,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "analyzer",
+        "matcher": "(^|:)analyzer$",
         "hooks": [
           {
             "type": "command",
@@ -65,7 +65,7 @@
         ]
       },
       {
-        "matcher": "architect",
+        "matcher": "(^|:)architect$",
         "hooks": [
           {
             "type": "command",

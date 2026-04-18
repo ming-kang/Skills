@@ -5,21 +5,19 @@
 # Exit 2 + stderr blocks the subagent from stopping and feeds back the list of
 # missing items so the subagent keeps working.
 
-set -u
+set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 SPEC_DIR="$PROJECT_DIR/.spec"
 COMPASS="$SPEC_DIR/COMPASS.md"
 TASKS_DIR="$SPEC_DIR/tasks"
 
-cat >/dev/null 2>&1
+cat >/dev/null 2>&1 || true
 
-PY=$(command -v python3 || command -v python)
-if [ -z "$PY" ]; then
-  exit 0
-fi
+# shellcheck source=lib/require-python.sh
+. "${CLAUDE_PLUGIN_ROOT}/hooks/lib/require-python.sh"
 
-BIU_COMPASS="$COMPASS" BIU_TASKS_DIR="$TASKS_DIR" "$PY" - <<'PYEOF'
+BIU_COMPASS="$COMPASS" BIU_TASKS_DIR="$TASKS_DIR" "$BIU_PY" - <<'PYEOF'
 import os, re, sys
 
 compass_path = os.environ["BIU_COMPASS"]

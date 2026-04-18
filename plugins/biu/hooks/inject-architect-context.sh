@@ -6,7 +6,7 @@
 # the confirmed plan, analysis summaries, the task template path, and the
 # COMPASS update contract.
 
-set -u
+set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 SPEC_DIR="$PROJECT_DIR/.spec"
@@ -14,16 +14,14 @@ COMPASS="$SPEC_DIR/COMPASS.md"
 ANALYSIS_DIR="$SPEC_DIR/analysis"
 TEMPLATE_PATH="${CLAUDE_PLUGIN_ROOT}/skills/spec-coding/references/templates/task.md"
 
-PY=$(command -v python3 || command -v python)
-if [ -z "$PY" ]; then
-  exit 0
-fi
+# shellcheck source=lib/require-python.sh
+. "${CLAUDE_PLUGIN_ROOT}/hooks/lib/require-python.sh"
 
 BIU_COMPASS="$COMPASS" \
 BIU_ANALYSIS_DIR="$ANALYSIS_DIR" \
 BIU_TEMPLATE_PATH="$TEMPLATE_PATH" \
 BIU_SPEC_DIR="$SPEC_DIR" \
-"$PY" - <<'PYEOF'
+"$BIU_PY" - <<'PYEOF'
 import json, os
 
 def read_head(p, max_chars=1200):

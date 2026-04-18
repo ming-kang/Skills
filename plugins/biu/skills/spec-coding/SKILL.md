@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Spec-Coding
 
-A skill for **Spec-Coding** workflow: Standardized development pipeline for complex tasks.
+A skill for **Spec-Coding** workflow: standardized development pipeline for complex tasks.
 
 ---
 
@@ -41,7 +41,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 4. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
 5. **Archive when done.** When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
 6. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
-7. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, invoke the Blocked Protocol immediately.
+7. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, load `references/blocked-protocol.md` and follow it.
 8. **Respect verification gates.** If a `SubagentStop` hook blocks the analyzer or architect subagent with a missing-artifact list, re-invoke the same subagent with that list as its next task — do not advance to the next phase until the gate passes.
 
 ---
@@ -64,7 +64,6 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 **Actions**:
 
 1. Ask the user to describe their goal if they haven't already. A brief description is enough — detailed planning questions will follow in Phase 2 after codebase analysis.
-
 2. Confirm your understanding of the high-level intent with the user before proceeding.
 
 **Output**: A rough task direction. Proceed to Phase 1.
@@ -77,7 +76,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 
 **Action**:
 1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. The analyzer writes `.spec/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
-2. For large codebases, you may spawn multiple analyzer subagents in parallel — but each one must be scoped to a **non-overlapping file** to avoid write races (e.g., one writes `module-inventory.md` while another writes `risk-assessment.md`).
+2. For large codebases, you may spawn multiple analyzer subagents in parallel — but each one must be scoped to a **non-overlapping file** to avoid write races.
 3. A `SubagentStop` hook verifies that all three files exist, are non-empty, and contain the required headings. If verification fails, re-invoke the analyzer with the missing-artifact list.
 
 Example invocation:
@@ -89,12 +88,7 @@ Agent({
 })
 ```
 
-**Output**: Complete `.spec/analysis/` directory with three documents:
-- `project-overview.md` — Architecture, tech stack, entry points, build system
-- `module-inventory.md` — Every module with: responsibility, dependencies, size, complexity rating
-- `risk-assessment.md` — Technical risks, compatibility risks, complexity hotspots
-
-When analysis is complete, present a brief summary of findings to the user and confirm before proceeding to Phase 2.
+**Output**: Complete `.spec/analysis/` directory with three documents. Present a brief summary of findings to the user and confirm before proceeding to Phase 2.
 
 ---
 
@@ -158,9 +152,7 @@ Agent({
 })
 ```
 
-**Output**: Complete `.spec/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview.
-
-When decomposition is complete, present the full task breakdown to the user and confirm before proceeding.
+**Output**: Complete `.spec/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview. Present the full task breakdown to the user and confirm before proceeding.
 
 ---
 
@@ -193,124 +185,17 @@ When decomposition is complete, present the full task breakdown to the user and 
 
 ---
 
-## Implementation
+## Phase 5: Implementation
 
-**At the start of every Task**:
-1. Read `.spec/COMPASS.md` to confirm current position and re-read **Assumptions & Constraints**
-2. Open the relevant `.spec/tasks/task-N-<name>.md` and set **Status** to `IN_PROGRESS`
-3. In COMPASS.md: mark the Task as `[~]` and add `← Active` indicator
+Load `references/implementation.md` when you enter this phase. It covers the per-Task start/during/end loop, COMPASS update contract, and analysis-update protocol.
 
-**During each Task**:
-- Work through subtasks one at a time
-- After completing a subtask: 
-  - Check its box in the Task file
-  - Immediately update the (X/N) count in COMPASS.md
-- Record any decisions, surprises, or blockers in the Task file's Notes section
-- Record important technical decisions in COMPASS.md's Decision Log
-
-**Blocked Protocol** — if a subtask fails twice in a row, or if you encounter a constraint conflict you cannot resolve without user input:
-
-**Entering BLOCKED state:**
-1. In the Task file:
-   - Set **Status** to `BLOCKED`
-   - Set **Blocked by** to `[DECISION|TECHNICAL|INFO] <specific description>`
-   - Set **Resume point** to the current subtask number
-   - In **Notes**: record what was attempted and why it failed
-
-2. In COMPASS.md:
-   - Mark the Task as `[!]`
-   - Update **Current Status** to `Task N blocked: <brief reason>`
-
-3. Report to the user:
-   - What is blocked
-   - Why it's blocked (what was already tried)
-   - What is needed to unblock (decision/information/technical solution)
-
-**Exiting BLOCKED state:**
-
-After the user provides a solution:
-1. In the Task file:
-   - Set **Status** to `IN_PROGRESS`
-   - Set **Blocked by** to `N/A`
-   - In **Notes**: add `YYYY-MM-DD: Unblocked — <solution>`
-   - Keep **Resume point** until that subtask is completed
-
-2. In COMPASS.md:
-   - Change `[!]` to `[~]`
-   - Update **Current Status** to `Task N resumed: <brief note>`
-
-3. Continue from the Resume point
-
-**Skipping BLOCKED Tasks:**
-
-If the user explicitly instructs to skip a blocked Task:
-1. In the Task file:
-   - Set **Status** to `SKIPPED`
-   - In **Notes**: record skip reason and potential impact
-
-2. In COMPASS.md:
-   - Change `[!]` to `[-]`
-   - Add entry to **Skipped Tasks** section: `Task N: <name> — Reason: <why skipped>`
-
-3. Continue to the next Task, but check dependencies before starting each subsequent Task
-
-**At the end of every Task**:
-- Verify all acceptance criteria are met
-- Set the Task file's **Status** to `COMPLETE`
-- In COMPASS.md: mark the Task as `[x]` and remove `← Active` indicator
-- Update **Current Status** and **Next Steps** in COMPASS.md
-- Inform the user which Task was completed and what comes next
-
-**When all Tasks are complete**: Inform the user that all Tasks are done and suggest archiving the cycle's artifacts. Wait for explicit confirmation before proceeding to the Archive phase.
-
-**Analysis Document Updates:**
-
-If during implementation you discover the analysis is outdated:
-
-- **Minor discrepancies** (don't affect overall plan): Record in the Task file's Notes section only
-- **Major discrepancies** (affect subsequent Tasks):
-  1. Pause current Task
-  2. Update the relevant analysis document(s)
-  3. In COMPASS.md Analysis section, mark: `*(Updated YYYY-MM-DD)*`
-  4. Add entry to Decision Log: `Analysis updated: <reason>`
-  5. Evaluate if subsequent Tasks need adjustment:
-     - Update affected Task files if needed, explain in Notes
-     - Create new Task files if necessary, update Task Overview
-  6. Report changes to user and confirm before continuing
+If a subtask fails twice in a row, or you hit an unresolvable constraint conflict, load `references/blocked-protocol.md` and follow it.
 
 ---
 
-## Archive
+## Phase 6: Archive
 
-**Trigger**: All Tasks in `.spec/COMPASS.md` are marked `[x]` or `[-]`, and the user has confirmed they are ready to archive.
-
-**Goal**: Preserve this development cycle's artifacts so the next cycle starts clean.
-
-**Actions**:
-
-1. Announce to the user that all Tasks are complete.
-
-2. Determine the archive folder name:
-   - Format: `YYYY-MM-DD-NN` where `NN` is a two-digit sequence starting at `01`
-   - Check `.spec/archived/` for existing folders with today's date and increment `NN` accordingly
-   - Example: `.spec/archived/2026-04-13-01/`
-
-3. Move all current working artifacts into the archive folder, preserving internal structure:
-   ```
-   .spec/archived/YYYY-MM-DD-NN/
-   ├── COMPASS.md
-   ├── analysis/
-   └── tasks/
-   ```
-
-4. The `.spec/` root is now empty (except `archived/`), ready for the next development cycle.
-
-5. Confirm to the user:
-   - What was archived and where.
-   - That `.spec/` is clean and ready for the next cycle.
-   - Suggest committing any production code changes from this cycle to version control if not already done.
-
-**Output**: A clean `.spec/` workspace. Past cycle preserved.
+When all Tasks are complete and the user has confirmed readiness to archive, load `references/archive.md`. It covers archive folder naming (`YYYY-MM-DD-NN`), artifact relocation, and final reporting.
 
 ---
 
@@ -321,7 +206,10 @@ The plugin's `agents/` directory contains specialized subagents that are automat
 - `analyzer` — Codebase analysis subagent (invoked via Agent tool in Phase 1)
 - `architect` — Task decomposition subagent (invoked via Agent tool in Phase 3)
 
-The `references/templates/` directory contains document templates:
+The `references/` directory contains lazy-loaded procedure files:
 
+- `references/implementation.md` — Implementation Phase loop (load at Phase 5)
+- `references/blocked-protocol.md` — BLOCKED state entry/exit/skip procedure
+- `references/archive.md` — Archive Phase procedure (load at Phase 6)
 - `references/templates/analysis.md` — Templates for the three analysis documents
 - `references/templates/task.md` — Template for task files in `.spec/tasks/`

@@ -6,24 +6,22 @@
 # knows the current cycle state, which templates to follow, and which
 # files it must produce.
 
-set -u
+set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 SPEC_DIR="$PROJECT_DIR/.spec"
 TEMPLATE_PATH="${CLAUDE_PLUGIN_ROOT}/skills/spec-coding/references/templates/analysis.md"
 
-PY=$(command -v python3 || command -v python)
-if [ -z "$PY" ]; then
-  exit 0
-fi
+# shellcheck source=lib/require-python.sh
+. "${CLAUDE_PLUGIN_ROOT}/hooks/lib/require-python.sh"
 
 # Compute state on-demand; stdout contains the JSON (may be empty if .spec/ missing).
-STATE_TXT=$(bash "${CLAUDE_PLUGIN_ROOT}/hooks/lib/compute-state.sh" 2>/dev/null)
+STATE_TXT="$(bash "${CLAUDE_PLUGIN_ROOT}/hooks/lib/compute-state.sh" 2>/dev/null || true)"
 
 BIU_STATE_TEXT="$STATE_TXT" \
 BIU_TEMPLATE_PATH="$TEMPLATE_PATH" \
 BIU_SPEC_DIR="$SPEC_DIR" \
-"$PY" - <<'PYEOF'
+"$BIU_PY" - <<'PYEOF'
 import json, os
 
 spec_dir = os.environ.get("BIU_SPEC_DIR", "")

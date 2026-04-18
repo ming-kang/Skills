@@ -5,20 +5,18 @@
 # Exit 2 + stderr blocks the subagent from stopping and feeds back the list of
 # missing artifacts so the subagent keeps working.
 
-set -u
+set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 ANALYSIS_DIR="$PROJECT_DIR/.spec/analysis"
 
 # Consume and ignore stdin (hook input JSON).
-cat >/dev/null 2>&1
+cat >/dev/null 2>&1 || true
 
-PY=$(command -v python3 || command -v python)
-if [ -z "$PY" ]; then
-  exit 0
-fi
+# shellcheck source=lib/require-python.sh
+. "${CLAUDE_PLUGIN_ROOT}/hooks/lib/require-python.sh"
 
-BIU_ANALYSIS_DIR="$ANALYSIS_DIR" "$PY" - <<'PYEOF'
+BIU_ANALYSIS_DIR="$ANALYSIS_DIR" "$BIU_PY" - <<'PYEOF'
 import os, sys
 
 d = os.environ["BIU_ANALYSIS_DIR"]

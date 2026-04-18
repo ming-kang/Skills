@@ -9,7 +9,7 @@
 #
 # Env: CLAUDE_PROJECT_DIR (preferred). Falls back to $PWD.
 
-set -u
+set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 SPEC_DIR="$PROJECT_DIR/.spec"
@@ -23,12 +23,10 @@ if [ ! -d "$SPEC_DIR" ]; then
   exit 0
 fi
 
-PY=$(command -v python3 || command -v python)
-if [ -z "$PY" ]; then
-  exit 0
-fi
+# shellcheck source=require-python.sh
+. "${CLAUDE_PLUGIN_ROOT}/hooks/lib/require-python.sh"
 
-"$PY" - "$SPEC_DIR" "$COMPASS" "$ANALYSIS_DIR" "$TASKS_DIR" "$GITIGNORE" <<'PYEOF'
+"$BIU_PY" - "$SPEC_DIR" "$COMPASS" "$ANALYSIS_DIR" "$TASKS_DIR" "$GITIGNORE" <<'PYEOF'
 import json, os, re, sys
 from datetime import datetime, timezone
 
@@ -68,7 +66,15 @@ if compass_exists:
     m = re.search(r'^##\s+Task Overview\s*\n(.+?)(?=^##\s|\Z)', compass, re.M | re.S)
     if m:
         body = m.group(1).strip()
-        task_overview_filled = bool(body) and '<Populated by Phase 3>' not in body
+        # Filled means: placeholder removed AND at least one task bullet present.
+        has_task_bullet = bool(
+            re.search(r'(?m)^\s*-\s+\[[ x~!\-]\]\s+Task\s+\d+', body)
+        )
+        task_overview_filled = (
+            bool(body)
+            and '<Populated by Phase 3>' not in body
+            and has_task_bullet
+        )
 
 # --- task inventory ---
 task_counts = {'pending': 0, 'in_progress': 0, 'blocked': 0, 'complete': 0, 'skipped': 0}

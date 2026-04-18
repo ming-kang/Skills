@@ -51,7 +51,7 @@ For each logical module, package, or component, document:
 
 ## Required Outputs
 
-Follow the exact section structure in `skills/spec-coding/references/templates/analysis.md`. Write these three files under `.spec/analysis/`:
+Follow the exact section structure in the template file whose absolute path is provided in the injected `<biu-task-context role="analyzer">` block (under **Template to follow**). Read that template before writing. Write these three files under `.spec/analysis/`:
 
 - `project-overview.md` — Summary, Technology Stack, Entry Points, Directory Layout, Architecture. Must contain a `## Technology Stack` heading.
 - `module-inventory.md` — One entry per logical module. Must contain at least one `## <module-path>` heading.

@@ -6,15 +6,13 @@
   },
   "metadata": {
     "description": "Personal skill library for Claude Code - storing, optimizing, and maintaining commonly used agent skills",
-    "version": "1.0.0",
-    "pluginRoot": "./plugins"
+    "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "biu",
       "source": "./plugins/biu",
       "description": "Spec-driven workflow for complex development tasks with structured analysis and task decomposition",
-      "version": "1.0.1",
       "author": {
         "name": "ming-kang"
       },
