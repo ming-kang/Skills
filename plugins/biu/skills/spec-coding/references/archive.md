@@ -1,6 +1,6 @@
 # Archive Phase
 
-Load this file when you enter Phase 5 — all Tasks in `.spec/COMPASS.md` are marked `[x]` or `[-]`, and the user has confirmed they are ready to archive. `compute-state.sh` will report `phase: 5 / Ready to Archive` when this trigger is met.
+Load this file when you enter Phase 5 — all Tasks in `.spec/COMPASS.md` are marked `[x]` or `[-]`, and the user has confirmed they are ready to archive.
 
 **Goal**: Preserve this development cycle's artifacts so the next cycle starts clean.
 

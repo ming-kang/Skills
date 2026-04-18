@@ -15,6 +15,15 @@ Your output will inform intent refinement with the user and guide task decomposi
 
 ## Process
 
+### Step 0: Validate Target Directory
+
+Before starting analysis, verify the target directory exists and contains expected project markers:
+- Check that the path provided by the parent agent is an absolute path and exists
+- Look for common project indicators (e.g., package.json, README.md, .git/, src/, or other source directories)
+- If the directory is missing or appears empty, report the issue immediately rather than proceeding with analysis
+
+The parent agent must pass an absolute path as part of the prompt when spawning this analyzer subagent.
+
 ### Step 1: Structure Discovery
 
 - Map the directory layout and identify organizational patterns

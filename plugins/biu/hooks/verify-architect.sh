@@ -8,6 +8,7 @@
 
 set -u
 
+CLAUDE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "$0")")}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 SPEC_DIR="$PROJECT_DIR/.spec"
 COMPASS="$SPEC_DIR/COMPASS.md"
@@ -37,10 +38,10 @@ fi
 for path in "${task_files[@]:-}"; do
   [ -z "$path" ] && continue
   fname=$(basename "$path")
-  if ! grep -q '^\*\*Status\*\*:' "$path" 2>/dev/null; then
+  if ! grep -E -q $'^\*\*Status\*\*:\r?' "$path" 2>/dev/null; then
     missing+=("tasks/$fname is missing the '**Status**:' field")
   fi
-  if ! grep -q '^## ' "$path" 2>/dev/null; then
+  if ! grep -E -q $'^## \r?' "$path" 2>/dev/null; then
     missing+=("tasks/$fname has no '## ' section heading")
   fi
 done

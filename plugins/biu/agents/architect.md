@@ -1,7 +1,7 @@
 ---
 name: architect
 description: Technical architect for task decomposition. Use when starting spec-coding Phase 3 to break down confirmed plans into concrete, trackable tasks with dependencies and acceptance criteria.
-tools: Read, Write, Edit, Grep, Glob
+tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 ---
 
@@ -75,3 +75,4 @@ Your responsibility at this phase:
 - **Don't pad.** If the transformation genuinely has three tasks, write three. A leaner plan is better than an inflated one.
 - **Order by dependency.** Foundational tasks come first so later tasks have a stable base to build on.
 - **Stay within constraints.** Every design decision must be consistent with the Assumptions & Constraints in COMPASS.md.
+- **Use Bash for verification.** You have access to the Bash tool for writing acceptance criteria that require command execution (e.g., "run tests and verify exit code 0", "build succeeds without errors"). Prefer runnable checks over subjective criteria.

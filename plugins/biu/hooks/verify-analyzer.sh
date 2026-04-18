@@ -8,10 +8,12 @@
 
 set -u
 
+CLAUDE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "$0")")}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 ANALYSIS_DIR="$PROJECT_DIR/.spec/analysis"
 TEMPLATE="${CLAUDE_PLUGIN_ROOT}/skills/spec-coding/references/templates/analysis.md"
-MIN_BYTES=200
+MIN_BYTES=500
+MIN_HEADINGS=3
 
 # Drain stdin (hook input JSON, unused).
 cat >/dev/null 2>&1 || true
@@ -26,11 +28,12 @@ for fname in project-overview.md module-inventory.md risk-assessment.md; do
   fi
   bytes=$(wc -c <"$path" 2>/dev/null | tr -d ' \t\r\n')
   if [ -z "$bytes" ] || [ "$bytes" -lt "$MIN_BYTES" ]; then
-    missing+=("analysis/$fname is empty or too short (need >= ${MIN_BYTES} bytes, got ${bytes:-0})")
+    missing+=("analysis/$fname is too short (${bytes:-0} bytes, minimum ${MIN_BYTES})")
     continue
   fi
-  if ! grep -q '^## ' "$path" 2>/dev/null; then
-    missing+=("analysis/$fname has no '## ' section heading")
+  headings=$(grep -E -c $'^## \r?' "$path" 2>/dev/null || echo 0)
+  if [ "$headings" -lt "$MIN_HEADINGS" ]; then
+    missing+=("analysis/$fname has insufficient structure ($headings headings, minimum ${MIN_HEADINGS})")
   fi
 done
 

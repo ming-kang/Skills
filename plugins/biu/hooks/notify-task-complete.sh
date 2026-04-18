@@ -15,7 +15,7 @@ input=$(cat)
 
 # Quick filter: stdin must mention a task file path.
 case "$input" in
-  *'.spec/tasks/task-'*'.md'*|*'.spec\\tasks\\task-'*'.md'*) ;;
+  *task-*'.md'*) ;;
   *) exit 0 ;;
 esac
 
@@ -44,7 +44,11 @@ fi
 
 # Static reminder — no dynamic interpolation, no JSON-escaping landmines.
 cat <<'EOF'
-{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"<biu-task-completed>\nA task file was just marked Status: COMPLETE.\n\nSTOP this turn now. Do NOT begin the next Task automatically. Per Behavioral Rule #2 in spec-coding SKILL.md, you must inform the user that the Task is complete and wait for explicit instruction (e.g. 'continue with Task N+1') before starting any new work.\n</biu-task-completed>"}}
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"<biu-task-completed>
+A task file was just marked Status: COMPLETE.
+
+STOP this turn now. Do NOT begin the next Task automatically. Per Behavioral Rule #2 in spec-coding SKILL.md, you must inform the user that the Task is complete and wait for explicit instruction (e.g. 'continue with Task N+1') before starting any new work.
+</biu-task-completed>"}}
 EOF
 
 exit 0

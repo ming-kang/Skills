@@ -74,15 +74,15 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 **Goal**: Build a comprehensive understanding of the current codebase.
 
 **Action**:
-1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. The analyzer writes `.spec/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
+1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. **IMPORTANT**: Pass the absolute path to the target codebase in the prompt (e.g., `C:\Users\...\project` or `/home/user/project`). The analyzer writes `.spec/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
 2. A `SubagentStop` hook verifies that all three files exist, are non-empty, and contain at least one section heading. If verification fails, re-invoke the analyzer with the missing-artifact list.
 
 Example invocation:
 ```
 Agent({
   description: "Analyze codebase for spec-coding Phase 1",
-  subagent_type: "analyzer",
-  prompt: "Analyze the codebase at [path] for [user's intent]. Focus on: structure, modules, architecture, and transformation risks."
+  subagent_type: "biu:analyzer",
+  prompt: "Analyze the codebase at [absolute-path] for [user's intent]. Focus on: structure, modules, architecture, and transformation risks."
 })
 ```
 
@@ -118,7 +118,7 @@ Example invocation:
 ```
 Agent({
   description: "Decompose confirmed plan into tasks for spec-coding Phase 3",
-  subagent_type: "architect",
+  subagent_type: "biu:architect",
   prompt: "Read .spec/COMPASS.md and all analysis documents. Break down the confirmed plan into concrete tasks with dependencies and acceptance criteria. Write task files to .spec/tasks/ and update COMPASS.md with the task overview."
 })
 ```
