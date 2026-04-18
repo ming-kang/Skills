@@ -56,37 +56,17 @@ Example: `task-1-setup-build.md`, `task-2-migrate-core.md`, `task-3-integration-
 
 ### Step 5: Update COMPASS.md
 
-Replace the `## Task Overview` section placeholder with the actual task list. Use this format:
+The canonical COMPASS structure is defined in `references/templates/compass.md` (use Glob `**/templates/compass.md` to locate the absolute path). Read that template for the Task Overview format, status symbols, and invariants.
 
-```markdown
-## Task Overview
+Your responsibility at this phase:
 
-- [ ] Task 1: setup-build (0/5) — [details](./tasks/task-1-setup-build.md)
-- [ ] Task 2: migrate-core (0/8) — [details](./tasks/task-2-migrate-core.md)
-...
-```
-
-Status symbols:
-- `[ ]` = Pending (not started)
-- `[~]` = In Progress (mark with `← Active`)
-- `[x]` = Complete
-- `[!]` = Blocked
-- `[-]` = Skipped
-
-Update **Current Status** to:
-```
-Phase 3 complete. Ready for Hand-off.
-```
-
-Update **Next Steps** to:
-```
-Present preparation summary to user. Confirm readiness to begin Implementation Phase.
-```
+- Replace the `<Populated by Phase 3>` placeholder in `## Task Overview` with one line per Task, using the format specified in the template (status symbol + task name + `(X/N)` subtask count + link).
+- Do NOT create or modify `## Current Status`, `## Next Steps`, or any `← Active` annotation — these fields no longer exist in the template.
 
 ## Output
 
 - One `task-N-<short-name>.md` file per Task in `.spec/tasks/`
-- COMPASS.md updated with the full Task Overview and current status
+- COMPASS.md `## Task Overview` populated with one line per Task (structure per `references/templates/compass.md`)
 
 ## Guidelines
 

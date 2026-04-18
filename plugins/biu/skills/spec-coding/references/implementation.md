@@ -8,16 +8,16 @@ Load this file when you enter the Implementation Phase (Phase 4, after the Phase
 
 1. Read `.spec/COMPASS.md` to confirm current position and re-read **Assumptions & Constraints**.
 2. Open the relevant `.spec/tasks/task-N-<name>.md` and set **Status** to `IN_PROGRESS`.
-3. In COMPASS.md: mark the Task as `[~]` and add `← Active` indicator.
+3. In COMPASS.md Task Overview: change the corresponding line's symbol from `[ ]` to `[~]`.
 
 ## During each Task
 
 - Work through subtasks one at a time.
 - After completing a subtask:
   - Check its box in the Task file.
-  - Immediately update the `(X/N)` count in COMPASS.md.
+  - Immediately update the `(X/N)` count in COMPASS.md Task Overview.
 - Record any decisions, surprises, or blockers in the Task file's **Notes** section.
-- Record important technical decisions in COMPASS.md's **Decision Log**.
+- Record important technical decisions in COMPASS.md's **Decision Log** (append-only).
 
 ## When a subtask fails twice OR hits a constraint conflict
 
@@ -27,8 +27,8 @@ Invoke the Blocked Protocol immediately — see `blocked-protocol.md`.
 
 - Verify all acceptance criteria are met.
 - Set the Task file's **Status** to `COMPLETE`.
-- In COMPASS.md: mark the Task as `[x]` and remove the `← Active` indicator.
-- Update **Current Status** and **Next Steps** in COMPASS.md.
+- In COMPASS.md Task Overview: change the symbol from `[~]` to `[x]`.
+- If any noteworthy decision or plan change came up, append to `## Decision Log`.
 - Inform the user which Task was completed and what comes next.
 - **STOP here.** Do NOT start the next Task automatically. Wait for the user to explicitly instruct "continue with Task N+1" (or equivalent). Auto-advancing to the next Task is a violation of the workflow contract.
 

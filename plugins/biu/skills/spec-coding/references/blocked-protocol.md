@@ -12,9 +12,8 @@ Load this file when a subtask fails twice in a row, or when you encounter a cons
    - Set **Resume point** to the current subtask number.
    - In **Notes**: record what was attempted and why it failed.
 
-2. **In COMPASS.md**:
-   - Mark the Task as `[!]`.
-   - Update **Current Status** to `Task N blocked: <brief reason>`.
+2. **In COMPASS.md Task Overview**:
+   - Change the Task's symbol from `[~]` to `[!]`.
 
 3. **Report to the user**:
    - What is blocked.
@@ -33,9 +32,8 @@ After the user provides a solution:
    - In **Notes**: add `YYYY-MM-DD: Unblocked — <solution>`.
    - Keep **Resume point** until that subtask is completed.
 
-2. **In COMPASS.md**:
-   - Change `[!]` to `[~]`.
-   - Update **Current Status** to `Task N resumed: <brief note>`.
+2. **In COMPASS.md Task Overview**:
+   - Change the Task's symbol from `[!]` to `[~]`.
 
 3. Continue from the Resume point.
 
@@ -50,7 +48,7 @@ If the user explicitly instructs to skip a blocked Task:
    - In **Notes**: record skip reason and potential impact.
 
 2. **In COMPASS.md**:
-   - Change `[!]` to `[-]`.
-   - Add entry to **Skipped Tasks** section: `Task N: <name> — Reason: <why skipped>`.
+   - Change the Task's symbol from `[!]` to `[-]` in Task Overview.
+   - Append an entry to `## Skipped Tasks`: `Task N: <name> — Reason: <why skipped>`.
 
 3. Continue to the next Task, but check dependencies before starting each subsequent Task.

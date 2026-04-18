@@ -36,7 +36,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 ## Behavioral Rules
 
 1. **Never skip User's Confirmation.** Confirm with the user at each phase boundary. This includes archiving — never archive without explicit user approval.
-2. **One Task at a time. Never auto-advance.** When a Task is marked COMPLETE, STOP. Do NOT begin the next Task in the same turn. Always wait for the user to explicitly instruct "continue with Task N+1" (or equivalent) before starting any work on the next Task.
+2. **One Task at a time. Never auto-advance.** When a Task is marked COMPLETE, STOP. Do NOT begin the next Task in the same turn. Always wait for the user to explicitly instruct "continue with Task N+1" (or equivalent) before starting any work on the next Task. **Corollary invariant**: COMPASS may contain at most one `[~]` at any time — before starting a new Task, transition the currently-active Task to `[x]`, `[!]`, or `[-]` first.
 3. **Document decisions.** Record important technical decisions and plan changes in COMPASS.md's Decision Log. Record implementation details in the relevant Task file's Notes section.
 4. **Progress updates are mandatory.** After completing any subtask: check its box in the Task file, immediately update the (X/N) count in COMPASS.md.
 5. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
@@ -51,7 +51,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 
 **CRITICAL**: Before starting any phase, check whether `.spec/COMPASS.md` exists.
 
-- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Current Status, Task Overview, and the per-task files in `.spec/tasks/`. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
+- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.spec/tasks/`. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
 - **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
 
 ---
@@ -96,40 +96,13 @@ Agent({
 
 **Action**: Use analysis findings to ask targeted clarifying questions with `AskUserQuestion`. Cover any concerns surfaced by analysis that affect scope, approach, or constraints.
 
-**After confirming the plan**, create `.spec/COMPASS.md` with the following sections:
+**After confirming the plan**, create `.spec/COMPASS.md` following the structure defined in `references/templates/compass.md`. At this stage you populate only:
 
-```markdown
-# COMPASS
+- `## Task Definition` — the confirmed description
+- `## Assumptions & Constraints` — boundaries locked in during refinement
+- `## Analysis` — links to the three analysis documents
 
-## Task Definition
-<Confirmed description of what is being built or transformed>
-
-## Assumptions & Constraints
-<Non-negotiable boundaries, e.g.:>
-- Must not break public API
-- stdlib only
-- Must support Node 18+
-
-## Analysis
-- [project-overview.md](./analysis/project-overview.md)
-- [module-inventory.md](./analysis/module-inventory.md)
-- [risk-assessment.md](./analysis/risk-assessment.md)
-
-## Task Overview
-<Populated by Phase 3>
-
-## Skipped Tasks
-<Populated during Implementation if Tasks are skipped>
-
-## Decision Log
-<Record important technical decisions and plan changes during Implementation>
-
-## Current Status
-Phase 2 complete. Proceeding to Phase 3: Task Decomposition.
-
-## Next Steps
-Spawn architect subagent to decompose the confirmed task.
-```
+Leave `## Task Overview` with the `<Populated by Phase 3>` placeholder. `## Skipped Tasks` and `## Decision Log` start empty (their entries are appended later during Implementation).
 
 **Output**: `.spec/COMPASS.md` with a confirmed task definition.
 
