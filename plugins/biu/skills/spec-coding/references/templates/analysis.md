@@ -6,7 +6,7 @@ These templates define the structure for the three documents produced by the ana
 
 ## Template: project-overview.md
 
-```markdown
+````markdown
 # Project Overview
 
 ## Summary
@@ -41,6 +41,7 @@ project-root/
 ├── src/          # <description>
 ├── tests/        # <description>
 └── ...
+
 ```
 
 ## Architecture
@@ -54,7 +55,7 @@ project-root/
 - Logging: <how it's handled>
 - Error handling: <how it's handled>
 - Configuration: <how it's handled>
-```
+````
 
 ---
 

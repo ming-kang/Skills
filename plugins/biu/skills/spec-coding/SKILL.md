@@ -125,9 +125,7 @@ Agent({
 
 **Output**: Complete `.spec/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview.
 
-### Hand-off (Phase 3 exit gate)
-
-After decomposition, before advancing to Phase 4, run the hand-off ritual:
+**Hand-off**: After decomposition, before advancing to Phase 4, run the hand-off ritual:
 
 1. Present a structured summary:
    - Confirmed task definition

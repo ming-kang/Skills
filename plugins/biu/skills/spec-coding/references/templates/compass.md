@@ -91,15 +91,3 @@ Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, referenc
 1. **At most one `[~]` at any time.** Before starting a new Task, the currently-active Task must be transitioned to `[x]`, `[!]`, or `[-]` first. This invariant is enforced by SKILL.md Behavioral Rule #2 (no auto-advance) and by the workflow contract.
 2. **COMPASS symbol and task-file `**Status**:` must agree.** When one changes, the other must change in the same turn. Task file is authoritative on disagreement.
 3. **`(X/N)` is derived from the task file's subtask checkboxes.** When a subtask checkbox flips, update `(X/N)` in the same turn.
-
----
-
-## What NOT to include
-
-These fields were present in earlier versions and have been **removed** to reduce drift:
-
-- ~~`## Current Status`~~ — derivable from the `[~]` line and its Resume point; narrative drifted easily
-- ~~`## Next Steps`~~ — derivable likewise
-- ~~`← Active` annotation~~ — redundant with `[~]` symbol
-
-If you need to record something non-derivable, that is what `## Decision Log` is for.
