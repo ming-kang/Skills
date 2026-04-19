@@ -36,17 +36,9 @@ These templates define the structure for the three documents produced by the ana
 
 <Annotated tree of top-level directories with one-line descriptions of each.>
 
-```
-project-root/
-├── src/          # <description>
-├── tests/        # <description>
-└── ...
-
-```
-
 ## Architecture
 
-**Pattern**: <e.g., Monolith / Layered / Hexagonal / Microservice>
+**Pattern**: <Architectural pattern>
 
 **Data flow**: <Describe how data moves through the system from entry point to output or storage. 2–4 sentences.>
 
@@ -84,7 +76,7 @@ One entry per logical module, package, or significant component.
 
 **Complexity**: Low | Medium | High | Critical
 
-**Notes**: <Anything unusual — tight coupling, platform-specific behavior, known debt.>
+**Notes**: <Anything unusual worth flagging.>
 
 ---
 
@@ -138,7 +130,7 @@ Risks are ranked by severity: Critical → High → Medium → Low.
 
 Issues that are not risks per se, but constrain how the transformation must proceed:
 
-- <Constraint 1: e.g., "Module X has no tests — changes must be validated manually.">
+- <Constraint 1>
 - <Constraint 2>
 - ...
 ```

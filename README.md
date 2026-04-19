@@ -21,7 +21,7 @@ Personal Claude Code plugin marketplace for distributing commonly used plugins a
 
 ## Available Plugins
 
-### biu (v1.0.3)
+### biu
 
 Spec-driven workflow for complex development tasks.
 

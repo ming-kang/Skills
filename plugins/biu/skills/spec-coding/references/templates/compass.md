@@ -17,10 +17,7 @@ Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, referenc
 
 ## Assumptions & Constraints
 
-<Non-negotiable boundaries. Examples:>
-- Must not break the public API
-- stdlib only — no new dependencies
-- Must support Node 18+
+<Non-negotiable boundaries locked in during Phase 2.>
 
 ## Analysis
 
@@ -40,20 +37,6 @@ Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, referenc
 
 *(Append-only. Important technical decisions and plan changes discovered during Implementation will be recorded here.)*
 ```
-
-## Filled-in Task Overview — illustrative
-
-Once Phase 3 completes, the `## Task Overview` section of a real COMPASS.md looks like this (note: this example lives **outside** the fenced template above so it cannot leak into production COMPASS files via a Phase 2 template copy):
-
-```markdown
-## Task Overview
-
-- [ ] Task 1: setup-build (0/5) — [details](./tasks/task-1-setup-build.md)
-- [~] Task 2: migrate-core (3/8) — [details](./tasks/task-2-migrate-core.md)
-- [x] Task 3: integration-tests (4/4) — [details](./tasks/task-3-integration-tests.md)
-```
-
-Phase 3 writes every line with `[ ]`; the `[~]`, `[x]`, `[!]`, and `[-]` symbols appear during Implementation as Tasks transition.
 
 ---
 

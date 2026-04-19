@@ -62,8 +62,7 @@ The canonical COMPASS structure is defined in `references/templates/compass.md` 
 
 Your responsibility at this phase:
 
-- Clear the entire `## Task Overview` section body (including any example task lines inherited from the template during Phase 2) and write exactly one line per task file you authored, in ascending task-number order. Use the format specified in `templates/compass.md`'s "Task Overview — format per line" section (status symbol + task name + `(X/N)` subtask count + link).
-- If you see example tasks like `setup-build`, `migrate-core`, or `integration-tests` in Task Overview when you start, delete them — they are template bleed from earlier plugin versions and are not real tasks.
+- Clear the entire `## Task Overview` section body and write exactly one line per task file you authored, in ascending task-number order. Use the format specified in `templates/compass.md`'s "Task Overview — format per line" section (status symbol + task name + `(X/N)` subtask count + link).
 
 ## Output
 

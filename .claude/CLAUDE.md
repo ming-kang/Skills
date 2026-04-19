@@ -86,13 +86,13 @@ When asked to push:
 After any commit or push that changes the plugin's code, structure, or observable behavior, check whether `.claude/CLAUDE.md` and `README.md` still accurately describe the current state. If the change invalidates anything in those files — directory tree, hook list, plugin features, runtime requirements, installation or usage instructions — update them in the same session. Stale docs are a worse bug than missing docs.
 
 Scope in: directory structure, hook event/purpose list, plugin feature list, runtime requirements, install/usage commands.
-Scope out: commit-message-level internals, minor refactors with no user-visible surface change, and the README.md version label (`### biu (vX.Y.Z)`) — it is allowed to drift on routine version bumps and should only be refreshed alongside a substantive functional change. `plugin.json:version` remains the single source of truth; the README label is a human-readable hint, not a sync target.
+Scope out: commit-message-level internals, minor refactors with no user-visible surface change.
 
 ### Release / Versioning
 
 The `version` field lives in **one place only**: `plugins/biu/.claude-plugin/plugin.json`. The marketplace entry in `.claude-plugin/marketplace.json` intentionally omits `version` — per the plugins reference, when both are set `plugin.json` wins, so we keep it single-source to avoid drift. A `git push` to `main` publishes whatever version `plugin.json` currently advertises — installed users pick up the new version on `/plugin marketplace update`.
 
-When starting work on a new version, bump `plugin.json` locally first. Multiple commits may land on `main` locally under the same in-progress version before we push. Do not push on every commit — wait for an explicit "push" from the user, which signals "release the current version to users." Before pushing, verify that `plugin.json` reflects the intended published version.
+When starting work on new features, bump `plugin.json` locally first. Multiple commits may land on `main` locally under the same in-progress version before we push. Do not push on every commit — wait for an explicit "push" from the user, which signals "release the current version to users." Before pushing, verify that `plugin.json` reflects the intended published version.
 
 ## References
 

@@ -32,9 +32,9 @@ This template defines the structure for each `task-N-<short-name>.md` file in `.
 
 ## Acceptance Criteria
 
-- [ ] <Verifiable condition — prefer runnable checks over subjective ones>
-- [ ] <e.g., "All existing tests pass with no modifications">
-- [ ] <e.g., "`npm run build` completes without errors">
+- [ ] <Verifiable condition 1 — prefer runnable checks over subjective ones>
+- [ ] <Verifiable condition 2>
+- [ ] <Verifiable condition 3>
 ...
 
 ## Notes
