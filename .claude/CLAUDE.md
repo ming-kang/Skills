@@ -86,7 +86,7 @@ When asked to push:
 After any commit or push that changes the plugin's code, structure, or observable behavior, check whether `.claude/CLAUDE.md` and `README.md` still accurately describe the current state. If the change invalidates anything in those files — directory tree, hook list, plugin features, runtime requirements, installation or usage instructions — update them in the same session. Stale docs are a worse bug than missing docs.
 
 Scope in: directory structure, hook event/purpose list, plugin feature list, runtime requirements, install/usage commands.
-Scope out: commit-message-level internals, minor refactors with no user-visible surface change.
+Scope out: commit-message-level internals, minor refactors with no user-visible surface change, and the README.md version label (`### biu (vX.Y.Z)`) — it is allowed to drift on routine version bumps and should only be refreshed alongside a substantive functional change. `plugin.json:version` remains the single source of truth; the README label is a human-readable hint, not a sync target.
 
 ### Release / Versioning
 
