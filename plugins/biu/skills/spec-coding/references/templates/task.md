@@ -9,7 +9,7 @@ This template defines the structure for each `task-N-<short-name>.md` file in `.
 ```markdown
 # Task N: <Task Name>
 
-**Status**: PENDING | IN_PROGRESS | BLOCKED | SKIPPED | COMPLETE
+**Status**: PENDING  <!-- one of: PENDING | IN_PROGRESS | BLOCKED | SKIPPED | COMPLETE -->
 **Blocked by**: <describe the blocker, or N/A>
 **Resume point**: <which subtask to continue from next session, or N/A>
 

@@ -43,7 +43,8 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 6. **Archive when done.** When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
 7. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
 8. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, load `references/blocked-protocol.md` and follow it.
-9. **Respect verification gates.** If a `SubagentStop` hook blocks the analyzer or architect subagent with a missing-artifact list, re-invoke the same subagent with that list as its next task — do not advance to the next phase until the gate passes.
+9. **Respect verification gates.** A `SubagentStop` hook that exits with code 2 feeds its stderr back to the subagent so it can self-correct within the same invocation — usually no main-agent action is needed. However, if the subagent returns to the main agent without producing complete artifacts (its final message reports failure, or the missing artifacts are still missing on disk), re-invoke the same subagent with the specific missing-artifact list as the next prompt. Do not advance to the next phase until the gate passes.
+10. **Authority on disagreement.** When a COMPASS Task Overview symbol and a task file's `**Status**:` value disagree, the task file is authoritative — reconcile COMPASS to match. When a COMPASS `(X/N)` count disagrees with the `[x]` checkbox tally in the task file, the checkboxes are authoritative. Never silently adopt COMPASS's value over the task file's.
 
 ---
 
@@ -51,7 +52,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 
 **CRITICAL**: Before starting any phase, check whether `.spec/COMPASS.md` exists.
 
-- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.spec/tasks/`. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
+- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.spec/tasks/`. Then **reconcile state**: scan `.spec/tasks/*.md`. If any task file's `**Status**:` value disagrees with the Task Overview symbol in COMPASS for the same task, trust the task file and update COMPASS to match (per Rule #10). If a COMPASS `(X/N)` count disagrees with the count of `[x]` checkboxes in the task file, trust the checkboxes and update COMPASS. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
 - **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
 
 ---

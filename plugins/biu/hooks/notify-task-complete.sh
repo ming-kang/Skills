@@ -37,6 +37,15 @@ case "$(basename "$file_path")" in
   *) exit 0 ;;
 esac
 
+# Confirm the file lives under .spec/tasks/. Any task-*.md elsewhere in the
+# project (user notes, test fixtures, third-party templates) must not trigger
+# the STOP reminder. Accept both forward-slash and backslash separators to
+# tolerate raw Windows paths (in addition to Git-Bash-normalized ones).
+case "$file_path" in
+  *'.spec/tasks/task-'*'.md'|*'.spec\tasks\task-'*'.md') ;;
+  *) exit 0 ;;
+esac
+
 # Only fire when the file currently shows Status: COMPLETE.
 if ! grep -qE '^\*\*Status\*\*:[[:space:]]*COMPLETE' "$file_path" 2>/dev/null; then
   exit 0
@@ -47,7 +56,7 @@ fi
 # wire format stays strict JSON; Claude Code's JSON parser unescapes them to
 # real newlines at display time.
 cat <<'EOF'
-{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"<biu-task-completed>\nA task file was just marked Status: COMPLETE.\n\nSTOP this turn now. Do NOT begin the next Task automatically. Per Behavioral Rule #2 in spec-coding SKILL.md, you must inform the user that the Task is complete and wait for explicit instruction (e.g. 'continue with Task N+1') before starting any new work.\n</biu-task-completed>"}}
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"<biu-task-completed>\nA task file was just marked Status: COMPLETE.\n\nFirst, finish this turn's bookkeeping: flip the COMPASS Task Overview symbol from [~] to [x] (or [!]/[-] as appropriate), append any noteworthy decision to the Decision Log, and inform the user which Task was completed.\n\nThen STOP this turn. Do NOT begin the next Task automatically. Per Behavioral Rule #2 in spec-coding SKILL.md, wait for explicit user instruction (e.g. 'continue with Task N+1') before starting any new work.\n</biu-task-completed>"}}
 EOF
 
 exit 0

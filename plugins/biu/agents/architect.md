@@ -50,6 +50,8 @@ Review every task against the **Assumptions & Constraints** section of COMPASS.m
 
 Write one file per Task to `.spec/tasks/` using the structure in `references/templates/task.md` (under the spec-coding skill directory; use Glob `**/templates/task.md` to locate the absolute path). Read that template before writing task files.
 
+Initialize every task file with `**Status**: PENDING` (not the pipe-separated enum that may appear as an HTML comment in the template for discoverability). Set `**Blocked by**` and `**Resume point**` to `N/A` until the task enters IN_PROGRESS or BLOCKED.
+
 File naming: `task-N-<short-name>.md` where N is a sequential number starting at 1 and `<short-name>` is a 1–3 word kebab-case description.
 
 Example: `task-1-setup-build.md`, `task-2-migrate-core.md`, `task-3-integration-tests.md`
@@ -60,8 +62,8 @@ The canonical COMPASS structure is defined in `references/templates/compass.md` 
 
 Your responsibility at this phase:
 
-- Replace the `<Populated by Phase 3>` placeholder in `## Task Overview` with one line per Task, using the format specified in the template (status symbol + task name + `(X/N)` subtask count + link).
-- Do NOT create or modify `## Current Status`, `## Next Steps`, or any `← Active` annotation — these fields no longer exist in the template.
+- Clear the entire `## Task Overview` section body (including any example task lines inherited from the template during Phase 2) and write exactly one line per task file you authored, in ascending task-number order. Use the format specified in `templates/compass.md`'s "Task Overview — format per line" section (status symbol + task name + `(X/N)` subtask count + link).
+- If you see example tasks like `setup-build`, `migrate-core`, or `integration-tests` in Task Overview when you start, delete them — they are template bleed from earlier plugin versions and are not real tasks.
 
 ## Output
 

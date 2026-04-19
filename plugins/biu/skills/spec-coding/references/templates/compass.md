@@ -32,22 +32,28 @@ Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, referenc
 
 <Populated by Phase 3>
 
-- [ ] Task 1: setup-build (0/5) — [details](./tasks/task-1-setup-build.md)
-- [ ] Task 2: migrate-core (0/8) — [details](./tasks/task-2-migrate-core.md)
-- [ ] Task 3: integration-tests (0/4) — [details](./tasks/task-3-integration-tests.md)
-
 ## Skipped Tasks
 
-<Append-only. Populated only when a task is skipped via the Blocked Protocol.>
-
-- Task N: <name> — Reason: <why skipped>
+*(Populated only if a task is skipped via the Blocked Protocol during Implementation.)*
 
 ## Decision Log
 
-<Append-only. Record important technical decisions and plan changes discovered during Implementation.>
-
-- **YYYY-MM-DD**: <decision or change and its reason>
+*(Append-only. Important technical decisions and plan changes discovered during Implementation will be recorded here.)*
 ```
+
+## Filled-in Task Overview — illustrative
+
+Once Phase 3 completes, the `## Task Overview` section of a real COMPASS.md looks like this (note: this example lives **outside** the fenced template above so it cannot leak into production COMPASS files via a Phase 2 template copy):
+
+```markdown
+## Task Overview
+
+- [ ] Task 1: setup-build (0/5) — [details](./tasks/task-1-setup-build.md)
+- [~] Task 2: migrate-core (3/8) — [details](./tasks/task-2-migrate-core.md)
+- [x] Task 3: integration-tests (4/4) — [details](./tasks/task-3-integration-tests.md)
+```
+
+Phase 3 writes every line with `[ ]`; the `[~]`, `[x]`, `[!]`, and `[-]` symbols appear during Implementation as Tasks transition.
 
 ---
 
@@ -89,5 +95,5 @@ Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, referenc
 ### Invariants
 
 1. **At most one `[~]` at any time.** Before starting a new Task, the currently-active Task must be transitioned to `[x]`, `[!]`, or `[-]` first. This invariant is enforced by SKILL.md Behavioral Rule #2 (no auto-advance) and by the workflow contract.
-2. **COMPASS symbol and task-file `**Status**:` must agree.** When one changes, the other must change in the same turn. Task file is authoritative on disagreement.
-3. **`(X/N)` is derived from the task file's subtask checkboxes.** When a subtask checkbox flips, update `(X/N)` in the same turn.
+
+The disagreement-resolution invariants — "task file is authoritative when COMPASS symbol and `**Status**:` disagree", and "checkbox tally is authoritative when COMPASS `(X/N)` and task-file checkboxes disagree" — live in SKILL.md as Behavioral Rule #10 ("Authority on disagreement"), so every session picks them up without loading this template. Referenced here rather than duplicated.

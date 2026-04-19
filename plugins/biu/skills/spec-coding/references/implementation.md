@@ -7,8 +7,10 @@ Load this file when you enter the Implementation Phase (Phase 4, after the Phase
 ## At the start of every Task
 
 1. Read `.spec/COMPASS.md` to confirm current position and re-read **Assumptions & Constraints**.
-2. Open the relevant `.spec/tasks/task-N-<name>.md` and set **Status** to `IN_PROGRESS`.
-3. In COMPASS.md Task Overview: change the corresponding line's symbol from `[ ]` to `[~]`.
+2. In COMPASS.md Task Overview: change the corresponding line's symbol from `[ ]` to `[~]`.
+3. Open the relevant `.spec/tasks/task-N-<name>.md` and set **Status** to `IN_PROGRESS`.
+
+_Rationale_: COMPASS-first ordering keeps the Task Overview showing the intended active Task even if the turn is interrupted between steps 2 and 3; SKILL.md's Continuity Check reconciles any remaining mismatch on resume by trusting the task file (per Rule #10).
 
 ## During each Task
 
