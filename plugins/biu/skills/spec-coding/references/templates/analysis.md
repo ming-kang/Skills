@@ -1,6 +1,6 @@
 # Analysis Document Templates
 
-These templates define the structure for the three documents produced by the analyzer subagent in Phase 1. Each template corresponds to one file in `.spec/analysis/`.
+These templates define the structure for the three documents produced by the analyzer subagent in Phase 1. Each template corresponds to one file in `.biu/analysis/`.
 
 ---
 

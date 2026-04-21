@@ -1,7 +1,7 @@
 {
   "name": "biu",
   "description": "Spec-driven workflow for complex development tasks with structured analysis and task decomposition",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "author": {
     "name": "ming-kang"
   },

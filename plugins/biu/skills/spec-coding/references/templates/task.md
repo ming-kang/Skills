@@ -1,6 +1,6 @@
 # Task File Template
 
-This template defines the structure for each `task-N-<short-name>.md` file in `.spec/tasks/`.
+This template defines the structure for each `task-N-<short-name>.md` file in `.biu/tasks/`.
 
 ---
 

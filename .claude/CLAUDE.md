@@ -32,7 +32,7 @@ Skills/ (marketplace root)
                     ├── implementation.md   # Phase 4 per-Task loop (lazy-loaded)
                     ├── blocked-protocol.md # BLOCKED state protocol (lazy-loaded)
                     ├── archive.md          # Phase 5 archive procedure (lazy-loaded)
-                    └── templates/          # COMPASS / task / analysis templates
+                    └── templates/          # COMPASS / plan / task / analysis templates
 ```
 
 ## Plugin: biu
@@ -40,13 +40,13 @@ Skills/ (marketplace root)
 The `biu` plugin provides spec-driven workflow capabilities for complex development tasks. It includes:
 
 - **spec-coding skill**: Structured workflow with analysis and task decomposition phases. Slash-only invocation (`disable-model-invocation: true`); Claude will not auto-trigger it on phrases.
-- **Subagents**: `analyzer` (codebase analysis; writes `.spec/analysis/*.md` directly) and `architect` (task decomposition; writes `.spec/tasks/*.md` and updates COMPASS.md), defined in `agents/` at the plugin root.
+- **Subagents**: `analyzer` (codebase analysis; writes `.biu/analysis/*.md` directly) and `architect` (task decomposition; writes `.biu/tasks/*.md` and updates COMPASS.md), defined in `agents/` at the plugin root.
 - **Lifecycle hooks** (pure bash, zero runtime deps):
   - `SubagentStop` on analyzer/architect — verifies artifacts exist, are non-empty, and have the required structure; exit 2 + stderr feeds the missing-artifact list back to the subagent so it can self-correct.
   - `PostToolUse` on Edit/Write — when a `task-N-*.md` file is left with `Status: COMPLETE`, injects a soft reminder telling the model to STOP and not auto-advance to the next Task.
-- **Templates**: `templates/compass.md` (canonical COMPASS structure), `templates/task.md`, and `templates/analysis.md` — all referenced from SKILL.md and the subagents, never restated inline.
+- **Templates**: `templates/compass.md` (canonical COMPASS state structure), `templates/plan.md` (canonical plan.md structure), `templates/task.md`, and `templates/analysis.md` — all referenced from SKILL.md and the subagents, never restated inline.
 
-Continuity between sessions is handled by reading `.spec/COMPASS.md` directly — there is no predigested session-state cache. COMPASS is the single source of truth for cycle state.
+Continuity between sessions is handled by reading `.biu/COMPASS.md` for state and `.biu/plan.md` for the confirmed spec — neither is a predigested session-state cache. COMPASS is the single source of truth for cycle state; plan.md for the spec.
 
 ### Installation
 

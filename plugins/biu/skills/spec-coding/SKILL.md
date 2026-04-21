@@ -13,11 +13,12 @@ A skill for **Spec-Coding** workflow: standardized development pipeline for comp
 
 ## Directory Structure
 
-All spec-coding artifacts live under `.spec/`. This directory is **never committed to version control** — ensure `.spec/` is present in `.gitignore` before creating any files.
+All spec-coding artifacts live under `.biu/`. This directory is **never committed to version control** — ensure `.biu/` is present in `.gitignore` before creating any files.
 
 ```
-.spec/
-├── COMPASS.md                    # Main control file — always read this first
+.biu/
+├── COMPASS.md                    # State router: Task Overview, Decision Log, Skipped Tasks + pointer to plan.md
+├── plan.md                       # Confirmed spec: Task Definition, Assumptions & Constraints, Analysis links
 ├── analysis/
 │   ├── project-overview.md
 │   ├── module-inventory.md
@@ -27,6 +28,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 └── archived/
     └── YYYY-MM-DD-NN/            # Completed development cycles
         ├── COMPASS.md
+        ├── plan.md
         ├── analysis/
         └── tasks/
 ```
@@ -41,7 +43,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 4. **Progress updates are mandatory.** After completing any subtask: check its box in the Task file, immediately update the (X/N) count in COMPASS.md.
 5. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
 6. **Archive when done.** When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
-7. **`.spec/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
+7. **`.biu/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
 8. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, load `references/blocked-protocol.md` and follow it.
 9. **Respect verification gates.** A `SubagentStop` hook that exits with code 2 feeds its stderr back to the subagent so it can self-correct within the same invocation — usually no main-agent action is needed. However, if the subagent returns to the main agent without producing complete artifacts (its final message reports failure, or the missing artifacts are still missing on disk), re-invoke the same subagent with the specific missing-artifact list as the next prompt. Do not advance to the next phase until the gate passes.
 10. **Authority on disagreement.** When a COMPASS Task Overview symbol and a task file's `**Status**:` value disagree, the task file is authoritative — reconcile COMPASS to match. When a COMPASS `(X/N)` count disagrees with the `[x]` checkbox tally in the task file, the checkboxes are authoritative. Never silently adopt COMPASS's value over the task file's.
@@ -50,10 +52,10 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 
 ## Continuity Check
 
-**CRITICAL**: Before starting any phase, check whether `.spec/COMPASS.md` exists.
+**CRITICAL**: Before starting any phase, check whether `.biu/COMPASS.md` exists.
 
-- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.spec/tasks/`. Then **reconcile state**: scan `.spec/tasks/*.md`. If any task file's `**Status**:` value disagrees with the Task Overview symbol in COMPASS for the same task, trust the task file and update COMPASS to match (per Rule #10). If a COMPASS `(X/N)` count disagrees with the count of `[x]` checkboxes in the task file, trust the checkboxes and update COMPASS. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
-- **If it does not exist**: This is a fresh start. Check whether `.spec/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
+- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.biu/tasks/`. Then **reconcile state**: scan `.biu/tasks/*.md`. If any task file's `**Status**:` value disagrees with the Task Overview symbol in COMPASS for the same task, trust the task file and update COMPASS to match (per Rule #10). If a COMPASS `(X/N)` count disagrees with the count of `[x]` checkboxes in the task file, trust the checkboxes and update COMPASS. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
+- **If it does not exist**: This is a fresh start. Check whether `.biu/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
 
 ---
 
@@ -75,7 +77,7 @@ All spec-coding artifacts live under `.spec/`. This directory is **never committ
 **Goal**: Build a comprehensive understanding of the current codebase.
 
 **Action**:
-1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. **IMPORTANT**: Pass the absolute path to the target codebase in the prompt (e.g., `C:\Users\...\project` or `/home/user/project`). The analyzer writes `.spec/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
+1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. **IMPORTANT**: Pass the absolute path to the target codebase in the prompt (e.g., `C:\Users\...\project` or `/home/user/project`). The analyzer writes `.biu/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
 2. A `SubagentStop` hook verifies that all three files exist, are non-empty, and contain at least one section heading. If verification fails, re-invoke the analyzer with the missing-artifact list.
 
 Example invocation:
@@ -87,7 +89,7 @@ Agent({
 })
 ```
 
-**Output**: Complete `.spec/analysis/` directory with three documents. Present a brief summary of findings to the user and confirm before proceeding to Phase 2.
+**Output**: Complete `.biu/analysis/` directory with three documents. Present a brief summary of findings to the user and confirm before proceeding to Phase 2.
 
 ---
 
@@ -97,15 +99,19 @@ Agent({
 
 **Action**: Use analysis findings to ask targeted clarifying questions with `AskUserQuestion`. Cover any concerns surfaced by analysis that affect scope, approach, or constraints.
 
-**After confirming the plan**, create `.spec/COMPASS.md` following the structure defined in `references/templates/compass.md`. At this stage you populate only:
+**After confirming the plan**, create two files:
 
-- `## Task Definition` — the confirmed description
-- `## Assumptions & Constraints` — boundaries locked in during refinement
-- `## Analysis` — links to the three analysis documents
+1. `.biu/plan.md` — following the structure defined in `references/templates/plan.md`. Populate all three sections:
+   - `## Task Definition` — the confirmed description
+   - `## Assumptions & Constraints` — boundaries locked in during refinement
+   - `## Analysis` — links to the three analysis documents in `.biu/analysis/`
 
-Leave `## Task Overview` with the `<Populated by Phase 3>` placeholder. `## Skipped Tasks` and `## Decision Log` start empty (their entries are appended later during Implementation).
+2. `.biu/COMPASS.md` — following the structure defined in `references/templates/compass.md`. Scaffold it with:
+   - The `**Plan**: [plan.md](./plan.md)` pointer line
+   - `## Task Overview` left with the `<Populated by Phase 3>` placeholder
+   - `## Skipped Tasks` and `## Decision Log` empty (their entries are appended later during Implementation)
 
-**Output**: `.spec/COMPASS.md` with a confirmed task definition.
+**Output**: `.biu/plan.md` with the confirmed spec AND `.biu/COMPASS.md` scaffolded for Phase 3.
 
 ---
 
@@ -113,18 +119,18 @@ Leave `## Task Overview` with the `<Populated by Phase 3>` placeholder. `## Skip
 
 **Goal**: Break the transformation into concrete, trackable Tasks organized into logical groups.
 
-**Action**: Use the Agent tool to spawn the `architect` subagent. The architect reads both `.spec/COMPASS.md` and the analysis documents, then produces the Task files and updates COMPASS.
+**Action**: Use the Agent tool to spawn the `architect` subagent. The architect reads both `.biu/plan.md` and the analysis documents, then produces the Task files and updates COMPASS.
 
 Example invocation:
 ```
 Agent({
   description: "Decompose confirmed plan into tasks for spec-coding Phase 3",
   subagent_type: "biu:architect",
-  prompt: "Read .spec/COMPASS.md and all analysis documents. Break down the confirmed plan into concrete tasks with dependencies and acceptance criteria. Write task files to .spec/tasks/ and update COMPASS.md with the task overview."
+  prompt: "Read .biu/plan.md (confirmed spec) and all analysis documents. Break down the plan into concrete tasks with dependencies and acceptance criteria. Write task files to .biu/tasks/ and update .biu/COMPASS.md with the task overview."
 })
 ```
 
-**Output**: Complete `.spec/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview.
+**Output**: Complete `.biu/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview.
 
 **Hand-off**: After decomposition, before advancing to Phase 4, run the hand-off ritual:
 
@@ -135,8 +141,9 @@ Agent({
 
 2. List all generated artifacts:
    ```
-   .spec/
+   .biu/
    ├── COMPASS.md
+   ├── plan.md
    ├── analysis/
    │   ├── project-overview.md
    │   ├── module-inventory.md
@@ -178,4 +185,5 @@ The `references/` directory contains lazy-loaded procedure files:
 - `references/blocked-protocol.md` — BLOCKED state entry/exit/skip procedure
 - `references/archive.md` — Archive Phase procedure (load at Phase 5)
 - `references/templates/analysis.md` — Templates for the three analysis documents
-- `references/templates/task.md` — Template for task files in `.spec/tasks/`
+- `references/templates/plan.md` — Template for the plan.md artifact (Phase 2 output)
+- `references/templates/task.md` — Template for task files in `.biu/tasks/`

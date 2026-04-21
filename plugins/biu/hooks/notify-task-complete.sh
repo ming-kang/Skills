@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # biu/hooks/notify-task-complete.sh
 #
-# PostToolUse hook: when Edit/Write touches a .spec/tasks/task-*.md and that
+# PostToolUse hook: when Edit/Write touches a .biu/tasks/task-*.md and that
 # file now has Status: COMPLETE, inject a reminder telling Claude to STOP
 # this turn and not auto-advance to the next Task.
 #
@@ -37,12 +37,12 @@ case "$(basename "$file_path")" in
   *) exit 0 ;;
 esac
 
-# Confirm the file lives under .spec/tasks/. Any task-*.md elsewhere in the
+# Confirm the file lives under .biu/tasks/. Any task-*.md elsewhere in the
 # project (user notes, test fixtures, third-party templates) must not trigger
 # the STOP reminder. Accept both forward-slash and backslash separators to
 # tolerate raw Windows paths (in addition to Git-Bash-normalized ones).
 case "$file_path" in
-  *'.spec/tasks/task-'*'.md'|*'.spec\tasks\task-'*'.md') ;;
+  *'.biu/tasks/task-'*'.md'|*'.biu\tasks\task-'*'.md') ;;
   *) exit 0 ;;
 esac
 

@@ -3,7 +3,7 @@
   "hooks": {
     "PostToolUse": [
       {
-        "comment": "Broad Edit|Write matcher is necessary because Claude Code hooks do not support path-based filtering. The notify-task-complete.sh script performs its own early-exit filtering to detect .spec/tasks/task-*.md files marked COMPLETE.",
+        "comment": "Broad Edit|Write matcher is necessary because Claude Code hooks do not support path-based filtering. The notify-task-complete.sh script performs its own early-exit filtering to detect .biu/tasks/task-*.md files marked COMPLETE.",
         "matcher": "Edit|Write",
         "hooks": [
           {

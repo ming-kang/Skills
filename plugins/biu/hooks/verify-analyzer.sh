@@ -10,7 +10,7 @@ set -u
 
 CLAUDE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "$0")")}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
-ANALYSIS_DIR="$PROJECT_DIR/.spec/analysis"
+ANALYSIS_DIR="$PROJECT_DIR/.biu/analysis"
 TEMPLATE="${CLAUDE_PLUGIN_ROOT}/skills/spec-coding/references/templates/analysis.md"
 MIN_BYTES=500
 MIN_HEADINGS=3

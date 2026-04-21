@@ -10,9 +10,9 @@ set -u
 
 CLAUDE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "$0")")}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
-SPEC_DIR="$PROJECT_DIR/.spec"
-COMPASS="$SPEC_DIR/COMPASS.md"
-TASKS_DIR="$SPEC_DIR/tasks"
+BIU_DIR="$PROJECT_DIR/.biu"
+COMPASS="$BIU_DIR/COMPASS.md"
+TASKS_DIR="$BIU_DIR/tasks"
 TEMPLATE="${CLAUDE_PLUGIN_ROOT}/skills/spec-coding/references/templates/task.md"
 
 cat >/dev/null 2>&1 || true
@@ -92,7 +92,7 @@ if [ -f "$COMPASS" ]; then
   compass_task_lines=$(grep -cE '^- \[[ x~!-]\] Task ' "$COMPASS" 2>/dev/null || true)
   task_file_count=${#task_files[@]}
   if [ "${compass_task_lines:-0}" -ne "$task_file_count" ]; then
-    missing+=("COMPASS Task Overview has ${compass_task_lines:-0} task lines but .spec/tasks/ has ${task_file_count} task files — counts must agree")
+    missing+=("COMPASS Task Overview has ${compass_task_lines:-0} task lines but .biu/tasks/ has ${task_file_count} task files — counts must agree")
   fi
 fi
 

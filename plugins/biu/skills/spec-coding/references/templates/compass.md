@@ -1,6 +1,8 @@
 # COMPASS.md Template
 
-This template defines the canonical structure of `.spec/COMPASS.md`. It is the **single source of truth** for what sections COMPASS has, what each is for, and how the Task Overview is formatted.
+This template defines the canonical structure of `.biu/COMPASS.md`. It is the **single source of truth** for what sections COMPASS has, what each is for, and how the Task Overview is formatted.
+
+COMPASS is a pure **state router** for a spec-coding cycle. Spec content (Task Definition, Assumptions & Constraints, Analysis links) lives in `.biu/plan.md` — see `templates/plan.md`.
 
 Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, references/implementation.md, references/blocked-protocol.md) should reference this template instead of restating the structure inline.
 
@@ -11,19 +13,7 @@ Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, referenc
 ```markdown
 # COMPASS
 
-## Task Definition
-
-<One paragraph: what is being built or transformed, confirmed with the user in Phase 2.>
-
-## Assumptions & Constraints
-
-<Non-negotiable boundaries locked in during Phase 2.>
-
-## Analysis
-
-- [project-overview.md](./analysis/project-overview.md)
-- [module-inventory.md](./analysis/module-inventory.md)
-- [risk-assessment.md](./analysis/risk-assessment.md)
+**Plan**: [plan.md](./plan.md)
 
 ## Task Overview
 
@@ -44,9 +34,7 @@ Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, referenc
 
 | Section | Written by | Mutation pattern |
 |---|---|---|
-| `## Task Definition` | Phase 2 (main agent) | Written once; only changed if scope fundamentally shifts |
-| `## Assumptions & Constraints` | Phase 2 (main agent) | Written once; only changed via explicit user decision |
-| `## Analysis` | Phase 2 (main agent) | Links; may gain `*(Updated YYYY-MM-DD)*` annotation if analysis docs are revised mid-cycle |
+| `**Plan**:` pointer | Phase 2 (main agent) | Written once; static link to `plan.md` |
 | `## Task Overview` | Phase 3 (architect); then Implementation (main agent) | Status symbol + `(X/N)` count mutate per transition. Order of lines does NOT change after Phase 3. |
 | `## Skipped Tasks` | Implementation (main agent) | **Append-only** |
 | `## Decision Log` | Implementation (main agent) | **Append-only** |

@@ -29,7 +29,7 @@ Spec-driven workflow for complex development tasks.
 |---------|-------------|
 | Structured workflow | Phased analysis, planning, decomposition, implementation, archive |
 | Custom agents | Codebase analysis (analyzer) and task decomposition (architect) subagents |
-| COMPASS-based continuity | Single-file `.spec/COMPASS.md` as cross-session memory; no hidden state cache |
+| COMPASS-based continuity | Two-file `.biu/COMPASS.md` (state) + `.biu/plan.md` (spec) as cross-session memory; no hidden state cache |
 | Templates | Canonical structures for COMPASS, tasks, and analysis documents |
 | Blocker protocol | Formal handling for blocked tasks with resume/skip workflow |
 | Verification gates | `SubagentStop` hooks verify analyzer/architect produced well-formed artifacts |

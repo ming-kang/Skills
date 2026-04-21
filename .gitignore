@@ -1,5 +1,6 @@
 .claude/settings.local.json
-.spec/
+.biu/
+ClaudeCodeDocs/
 __pycache__/
 *.pyc
 *.pyo

@@ -6,9 +6,9 @@ Load this file when you enter the Implementation Phase (Phase 4, after the Phase
 
 ## At the start of every Task
 
-1. Read `.spec/COMPASS.md` to confirm current position and re-read **Assumptions & Constraints**.
+1. Read `.biu/COMPASS.md` for current position; re-read **Assumptions & Constraints** from `.biu/plan.md`.
 2. In COMPASS.md Task Overview: change the corresponding line's symbol from `[ ]` to `[~]`.
-3. Open the relevant `.spec/tasks/task-N-<name>.md` and set **Status** to `IN_PROGRESS`.
+3. Open the relevant `.biu/tasks/task-N-<name>.md` and set **Status** to `IN_PROGRESS`.
 
 _Rationale_: COMPASS-first ordering keeps the Task Overview showing the intended active Task even if the turn is interrupted between steps 2 and 3; SKILL.md's Continuity Check reconciles any remaining mismatch on resume by trusting the task file (per Rule #10).
 
@@ -48,7 +48,7 @@ If during implementation you discover the analysis is outdated:
 - **Major discrepancies** (affect subsequent Tasks):
   1. Pause current Task.
   2. Update the relevant analysis document(s).
-  3. In COMPASS.md Analysis section, mark: `*(Updated YYYY-MM-DD)*`.
+  3. In `.biu/plan.md`'s `## Analysis` section, mark: `*(Updated YYYY-MM-DD)*`.
   4. Add entry to Decision Log: `Analysis updated: <reason>`.
   5. Evaluate if subsequent Tasks need adjustment:
      - Update affected Task files if needed; explain in Notes.
