@@ -47,7 +47,7 @@ Review every task against the `## Assumptions & Constraints` section of `.biu/pl
 
 ### Step 4: Write Task Files
 
-Write one file per Task to `.biu/tasks/` using the structure in `references/templates/task.md` (under the spec-coding skill directory; use Glob `**/templates/task.md` to locate the absolute path). Read that template before writing task files.
+Write one file per Task to `.biu/tasks/` using the structure in `${CLAUDE_PLUGIN_ROOT}/skills/spec-coding/references/templates/task.md`. Read that template before writing task files.
 
 Initialize every task file with `**Status**: PENDING` (not the pipe-separated enum that may appear as an HTML comment in the template for discoverability). Set `**Blocked by**` and `**Resume point**` to `N/A` until the task enters IN_PROGRESS or BLOCKED.
 
@@ -57,16 +57,16 @@ Example: `task-1-setup-build.md`, `task-2-migrate-core.md`, `task-3-integration-
 
 ### Step 5: Update COMPASS.md
 
-The canonical COMPASS structure is defined in `references/templates/compass.md` (use Glob `**/templates/compass.md` to locate the absolute path). Read that template for the Task Overview format, status symbols, and invariants.
+The canonical COMPASS structure is defined in `${CLAUDE_PLUGIN_ROOT}/skills/spec-coding/references/templates/compass.md`. Read that template for the Task Overview format, status symbols, and invariants.
 
 Your responsibility at this phase:
 
-- Clear the entire `## Task Overview` section body and write exactly one line per task file you authored, in ascending task-number order. Use the format specified in `templates/compass.md`'s "Task Overview — format per line" section (status symbol + task name + `(X/N)` subtask count + link).
+- Clear the entire `## Task Overview` section body and write exactly one line per task file you authored, in ascending task-number order. Use the format specified in `compass.md`'s "Task Overview — format per line" section (status symbol + task name + `(X/N)` subtask count + link).
 
 ## Output
 
 - One `task-N-<short-name>.md` file per Task in `.biu/tasks/`
-- COMPASS.md `## Task Overview` populated with one line per Task (structure per `references/templates/compass.md`)
+- COMPASS.md `## Task Overview` populated with one line per Task (structure per `compass.md`)
 
 ## Guidelines
 

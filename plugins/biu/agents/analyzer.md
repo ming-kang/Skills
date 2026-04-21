@@ -59,7 +59,7 @@ For each logical module, package, or component, document:
 
 ## Required Outputs
 
-Follow the structure in `references/templates/analysis.md` (under the spec-coding skill directory; use Glob `**/templates/analysis.md` to locate the absolute path). Read that template before writing. Write these three files under `.biu/analysis/`:
+Follow the structure in `${CLAUDE_PLUGIN_ROOT}/skills/spec-coding/references/templates/analysis.md`. Read that template before writing. Write these three files under `.biu/analysis/`:
 
 - `project-overview.md` — Summary, Technology Stack, Entry Points, Directory Layout, Architecture.
 - `module-inventory.md` — One entry per logical module.

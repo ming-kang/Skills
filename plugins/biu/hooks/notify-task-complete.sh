@@ -5,6 +5,17 @@
 # file now has Status: COMPLETE, inject a reminder telling Claude to STOP
 # this turn and not auto-advance to the next Task.
 #
+# Filtering strategy (defense in depth):
+#   1. hooks.json uses the `if` field (Claude Code v2.1.85+) with
+#      Edit(**/.biu/tasks/task-*.md) and Write(**/.biu/tasks/task-*.md) so
+#      the harness never spawns this process on unrelated edits. This is
+#      the hot-path optimization — Edit/Write on non-task files pays zero
+#      bash-startup cost.
+#   2. The in-script early-exit checks below re-validate the path and
+#      Status value. They cover older Claude Code versions that ignore
+#      `if`, and they catch edge cases where the harness glob semantics
+#      differ from what the script expects.
+#
 # Soft enforcement only — the model can technically ignore the injected
 # reminder. It exists to amplify the Behavioral Rule in SKILL.md, not to
 # replace it. User does not see this hook output.
