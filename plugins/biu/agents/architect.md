@@ -61,7 +61,7 @@ The canonical COMPASS structure is defined in `${CLAUDE_PLUGIN_ROOT}/skills/spec
 
 Your responsibility at this phase:
 
-- Clear the entire `## Task Overview` section body and write exactly one line per task file you authored, in ascending task-number order. Use the format specified in `compass.md`'s "Task Overview — format per line" section (status symbol + task name + `(X/N)` subtask count + link).
+- Clear the entire `## Task Overview` section body and write exactly one line per task file you authored, in ascending task-number order. Use the line format defined in `compass.md` (status symbol + task name + `(X/N)` subtask count + link).
 
 ## Output
 

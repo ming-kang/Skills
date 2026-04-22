@@ -79,11 +79,12 @@ for path in "${task_files[@]:-}"; do
   fi
 done
 
-# 3. COMPASS.md exists and Task Overview placeholder removed.
+# 3. COMPASS.md exists. Whether Task Overview is populated is covered by the
+#    count-parity check below (compass_task_lines vs task_file_count): if the
+#    architect forgot to replace the template placeholder, compass_task_lines
+#    is 0 while tasks/ has >=1 file, so parity fails with a clearer message.
 if [ ! -f "$COMPASS" ]; then
   missing+=("COMPASS.md is missing")
-elif grep -q '<Populated by Phase 3>' "$COMPASS" 2>/dev/null; then
-  missing+=("COMPASS.md still contains the '<Populated by Phase 3>' placeholder in Task Overview")
 fi
 
 # 4. Task-count parity between COMPASS Task Overview lines and tasks/ files.

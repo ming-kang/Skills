@@ -37,16 +37,18 @@ All spec-coding artifacts live under `.biu/`. This directory is **never committe
 
 ## Behavioral Rules
 
-1. **Never skip User's Confirmation.** Confirm with the user at each phase boundary. This includes archiving — never archive without explicit user approval.
-2. **One Task at a time. Never auto-advance.** When a Task is marked COMPLETE, STOP. Do NOT begin the next Task in the same turn. Always wait for the user to explicitly instruct "continue with Task N+1" (or equivalent) before starting any work on the next Task. **Corollary invariant**: COMPASS may contain at most one `[~]` at any time — before starting a new Task, transition the currently-active Task to `[x]`, `[!]`, or `[-]` first.
-3. **Document decisions.** Record important technical decisions and plan changes in COMPASS.md's Decision Log. Record implementation details in the relevant Task file's Notes section.
-4. **Progress updates are mandatory.** After completing any subtask: check its box in the Task file, immediately update the (X/N) count in COMPASS.md.
-5. **New conversation = read COMPASS.md first.** Non-negotiable. It is your memory.
-6. **Archive when done.** When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
-7. **`.biu/` is always gitignored.** Verify this at the start of every fresh session before writing any files.
-8. **Stop before you spiral.** If a subtask fails twice or hits a constraint conflict, load `references/blocked-protocol.md` and follow it.
-9. **Respect verification gates.** A `SubagentStop` hook that exits with code 2 feeds its stderr back to the subagent so it can self-correct within the same invocation — usually no main-agent action is needed. However, if the subagent returns to the main agent without producing complete artifacts (its final message reports failure, or the missing artifacts are still missing on disk), re-invoke the same subagent with the specific missing-artifact list as the next prompt. Do not advance to the next phase until the gate passes.
-10. **Authority on disagreement.** When a COMPASS Task Overview symbol and a task file's `**Status**:` value disagree, the task file is authoritative — reconcile COMPASS to match. When a COMPASS `(X/N)` count disagrees with the `[x]` checkbox tally in the task file, the checkboxes are authoritative. Never silently adopt COMPASS's value over the task file's.
+*Each rule carries a stable slug in backticks (e.g., `R-no-auto-advance`). External references — in hooks, templates, `references/`, and `agents/` — use the form `` Behavioral Rule `R-xxx` ("Rule Title") ``, not the ordinal `Rule #N`, so rule reorderings or renames do not invalidate references. When adding a new rule, assign a slug; when adding an external reference, use the slug.*
+
+1. **Never skip User's Confirmation.** `R-confirm-phase-boundary` Confirm with the user at each phase boundary. This includes archiving — never archive without explicit user approval.
+2. **One Task at a time. Never auto-advance.** `R-no-auto-advance` When a Task is marked COMPLETE, STOP. Do NOT begin the next Task in the same turn. Always wait for the user to explicitly instruct "continue with Task N+1" (or equivalent) before starting any work on the next Task. **Corollary invariant**: COMPASS may contain at most one `[~]` at any time — before starting a new Task, transition the currently-active Task to `[x]`, `[!]`, or `[-]` first.
+3. **Document decisions.** `R-document-decisions` Record important technical decisions and plan changes in COMPASS.md's Decision Log. Record implementation details in the relevant Task file's Notes section.
+4. **Progress updates are mandatory.** `R-progress-updates` After completing any subtask: check its box in the Task file, immediately update the (X/N) count in COMPASS.md.
+5. **New conversation = read COMPASS.md first.** `R-compass-first` Non-negotiable. It is your memory.
+6. **Archive when done.** `R-archive-when-done` When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
+7. **`.biu/` is always gitignored.** `R-gitignore` Verify this at the start of every fresh session before writing any files.
+8. **Stop before you spiral.** `R-stop-before-spiral` If a subtask fails twice or hits a constraint conflict, load `references/blocked-protocol.md` and follow it.
+9. **Respect verification gates.** `R-verification-gates` A `SubagentStop` hook that exits with code 2 feeds its stderr back to the subagent so it can self-correct within the same invocation — usually no main-agent action is needed. However, if the subagent returns to the main agent without producing complete artifacts (its final message reports failure, or the missing artifacts are still missing on disk), re-invoke the same subagent with the specific missing-artifact list as the next prompt. Do not advance to the next phase until the gate passes.
+10. **Authority on disagreement.** `R-authority` When a COMPASS Task Overview symbol and a task file's `**Status**:` value disagree, the task file is authoritative — reconcile COMPASS to match. When a COMPASS `(X/N)` count disagrees with the `[x]` checkbox tally in the task file, the checkboxes are authoritative. Never silently adopt COMPASS's value over the task file's.
 
 ---
 
@@ -54,7 +56,7 @@ All spec-coding artifacts live under `.biu/`. This directory is **never committe
 
 **CRITICAL**: Before starting any phase, check whether `.biu/COMPASS.md` exists.
 
-- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.biu/tasks/`. Then **reconcile state**: scan `.biu/tasks/*.md`. If any task file's `**Status**:` value disagrees with the Task Overview symbol in COMPASS for the same task, trust the task file and update COMPASS to match (per Rule #10). If a COMPASS `(X/N)` count disagrees with the count of `[x]` checkboxes in the task file, trust the checkboxes and update COMPASS. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
+- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.biu/tasks/`. Then **reconcile state**: scan `.biu/tasks/*.md`. If any task file's `**Status**:` value disagrees with the Task Overview symbol in COMPASS for the same task, trust the task file and update COMPASS to match (per Behavioral Rule `R-authority`). If a COMPASS `(X/N)` count disagrees with the count of `[x]` checkboxes in the task file, trust the checkboxes and update COMPASS. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
 - **If it does not exist**: This is a fresh start. Check whether `.biu/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
 
 ---

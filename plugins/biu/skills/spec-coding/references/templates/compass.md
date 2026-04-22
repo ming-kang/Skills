@@ -65,6 +65,6 @@ Every file that reads or writes COMPASS (SKILL.md, agents/architect.md, referenc
 
 ### Invariants
 
-1. **At most one `[~]` at any time.** Before starting a new Task, the currently-active Task must be transitioned to `[x]`, `[!]`, or `[-]` first. This invariant is enforced by SKILL.md Behavioral Rule #2 (no auto-advance) and by the workflow contract.
+1. **At most one `[~]` at any time.** Before starting a new Task, the currently-active Task must be transitioned to `[x]`, `[!]`, or `[-]` first. This invariant is enforced by SKILL.md Behavioral Rule `R-no-auto-advance` ("One Task at a time. Never auto-advance.") and by the workflow contract.
 
-The disagreement-resolution invariants — "task file is authoritative when COMPASS symbol and `**Status**:` disagree", and "checkbox tally is authoritative when COMPASS `(X/N)` and task-file checkboxes disagree" — live in SKILL.md as Behavioral Rule #10 ("Authority on disagreement"), so every session picks them up without loading this template. Referenced here rather than duplicated.
+The disagreement-resolution invariants — "task file is authoritative when COMPASS symbol and `**Status**:` disagree", and "checkbox tally is authoritative when COMPASS `(X/N)` and task-file checkboxes disagree" — live in SKILL.md as Behavioral Rule `R-authority` ("Authority on disagreement"), so every session picks them up without loading this template. Referenced here rather than duplicated.
