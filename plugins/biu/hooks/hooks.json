@@ -1,5 +1,4 @@
 {
-  "description": "Biu plugin hooks: subagent artifact verification + task-complete reminder (pure bash, zero runtime deps)",
   "hooks": {
     "PostToolUse": [
       {
