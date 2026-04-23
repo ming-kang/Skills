@@ -56,8 +56,8 @@ All spec-coding artifacts live under `.biu/`. This directory is **never committe
 
 **CRITICAL**: Before starting any phase, check whether `.biu/COMPASS.md` exists.
 
-- **If it exists**: Read it immediately. You are resuming an in-progress session. Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.biu/tasks/`. Then **reconcile state**: scan `.biu/tasks/*.md`. If any task file's `**Status**:` value disagrees with the Task Overview symbol in COMPASS for the same task, trust the task file and update COMPASS to match (per Behavioral Rule `R-authority`). If a COMPASS `(X/N)` count disagrees with the count of `[x]` checkboxes in the task file, trust the checkboxes and update COMPASS. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
-- **If it does not exist**: This is a fresh start. Check whether `.biu/` is in `.gitignore`. If not, add it. Then proceed to *Begin: Intent Recognition*.
+- **If it exists**: Read it immediately. You are resuming an in-progress session. Then verify `.biu/` is in `.gitignore` (add if missing). Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.biu/tasks/`. Then **reconcile state**: scan `.biu/tasks/*.md`. If any task file's `**Status**:` value disagrees with the Task Overview symbol in COMPASS for the same task, trust the task file and update COMPASS to match (per Behavioral Rule `R-authority`). If a COMPASS `(X/N)` count disagrees with the count of `[x]` checkboxes in the task file, trust the checkboxes and update COMPASS. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
+- **If it does not exist**: This is a fresh start. Verify `.biu/` is in `.gitignore` (add if missing). Then proceed to *Begin: Intent Recognition*.
 
 ---
 
@@ -99,11 +99,13 @@ Agent({
 
 **Goal**: Refine the task definition using analysis findings, then lock in a confirmed plan.
 
-**Action**: Use analysis findings to ask targeted clarifying questions with `AskUserQuestion`. Cover any concerns surfaced by analysis that affect scope, approach, or constraints.
+**Action**: Interview the user iteratively — one `AskUserQuestion` at a time. Ask about technical approach, UI/UX, tradeoffs, risks, scope, constraints, or anything else that affects the plan. Each question must be non-obvious and build on previous answers.
 
-**After confirming the plan**, create two files:
+Continue until the plan is fully fleshed out. After each answer, decide: ask another question, or lock in the plan. Do not batch multiple questions in a single turn.
 
-1. `.biu/plan.md` — following the structure defined in `references/templates/plan.md`. Populate all three sections:
+**Only when the plan is complete**, create two files:
+
+1. `.biu/plan.md` — read `references/templates/plan.md` first, then populate all three sections:
    - `## Task Definition` — the confirmed description
    - `## Assumptions & Constraints` — boundaries locked in during refinement
    - `## Analysis` — links to the three analysis documents in `.biu/analysis/`

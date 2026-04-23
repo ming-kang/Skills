@@ -58,7 +58,7 @@ case "$file_path" in
 esac
 
 # Only fire when the file currently shows Status: COMPLETE.
-if ! grep -qE '^\*\*Status\*\*:[[:space:]]*COMPLETE' "$file_path" 2>/dev/null; then
+if ! grep -qEi '^\*{0,2}Status\*{0,2}[[:space:]]*:[[:space:]]*COMPLETE' "$file_path" 2>/dev/null; then
   exit 0
 fi
 
