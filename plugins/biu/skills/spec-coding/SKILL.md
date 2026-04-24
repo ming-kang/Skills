@@ -57,7 +57,7 @@ All spec-coding artifacts live under `.biu/`. This directory is **never committe
 **CRITICAL**: Before starting any phase, check whether `.biu/COMPASS.md` exists.
 
 - **If it exists**: Read it immediately. You are resuming an in-progress session. Then verify `.biu/` is in `.gitignore` (add if missing). Identify the current phase or Task from the Task Overview (the unique `[~]` line) and the per-task files in `.biu/tasks/`. Then **reconcile state**: scan `.biu/tasks/*.md`. If any task file's `**Status**:` value disagrees with the Task Overview symbol in COMPASS for the same task, trust the task file and update COMPASS to match (per Behavioral Rule `R-authority`). If a COMPASS `(X/N)` count disagrees with the count of `[x]` checkboxes in the task file, trust the checkboxes and update COMPASS. Continue from exactly where the previous conversation ended. Do NOT restart from Phase 1.
-- **If it does not exist**: This is a fresh start. Verify `.biu/` is in `.gitignore` (add if missing). Then proceed to *Begin: Intent Recognition*.
+- **If it does not exist**: Check whether `.biu/analysis/` contains the three analysis files (`project-overview.md`, `module-inventory.md`, `risk-assessment.md`). If all three exist: Phase 1 was completed in a prior session — inform the user and resume at Phase 2. Otherwise, this is a fresh start. Verify `.biu/` is in `.gitignore` (add if missing), then proceed to *Begin: Intent Recognition*.
 
 ---
 
@@ -99,9 +99,11 @@ Agent({
 
 **Goal**: Refine the task definition using analysis findings, then lock in a confirmed plan.
 
-**Action**: Interview the user iteratively — one `AskUserQuestion` at a time. Ask about technical approach, UI/UX, tradeoffs, risks, scope, constraints, or anything else that affects the plan. Each question must be non-obvious and build on previous answers.
+**Action**: Read the three analysis documents in `.biu/analysis/` first — they already answer many questions. Then use `AskUserQuestion` (one question at a time) to fill the remaining gaps.
 
-Continue until the plan is fully fleshed out. After each answer, decide: ask another question, or lock in the plan. Do not batch multiple questions in a single turn.
+Explore whatever dimensions the task depends on — technical approach, scope, constraints, risks, UI/UX, tradeoffs, and anything else. These are starting points, not a checklist. Skip dimensions the user has already been clear about. Each question must be non-obvious, build on previous answers, and not be answerable from the analysis documents alone.
+
+Stop when you have enough clarity to write a precise, scoped plan. After each answer, decide: ask another, or lock in. Do not batch multiple questions in one turn.
 
 **Only when the plan is complete**, create two files:
 
@@ -133,6 +135,8 @@ Agent({
   prompt: "Read .biu/plan.md (confirmed spec) and all analysis documents. Break down the plan into concrete tasks with dependencies and acceptance criteria. Write task files to .biu/tasks/ and update .biu/COMPASS.md with the task overview."
 })
 ```
+
+A `SubagentStop` hook verifies the architect's outputs (see Behavioral Rule `R-verification-gates`). If verification fails and the subagent returns without complete artifacts, re-invoke the architect with the missing-artifact list.
 
 **Output**: Complete `.biu/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview.
 

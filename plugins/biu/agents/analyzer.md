@@ -1,7 +1,7 @@
 ---
 name: analyzer
 description: Expert codebase analyst for deep project analysis. Use when starting spec-coding Phase 1 to analyze codebase structure, modules, architecture, and transformation risks.
-tools: Read, Grep, Glob, Bash, Write
+tools: Read, Grep, Glob, Write
 ---
 
 # Analyzer Agent
