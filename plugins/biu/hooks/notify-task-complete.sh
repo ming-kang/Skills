@@ -7,10 +7,11 @@
 #
 # Filtering strategy (defense in depth):
 #   1. hooks.json uses the `if` field (Claude Code v2.1.85+) with
-#      Edit(**/.biu/tasks/task-*.md) and Write(**/.biu/tasks/task-*.md) so
-#      the harness never spawns this process on unrelated edits. This is
-#      the hot-path optimization — Edit/Write on non-task files pays zero
-#      bash-startup cost.
+#      Edit(*.md) and Write(*.md) so the harness never spawns this process
+#      on non-markdown edits. This is the hot-path optimization — Edit/Write
+#      on non-.md files pays zero bash-startup cost. (A tighter glob like
+#      Edit(**/.biu/tasks/task-*.md) would be ideal but the `if` glob engine
+#      doesn't work well on Windows.)
 #   2. The in-script early-exit checks below re-validate the path and
 #      Status value. They cover older Claude Code versions that ignore
 #      `if`, and they catch edge cases where the harness glob semantics

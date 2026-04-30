@@ -6,12 +6,12 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Edit(**/.biu/tasks/task-*.md)",
+            "if": "Edit(*.md)",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/notify-task-complete.sh"
           },
           {
             "type": "command",
-            "if": "Write(**/.biu/tasks/task-*.md)",
+            "if": "Write(*.md)",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/notify-task-complete.sh"
           }
         ]
