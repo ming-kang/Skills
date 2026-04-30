@@ -70,38 +70,65 @@ After installation, use the spec-coding skill:
 
 ## Git Workflow
 
+This repo uses a **release-cycle branch + squash-merge** workflow. Each release maps to one dedicated branch (opened from `main`) and lands on `main` as exactly one squash-merged commit when published. `main` therefore equals "published history" — one commit per release, in chronological order; the active branch represents "the next release, in progress."
+
 ### Branching
 
-Feature work happens on dedicated branches off `main`, never directly on `main`. This keeps `main` semantically equal to "published history" — one commit per release, linear, in user-visible order.
+Open one branch per release cycle. The branch may bundle multiple logical changes (feat + fix + chore mixed) — it represents the cycle, not a single atomic change.
 
-**Naming**: `<type>/<short-name>` in lowercase kebab-case, 1–4 words.
+**Naming**: `<type>/<short-name>` in lowercase kebab-case, 1–4 words. Pick the prefix and short-name from the **dominant theme** of the cycle:
 
-- `feat/<short-name>` — new functionality, behavior change, or substantive improvement (e.g., `feat/continuity-orphan-detect`)
-- `fix/<short-name>` — bug fix observable to users (e.g., `fix/posttooluse-windows-glob`)
-- `chore/<short-name>` — docs, refactors, dependency bumps with no user-visible behavior change (e.g., `chore/readme-sync`)
+- `feat/<short-name>` — cycle is primarily a new feature or substantive improvement (e.g., `feat/continuity-orphan-detect`)
+- `fix/<short-name>` — cycle is primarily a bug fix (e.g., `fix/posttooluse-windows-glob`)
+- `chore/<short-name>` — cycle is purely docs, refactors, or maintenance with no user-visible behavior change (e.g., `chore/readme-sync`)
 
-Name by content, not by target version. The version lives in `plugin.json` and may shift mid-development; the branch name should still make sense if the version does.
+A `fix`-themed cycle may still include small unrelated doc tweaks; that's fine — the dominant theme governs the name. Do not open separate branches per change within one release.
 
-**Lifecycle**: branch off `main` → commit freely (wip/fixup/polish commits are fine, they get squashed) → squash-merge back to `main` as one clean release commit → delete the branch. Feature branches normally stay local; push to remote only if backup or hand-off is desired.
+Name by content, not by target version. The version lives in `plugin.json` and may shift mid-cycle; the branch name should still make sense if it does.
+
+**Lifecycle**:
+
+1. Branch off up-to-date `main`: `git checkout main && git pull && git checkout -b <type>/<short-name>`.
+2. Bump `plugin.json` to the target version early on the branch, so subsequent commits implicitly belong to it. Skip this step for chore-only cycles that don't ship a new plugin version.
+3. Develop. Commits within the cycle can be loose (`wip: try X`, `fix typo`, `polish`) — they get squashed away on release.
+4. When the user signals readiness to release, run the squash-merge release flow (see *Release / Versioning*).
+
+Branches normally stay local; push to remote only if backup or hand-off is desired.
 
 ### Commit
 
 When asked to commit, show the proposed commit message first for approval before executing `git commit -m ""`.
 
-On a feature branch, in-progress commit messages can be loose (`wip: try X`, `fix typo`) since they will be squashed away. The release commit on `main` (produced by squash-merge) is the user-facing one and gets the careful `biu vX.Y.Z: ...` treatment with a structured body.
+Two kinds of commits exist in this workflow, with different message standards:
+
+- **In-progress commits on the active branch** — loose, working-style messages are fine (`wip: ...`, `fix typo`, `try alternate approach`). They get squashed away; nobody else sees them.
+- **The release commit on `main`** — produced by `git merge --squash` followed by a fresh `git commit`. This is the single user-facing entry that survives in published history. Use the structured form:
+
+  ```
+  biu vX.Y.Z: <one-line headline summarizing the cycle>
+
+  - <bullet for each change in the cycle, regardless of type>
+  - <bullet>
+  - <bullet>
+
+  <optional notes, e.g., "no plugin code touched" for chore-only releases>
+  ```
+
+  For chore-only cycles that don't bump `plugin.json`, drop the `vX.Y.Z` and use a `chore: ...` headline instead (e.g., `chore: switch repo to feature-branch + squash-merge workflow`).
 
 ### Push
 
 When asked to push:
+
 1. Check `git status` for uncommitted changes.
-2. If there are uncommitted changes: do NOT push. Enter the commit message drafting phase — show a proposed message for approval, then commit, then evaluate step 3.
-3. Branch the behavior on the current branch:
-   - **On a feature branch**: "push" is ambiguous. Default-interpret it as "ready to release" — propose the squash-merge-and-release flow (see *Release / Versioning* below) and ask for confirmation before merging. Only push the feature branch to remote if the user explicitly asks for "branch backup" or similar.
-   - **On `main`**: push to the remote GitHub repository. This publishes the version currently in `plugin.json` to installed users.
+2. If there are uncommitted changes: do NOT push. Enter the commit message drafting phase — show a proposed message for approval, then commit, then re-evaluate step 3.
+3. Behavior depends on the current branch:
+   - **On the active release branch**: "push" defaults to "ready to release" — propose the squash-merge release flow (see *Release / Versioning*) and ask for confirmation before merging. Only push the branch to remote if the user explicitly requests "branch backup" or similar.
+   - **On `main`**: push to the remote GitHub repository. This publishes whatever version `plugin.json` currently advertises to installed users.
 
 ### Docs sync
 
-After any commit or push that changes the plugin's code, structure, or observable behavior, check whether `.claude/CLAUDE.md` and `README.md` still accurately describe the current state. If the change invalidates anything in those files — directory tree, hook list, plugin features, runtime requirements, installation or usage instructions — update them in the same session (typically as part of the same feature branch, before squash-merge). Stale docs are a worse bug than missing docs.
+After any commit that changes the plugin's code, structure, or observable behavior, check whether `.claude/CLAUDE.md` and `README.md` still accurately describe the current state. If the change invalidates anything in those files — directory tree, hook list, plugin features, runtime requirements, installation or usage instructions — update them in the same session, on the same branch, **before the squash-merge to `main`**. The release commit should land with docs already aligned.
 
 Scope in: directory structure, hook event/purpose list, plugin feature list, runtime requirements, install/usage commands.
 Scope out: commit-message-level internals, minor refactors with no user-visible surface change.
@@ -112,17 +139,15 @@ The `version` field lives in **one place only**: `plugins/biu/.claude-plugin/plu
 
 **Release flow**:
 
-1. From up-to-date `main`, branch off: `git checkout main && git pull && git checkout -b <type>/<short-name>`.
-2. Bump `plugin.json` version on the branch (typically as one of the early commits, so subsequent commits implicitly belong to that version).
-3. Develop with as many local commits as needed — they are squash material, not history material.
-4. When the user signals readiness to release:
-   - Verify `plugin.json` reflects the intended published version.
-   - Verify CLAUDE.md and README.md are in sync (per *Docs sync* above).
-   - On `main`: `git merge --squash <type>/<short-name>`, then commit with a release-grade message (`biu vX.Y.Z: ...` headline + bulleted body summarizing user-visible changes).
-   - Push `main` to remote.
-   - Delete the merged branch: `git branch -D <type>/<short-name>`.
+1. Verify `plugin.json` reflects the intended published version. (Should already be set; bumping it is part of the cycle's early commits, not a last-minute fix.)
+2. Verify CLAUDE.md and README.md are in sync (per *Docs sync* above).
+3. Switch to `main`: `git checkout main`.
+4. Squash-merge the active branch: `git merge --squash <type>/<short-name>`. All changes from the entire cycle land on `main`'s index as one diff; no commit yet.
+5. Commit on `main` with a release-grade message (see *Commit* for the structured form).
+6. Push: `git push`. This is the publication moment.
+7. Delete the merged branch: `git branch -D <type>/<short-name>`. Use `-D` (capital), not `-d` — squash-merge does not preserve a merge link, so git considers the branch "unmerged" even though its content is now on `main`.
 
-Do not push on every commit. "push" from the user signals "release the current version to users."
+Do not push on every commit. "push" from the user signals "release the current cycle to users."
 
 ## References
 
