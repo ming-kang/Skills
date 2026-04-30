@@ -70,20 +70,38 @@ After installation, use the spec-coding skill:
 
 ## Git Workflow
 
+### Branching
+
+Feature work happens on dedicated branches off `main`, never directly on `main`. This keeps `main` semantically equal to "published history" — one commit per release, linear, in user-visible order.
+
+**Naming**: `<type>/<short-name>` in lowercase kebab-case, 1–4 words.
+
+- `feat/<short-name>` — new functionality, behavior change, or substantive improvement (e.g., `feat/continuity-orphan-detect`)
+- `fix/<short-name>` — bug fix observable to users (e.g., `fix/posttooluse-windows-glob`)
+- `chore/<short-name>` — docs, refactors, dependency bumps with no user-visible behavior change (e.g., `chore/readme-sync`)
+
+Name by content, not by target version. The version lives in `plugin.json` and may shift mid-development; the branch name should still make sense if the version does.
+
+**Lifecycle**: branch off `main` → commit freely (wip/fixup/polish commits are fine, they get squashed) → squash-merge back to `main` as one clean release commit → delete the branch. Feature branches normally stay local; push to remote only if backup or hand-off is desired.
+
 ### Commit
 
 When asked to commit, show the proposed commit message first for approval before executing `git commit -m ""`.
 
+On a feature branch, in-progress commit messages can be loose (`wip: try X`, `fix typo`) since they will be squashed away. The release commit on `main` (produced by squash-merge) is the user-facing one and gets the careful `biu vX.Y.Z: ...` treatment with a structured body.
+
 ### Push
 
 When asked to push:
-1. Check `git status` for uncommitted changes
-2. If there are uncommitted changes: do NOT push. Enter the commit message drafting phase — show a proposed message for approval, then commit, then push.
-3. If all changes are committed: push to the remote GitHub repository.
+1. Check `git status` for uncommitted changes.
+2. If there are uncommitted changes: do NOT push. Enter the commit message drafting phase — show a proposed message for approval, then commit, then evaluate step 3.
+3. Branch the behavior on the current branch:
+   - **On a feature branch**: "push" is ambiguous. Default-interpret it as "ready to release" — propose the squash-merge-and-release flow (see *Release / Versioning* below) and ask for confirmation before merging. Only push the feature branch to remote if the user explicitly asks for "branch backup" or similar.
+   - **On `main`**: push to the remote GitHub repository. This publishes the version currently in `plugin.json` to installed users.
 
 ### Docs sync
 
-After any commit or push that changes the plugin's code, structure, or observable behavior, check whether `.claude/CLAUDE.md` and `README.md` still accurately describe the current state. If the change invalidates anything in those files — directory tree, hook list, plugin features, runtime requirements, installation or usage instructions — update them in the same session. Stale docs are a worse bug than missing docs.
+After any commit or push that changes the plugin's code, structure, or observable behavior, check whether `.claude/CLAUDE.md` and `README.md` still accurately describe the current state. If the change invalidates anything in those files — directory tree, hook list, plugin features, runtime requirements, installation or usage instructions — update them in the same session (typically as part of the same feature branch, before squash-merge). Stale docs are a worse bug than missing docs.
 
 Scope in: directory structure, hook event/purpose list, plugin feature list, runtime requirements, install/usage commands.
 Scope out: commit-message-level internals, minor refactors with no user-visible surface change.
@@ -92,7 +110,19 @@ Scope out: commit-message-level internals, minor refactors with no user-visible 
 
 The `version` field lives in **one place only**: `plugins/biu/.claude-plugin/plugin.json`. The marketplace entry in `.claude-plugin/marketplace.json` intentionally omits `version` — per the plugins reference, when both are set `plugin.json` wins, so we keep it single-source to avoid drift. A `git push` to `main` publishes whatever version `plugin.json` currently advertises — installed users pick up the new version on `/plugin marketplace update`.
 
-When starting work on new features, bump `plugin.json` locally first. Multiple commits may land on `main` locally under the same in-progress version before we push. Do not push on every commit — wait for an explicit "push" from the user, which signals "release the current version to users." Before pushing, verify that `plugin.json` reflects the intended published version.
+**Release flow**:
+
+1. From up-to-date `main`, branch off: `git checkout main && git pull && git checkout -b <type>/<short-name>`.
+2. Bump `plugin.json` version on the branch (typically as one of the early commits, so subsequent commits implicitly belong to that version).
+3. Develop with as many local commits as needed — they are squash material, not history material.
+4. When the user signals readiness to release:
+   - Verify `plugin.json` reflects the intended published version.
+   - Verify CLAUDE.md and README.md are in sync (per *Docs sync* above).
+   - On `main`: `git merge --squash <type>/<short-name>`, then commit with a release-grade message (`biu vX.Y.Z: ...` headline + bulleted body summarizing user-visible changes).
+   - Push `main` to remote.
+   - Delete the merged branch: `git branch -D <type>/<short-name>`.
+
+Do not push on every commit. "push" from the user signals "release the current version to users."
 
 ## References
 
