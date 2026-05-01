@@ -47,8 +47,7 @@ All spec-coding artifacts live under `.biu/`. This directory is **never committe
 6. **Archive when done.** `R-archive-when-done` When all Tasks are complete, suggest archiving and wait for confirmation. Don't leave stale artifacts in the working area indefinitely.
 7. **`.biu/` is always gitignored.** `R-gitignore` Verify this at the start of every fresh session before writing any files.
 8. **Stop before you spiral.** `R-stop-before-spiral` If a subtask fails twice or hits a constraint conflict, load `references/blocked-protocol.md` and follow it.
-9. **Respect verification gates.** `R-verification-gates` A `SubagentStop` hook that exits with code 2 feeds its stderr back to the subagent so it can self-correct within the same invocation — usually no main-agent action is needed. However, if the subagent returns to the main agent without producing complete artifacts (its final message reports failure, or the missing artifacts are still missing on disk), re-invoke the same subagent with the specific missing-artifact list as the next prompt. Do not advance to the next phase until the gate passes.
-10. **Authority on disagreement.** `R-authority` When a COMPASS Task Overview symbol and a task file's `**Status**:` value disagree, the task file is authoritative — reconcile COMPASS to match. When a COMPASS `(X/N)` count disagrees with the `[x]` checkbox tally in the task file, the checkboxes are authoritative. Never silently adopt COMPASS's value over the task file's.
+9. **Authority on disagreement.** `R-authority` When a COMPASS Task Overview symbol and a task file's `**Status**:` value disagree, the task file is authoritative — reconcile COMPASS to match. When a COMPASS `(X/N)` count disagrees with the `[x]` checkbox tally in the task file, the checkboxes are authoritative. Never silently adopt COMPASS's value over the task file's.
 
 ---
 
@@ -78,9 +77,7 @@ All spec-coding artifacts live under `.biu/`. This directory is **never committe
 
 **Goal**: Build a comprehensive understanding of the current codebase.
 
-**Action**:
-1. Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. **IMPORTANT**: Pass the absolute path to the target codebase in the prompt (e.g., `C:\Users\...\project` or `/home/user/project`). The analyzer writes `.biu/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
-2. A `SubagentStop` hook verifies that all three files exist, are non-empty, and contain at least one section heading. If verification fails, re-invoke the analyzer with the missing-artifact list.
+**Action**: Use the Agent tool to spawn the `analyzer` subagent with the user's intent and codebase context. **IMPORTANT**: Pass the absolute path to the target codebase in the prompt (e.g., `C:\Users\...\project` or `/home/user/project`). The analyzer writes `.biu/analysis/{project-overview,module-inventory,risk-assessment}.md` directly and returns a short summary.
 
 Example invocation:
 ```
@@ -97,13 +94,22 @@ Agent({
 
 ## Phase 2: Plan Refinement
 
-**Goal**: Refine the task definition using analysis findings, then lock in a confirmed plan.
+**Goal**: Refine the task definition into a precise, scoped plan through relentless, dependency-ordered interview.
 
-**Action**: Read the three analysis documents in `.biu/analysis/` first — they already answer many questions. Then use `AskUserQuestion` (one question at a time) to fill the remaining gaps.
+**Mindset**: Interview the user relentlessly about every aspect of this plan until you reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one at a time — foundational decisions before dependent ones (e.g., data model before API shape). Skip dimensions the user has already settled.
 
-Explore whatever dimensions the task depends on — technical approach, scope, constraints, risks, UI/UX, tradeoffs, and anything else. These are starting points, not a checklist. Skip dimensions the user has already been clear about. Each question must be non-obvious, build on previous answers, and not be answerable from the analysis documents alone.
+**Process**:
 
-Stop when you have enough clarity to write a precise, scoped plan. After each answer, decide: ask another, or lock in. Do not batch multiple questions in one turn.
+1. **Read the analysis first.** Load the three documents in `.biu/analysis/` — they already answer many questions outright.
+
+2. **For each open decision, take exactly one of three actions per turn — never batch:**
+   - **Explore the codebase** when the answer is recoverable from code (use `Grep`/`Read`).
+   - **Ask the user** via `AskUserQuestion` when the answer requires user judgment or knowledge that's not in the codebase. **Always include your recommended answer with brief reasoning** so the user can confirm or redirect rather than start from a blank slate.
+   - **Lock in** the decision when it's settled.
+
+3. **One question per turn.** After each user answer, decide: ask another, explore, or finalize.
+
+4. **Stop condition**: every decision is resolved and you can write a Task Definition + Assumptions precise enough that the architect could decompose them unambiguously without further user input.
 
 **Only when the plan is complete**, create two files:
 
@@ -135,8 +141,6 @@ Agent({
   prompt: "Read .biu/plan.md (confirmed spec) and all analysis documents. Break down the plan into concrete tasks with dependencies and acceptance criteria. Write task files to .biu/tasks/ and update .biu/COMPASS.md with the task overview."
 })
 ```
-
-A `SubagentStop` hook verifies the architect's outputs (see Behavioral Rule `R-verification-gates`). If verification fails and the subagent returns without complete artifacts, re-invoke the architect with the missing-artifact list.
 
 **Output**: Complete `.biu/tasks/` directory with one file per Task, and COMPASS.md updated with the Task Overview.
 

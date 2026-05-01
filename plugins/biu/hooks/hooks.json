@@ -16,26 +16,6 @@
           }
         ]
       }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "^biu:analyzer$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/verify-analyzer.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "^biu:architect$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/verify-architect.sh"
-          }
-        ]
-      }
     ]
   }
 }

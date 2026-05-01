@@ -22,8 +22,6 @@ Skills/ (marketplace root)
         │   └── architect.md            # Task decomposition subagent (Phase 3)
         ├── hooks/                      # Pure bash, zero runtime deps
         │   ├── hooks.json              # Hook event registrations
-        │   ├── verify-analyzer.sh      # SubagentStop gate: analyzer artifacts
-        │   ├── verify-architect.sh     # SubagentStop gate: architect artifacts
         │   └── notify-task-complete.sh # PostToolUse reminder when a Task flips to COMPLETE
         └── skills/
             └── spec-coding/
@@ -42,7 +40,6 @@ The `biu` plugin provides spec-driven workflow capabilities for complex developm
 - **spec-coding skill**: Structured workflow with analysis and task decomposition phases. Slash-only invocation (`disable-model-invocation: true`); Claude will not auto-trigger it on phrases.
 - **Subagents**: `analyzer` (codebase analysis; writes `.biu/analysis/*.md` directly) and `architect` (task decomposition; writes `.biu/tasks/*.md` and updates COMPASS.md), defined in `agents/` at the plugin root.
 - **Lifecycle hooks** (pure bash, zero runtime deps):
-  - `SubagentStop` on analyzer/architect — verifies artifacts exist, are non-empty, and have the required structure; exit 2 + stderr feeds the missing-artifact list back to the subagent so it can self-correct.
   - `PostToolUse` on Edit/Write — when a `task-N-*.md` file is left with `Status: COMPLETE`, injects a soft reminder telling the model to STOP and not auto-advance to the next Task.
 - **Templates**: `templates/compass.md` (canonical COMPASS state structure), `templates/plan.md` (canonical plan.md structure), `templates/task.md`, and `templates/analysis.md` — all referenced from SKILL.md and the subagents, never restated inline.
 

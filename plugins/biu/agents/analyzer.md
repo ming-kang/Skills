@@ -65,8 +65,6 @@ Follow the structure in `${CLAUDE_PLUGIN_ROOT}/skills/spec-coding/references/tem
 - `module-inventory.md` — One entry per logical module.
 - `risk-assessment.md` — Ranked risks with Location / Description / Impact / Suggested Mitigation.
 
-A `SubagentStop` hook verifies these three files exist, are at least 500 bytes, and contain at least 3 `## ` section headings. If anything is missing, the hook will block your stop and feed back the list — address each item before concluding.
-
 ## Final Response
 
 After writing all three files, reply to the parent with a concise summary (roughly 10–20 lines) covering:

@@ -32,7 +32,6 @@ Spec-driven workflow for complex development tasks.
 | COMPASS-based continuity | Two-file `.biu/COMPASS.md` (state) + `.biu/plan.md` (spec) as cross-session memory; no hidden state cache |
 | Templates | Canonical structures for COMPASS, tasks, and analysis documents |
 | Blocker protocol | Formal handling for blocked tasks with resume/skip workflow |
-| Verification gates | `SubagentStop` hooks verify analyzer/architect produced well-formed artifacts |
 | Task-complete reminder | `PostToolUse` hook injects a STOP reminder when a Task is marked COMPLETE |
 
 **Requirements**: biu's hooks are pure bash scripts — no Python or other runtime dependencies. On Windows, install [Git for Windows](https://git-scm.com/download/win) so `bash` is available on PATH. macOS and Linux have bash out of the box.
