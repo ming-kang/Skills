@@ -2,54 +2,54 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ming-kang/Skills)
 
-Personal Claude Code plugin marketplace for distributing commonly used plugins and skills.
+Personal Claude Code plugin marketplace. Currently ships one plugin: **biu**.
 
-## Quick Start
+## Install
 
 ```bash
-# 1. Add marketplace (lowercase repo name required)
 /plugin marketplace add ming-kang/skills
-
-# 2. Install plugin
 /plugin install biu@ming-kang-skills
-
-# 3. Use it
-/biu:spec-coding
 ```
 
-> To update: `/plugin marketplace update ming-kang-skills`
-
-## Available Plugins
-
-### biu
-
-Spec-driven workflow for complex development tasks.
-
-| Feature | Description |
-|---------|-------------|
-| Structured workflow | Phased analysis, planning, decomposition, implementation, archive |
-| Custom agents | Codebase analysis (analyzer) and task decomposition (architect) subagents |
-| COMPASS-based continuity | Two-file `.biu/COMPASS.md` (state) + `.biu/plan.md` (spec) as cross-session memory; no hidden state cache |
-| Templates | Canonical structures for COMPASS, tasks, and analysis documents |
-| Blocker protocol | Formal handling for blocked tasks with resume/skip workflow |
-| Task-complete reminder | `PostToolUse` hook injects a STOP reminder when a Task is marked COMPLETE |
-
-**Requirements**: biu's hooks are pure bash scripts — no Python or other runtime dependencies. On Windows, install [Git for Windows](https://git-scm.com/download/win) so `bash` is available on PATH. macOS and Linux have bash out of the box.
-
-## For Developers
-
-This marketplace follows the [Claude Code plugin marketplace specification](https://code.claude.com/docs/en/plugin-marketplaces).
-
-### Testing Locally
+To update later, refresh the marketplace and then update the installed plugin:
 
 ```bash
-# Add local repository as marketplace
-/plugin marketplace add ./path/to/Skills
+/plugin marketplace update ming-kang-skills
+/plugin update biu@ming-kang-skills
+```
 
-# Install plugin
+## Biu — lightweight dev-doc protocol
+
+Biu turns vague development goals into specs, specs into executable task handoffs, and finished cycles into archives. All artifacts are plain Markdown under a project-local `.biu/` directory.
+
+| Command | What it does |
+|---|---|
+| `/biu:interview` | Ask clarifying questions, write `.biu/SPEC.md` |
+| `/biu:decompose` | Split the SPEC into `.biu/tasks/TASK-*.md` handoffs |
+| `/biu:archive` | Close the cycle to `.biu/archived/YYYY-MM-DD-NN/` with a `Summary.md` |
+
+A typical cycle:
+
+```text
+/biu:interview            # → .biu/SPEC.md
+/biu:decompose            # → .biu/tasks/TASK-filter-state.md, TASK-wire-ui.md, ...
+@.biu/tasks/TASK-filter-state.md   # tell Claude to execute a task
+/biu:archive              # wrap up
+```
+
+Biu has no runtime dependencies — it's just skills and Markdown templates.
+
+## For developers
+
+This marketplace follows the [Claude Code plugin marketplace spec](https://code.claude.com/docs/en/plugin-marketplaces).
+
+Test a local copy:
+
+```bash
+/plugin marketplace add ./path/to/Skills
 /plugin install biu@ming-kang-skills
 ```
 
 ## License
 
-MIT License
+MIT
