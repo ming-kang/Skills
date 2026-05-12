@@ -8,28 +8,42 @@ disable-model-invocation: true
 
 Use this skill to close the current biu cycle: summarize outcomes under `.biu/`, then archive SPEC, TASKs, and Summary together into `.biu/archived/YYYY-MM-DD-NN/`.
 
-## Workspace
+## Biu Workflow
+
+Biu provides three skills covering the full development cycle from idea to archive:
+
+| Skill | Role |
+|:-----:|:----:|
+| `interview` | Clarify requirements through relentless interview, producing `.biu/SPEC.md` |
+| `decompose` | Decompose SPEC into `.biu/tasks/TASK-*.md` implementation handoffs |
+| `archive` | Summarize outcomes and archive the completed cycle |
+
+Typical usage is as follows: `/biu:interview` → `/biu:decompose` → Implement → `/biu:archive`
+
+However, this is not a requirement. User can skip or reorder them as needed.
+
+### Directory Layout
 
 `.biu/` must be git-ignored. Before writing, check `.gitignore` and add `.biu/` if missing.
 
 ```text
 .biu/
-├── SPEC.md							# Development Specification
-├── tasks/							# Implementation Tasks
+├── SPEC.md                         # Development Specification
+├── tasks/                          # Implementation Tasks
 │   └── TASK-<short-name>.md
-└── archived/						# Completed Cycles
-	└── YYYY-MM-DD-NN/
-		├── SPEC.md
-		├── Summary.md
-		└── tasks/
-			└── TASK-<short-name>.md
+└── archived/                       # Completed Cycles
+    └── YYYY-MM-DD-NN/
+        ├── SPEC.md
+        ├── Summary.md
+        └── tasks/
+            └── TASK-<short-name>.md
 ```
-
-Active cycle inputs are `.biu/SPEC.md` and `.biu/tasks/TASK-*.md`. Archive output lives under `.biu/archived/YYYY-MM-DD-NN/`.
 
 ## Process
 
 ### Assess
+
+Active cycle inputs are `.biu/SPEC.md` and `.biu/tasks/TASK-*.md`. Archive output lives under `.biu/archived/YYYY-MM-DD-NN/`.
 
 Verify `.biu/SPEC.md` exists and `.biu/tasks/` contains TASK files. Read them all.
 

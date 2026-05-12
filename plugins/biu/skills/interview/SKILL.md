@@ -8,34 +8,52 @@ disable-model-invocation: true
 
 Use this skill to turn a vague idea into a clear `.biu/SPEC.md`.
 
-## Workspace
+## Biu Workflow
+
+Biu provides three skills covering the full development cycle from idea to archive:
+
+| Skill | Role |
+|:-----:|:----:|
+| `interview` | Clarify requirements through relentless interview, producing `.biu/SPEC.md` |
+| `decompose` | Decompose SPEC into `.biu/tasks/TASK-*.md` implementation handoffs |
+| `archive` | Summarize outcomes and archive the completed cycle |
+
+Typical usage is as follows: `/biu:interview` → `/biu:decompose` → Implement → `/biu:archive`
+
+However, this is not a requirement. User can skip or reorder them as needed.
+
+### Directory Layout
 
 `.biu/` must be git-ignored. Before writing, check `.gitignore` and add `.biu/` if missing.
 
 ```text
 .biu/
-├── SPEC.md							# Development Specification
-├── tasks/							# Implementation Tasks
+├── SPEC.md                         # Development Specification
+├── tasks/                          # Implementation Tasks
 │   └── TASK-<short-name>.md
-└── archived/						# Completed Cycles
-	└── YYYY-MM-DD-NN/
-		├── SPEC.md
-		├── Summary.md
-		└── tasks/
-			└── TASK-<short-name>.md
+└── archived/                       # Completed Cycles
+    └── YYYY-MM-DD-NN/
+        ├── SPEC.md
+        ├── Summary.md
+        └── tasks/
+            └── TASK-<short-name>.md
 ```
-
-`.biu/SPEC.md` is the current spec. If it already exists, ask whether the user wants to continue refining it, make a local edit, or replace it.
 
 ## Process
 
 ### Interview
 
-Start every interview by asking  the user's intention first. It may be ambiguous at the beginning, but we'll make it clearer in further interview.
+`.biu/SPEC.md` is the current spec. If it already exists, ask whether the user wants to continue refining it, make a local edit, or replace it.
 
-Interview the user about literally anything: technical implementation, UI & UX, concerns, tradeoffs, acceptance criteria, etc. but make sure the questions are not obvious. Be very in depth and interviewing the user continually until the SPEC is complete.
+Start every interview by asking the user's intention first. It may be ambiguous at the beginning — the interview will make it clearer.
 
-You can suggest the user to read `SPEC.md` directly. In that way, your discussion would be more efficient.
+Interview relentlessly about every aspect of the plan until a shared understanding is reached. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+Ask one question at a time. If a question can be answered by exploring the codebase, explore the codebase instead of asking.
+
+Push deeper on edge cases and error states — don't settle for the happy path. Never rush toward marking the SPEC as ready; the goal is thorough understanding, not speed.
+
+You can suggest the user read `SPEC.md` directly — this makes discussion more efficient.
 
 ### Draft and Refine
 

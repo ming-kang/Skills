@@ -8,28 +8,42 @@ disable-model-invocation: true
 
 Use this skill to turn `.biu/SPEC.md` into implementation tasks under `.biu/tasks/`.
 
-## Workspace
+## Biu Workflow
+
+Biu provides three skills covering the full development cycle from idea to archive:
+
+| Skill | Role |
+|:-----:|:----:|
+| `interview` | Clarify requirements through relentless interview, producing `.biu/SPEC.md` |
+| `decompose` | Decompose SPEC into `.biu/tasks/TASK-*.md` implementation handoffs |
+| `archive` | Summarize outcomes and archive the completed cycle |
+
+Typical usage is as follows: `/biu:interview` → `/biu:decompose` → Implement → `/biu:archive`
+
+However, this is not a requirement. User can skip or reorder them as needed.
+
+### Directory Layout
 
 `.biu/` must be git-ignored. Before writing, check `.gitignore` and add `.biu/` if missing.
 
 ```text
 .biu/
-├── SPEC.md							# Development Specification
-├── tasks/							# Implementation Tasks
+├── SPEC.md                         # Development Specification
+├── tasks/                          # Implementation Tasks
 │   └── TASK-<short-name>.md
-└── archived/						# Completed Cycles
-	└── YYYY-MM-DD-NN/
-		├── SPEC.md
-		├── Summary.md
-		└── tasks/
-			└── TASK-<short-name>.md
+└── archived/                       # Completed Cycles
+    └── YYYY-MM-DD-NN/
+        ├── SPEC.md
+        ├── Summary.md
+        └── tasks/
+            └── TASK-<short-name>.md
 ```
-
-`.biu/SPEC.md` is the required input. `.biu/tasks/` would contain TASK files for the current SPEC.
 
 ## Process
 
 ### Assess
+
+`.biu/SPEC.md` is the required input. `.biu/tasks/` will contain TASK files for the current SPEC.
 
 Read `.biu/SPEC.md`. If `status` is not `ready`, or `## Open Questions` still has unresolved items, stop and tell the user to complete the SPEC via `/biu:interview` first.
 
