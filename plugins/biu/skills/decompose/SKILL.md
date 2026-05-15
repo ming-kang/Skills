@@ -55,6 +55,8 @@ Present a draft task list to the user before writing files. Explain:
 - How the SPEC maps to these tasks.
 - Dependencies between tasks.
 - Which AC IDs each task covers.
+- The intended approach for each task: key files or modules involved, and any design decisions already made for the executor.
+- Why each task is scoped the way it is — briefly justify any non-obvious boundary.
 
 Discuss and adjust until the user agrees on the shape.
 
@@ -66,7 +68,7 @@ Before writing, verify:
 - Every `depends_on` reference resolves to another task in the set, and the dependency graph is acyclic.
 - Each task has a single clear objective and is specific enough for another agent to execute without extra context.
 
-Surface any issues and adjust with the user. After the checks pass and the user confirms, write `.biu/tasks/TASK-*.md` with `status: ready` using the template, then report the generated files.
+Surface any issues and adjust with the user. After the checks pass and the user confirms, write tasks one at a time — create each `.biu/tasks/TASK-*.md` with `status: ready` sequentially before proceeding to the next. Once all tasks are written, report the generated files.
 
 ## Task Lifecycle
 
@@ -74,6 +76,8 @@ Tasks are written with `status: ready` by decompose. During execution, the execu
 
 - `in_progress` — work has started.
 - `completed` — work is done and verified.
+
+When significant decisions are made during execution — choices not already in Context, unexpected pivots, or user-directed changes — the executing agent records them in `## Implementation Decisions`.
 
 ## Reference
 

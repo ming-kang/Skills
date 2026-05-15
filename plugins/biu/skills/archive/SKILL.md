@@ -56,12 +56,12 @@ Read `baseline_commit` from SPEC frontmatter. If it resolves in the current repo
 
 ### Summarize
 
-Analyze the cycle and draft `Summary.md` directly under `.biu/`:
+Analyze the cycle and draft `Summary.md` directly under `.biu/`. Read each TASK's `## Implementation Decisions` and `## Notes` — these are the primary source material for the Summary.
 
 - **Outcome**: what was actually achieved, and how it differs from the SPEC's goal.
-- **Decisions**: what was decided and why. This is what audit readers value most — code alone can't show "why."
+- **Decisions**: synthesize from each TASK's `## Implementation Decisions`. During discussion, explicitly ask the user whether any significant decisions made during implementation are missing from the task files. Exclude decisions already recorded in SPEC.
 - **Deviations**: what changed mid-cycle from the original SPEC and what triggered it.
-- **Task Results**: group by AC, not TASK order. Use the task's own frontmatter status (`completed` / `in_progress` / `ready`).
+- **Task Results**: group by AC, not TASK order. Use the task's own frontmatter status (`completed` / `in_progress` / `ready`). The Notes column is a brief evaluation: key issues encountered for that AC and how they were resolved.
 - **Gaps & Follow-Ups**: what was not verified, and items the next cycle could pick up.
 
 Present the draft to the user. Discuss and adjust until confirmed.
@@ -70,7 +70,9 @@ Present the draft to the user. Discuss and adjust until confirmed.
 
 Determine the archive directory: `.biu/archived/YYYY-MM-DD-NN/`, where `NN` starts at `01` and increments for the same date. Scan existing directories and pick the first unused `NN`.
 
-Create the archive directory, then move `SPEC.md`, `tasks/`, and `Summary.md` into it. Confirm `.biu/` now contains only `archived/`.
+If the repository uses Git, run `git rev-parse HEAD` and record the result as `head_commit` in `Summary.md` frontmatter.
+
+Create the archive directory. Move `SPEC.md`, `tasks/`, and `Summary.md` into it. Confirm `.biu/` now contains only `archived/`.
 
 If `## Gaps & Follow-Ups` in Summary is non-empty, remind the user they can refer to these items when starting the next cycle.
 

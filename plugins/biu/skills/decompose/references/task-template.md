@@ -13,38 +13,43 @@ When executing this task, set frontmatter `status` to `in_progress` and update `
 
 ## Objective
 
-<What this task achieves.>
+<What this task achieves and where it stops.>
 
-## Approach
+## Context
 
-<Relevant background and recommended implementation direction. Name files and modules when known.>
+<What the executor needs to know that they cannot easily discover themselves: which files to touch, which existing patterns to follow, which boundaries not to cross, and any design decisions already made.>
 
-## Step-By-Step Work
+## Steps
 
-- [ ] <Concrete step.>
-- [ ] <Concrete step.>
+- [ ] <Meaningful checkpoint. Design decisions belong in Context, not here.>
+- [ ] <Meaningful checkpoint.>
 
-## Spec Acceptance Coverage
+## Verify
+
+- [ ] <Verifiable condition and how to check it.>
+
+## Covers
 
 <!--
 List the AC IDs from SPEC that this task contributes to.
 -->
 
 - AC1
-- AC2
 
-## Acceptance Criteria
+## Implementation Decisions
 
-- [ ] <Verifiable condition for this task.>
-
-## Verification
-
-<Command, manual step, or check that confirms this task is done.>
-
-Expected result:
-
-- <Expected result.>
+<!--
+Record key decisions made during execution that are not already captured in Context:
+choices between approaches, responses to unexpected situations, direction changes prompted by the user.
+Leave empty if no significant decisions were made.
+-->
 
 ## Notes
 
-- <Implementation notes appended during execution, e.g. "Task failed 3 times due to flaky test in auth module — discussing with user whether to fix the test here or in a separate task.">
+<!--
+Append notes freely during execution. Useful candidates: failures and what caused them,
+ideas for improvement, observations worth preserving.
+When in doubt, write it down.
+-->
+
+- <Note.>

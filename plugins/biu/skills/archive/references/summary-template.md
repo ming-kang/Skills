@@ -2,6 +2,7 @@
 title: <title>
 created: YYYY-MM-DD
 baseline_commit: <sha or "none">
+head_commit: <sha or "none">
 ---
 
 # Summary: <title>
@@ -12,16 +13,17 @@ baseline_commit: <sha or "none">
 
 ## Decisions
 
-- <What was decided and why. This is what audit readers value most — code alone can't show "why.">
+- <Key decisions made during implementation — synthesized from each TASK's Implementation Decisions and Notes. Excludes decisions already recorded in SPEC.>
 
 ## Deviations
 
-- <What changed mid-cycle from the original SPEC and what triggered it.>
+- <What changed mid-cycle from the original SPEC and what triggered it, or none.>
 
 ## Task Results
 
 <!--
 Group by AC, not TASK order. Status uses the task's own frontmatter value.
+Notes: brief overall evaluation for that AC — key issues encountered and how they were resolved.
 -->
 
 | AC  | Tasks              | Status      | Notes |

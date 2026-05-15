@@ -45,6 +45,24 @@ performance budgets — users often assume you already know.
 -->
 - <Hard requirements: tech, compatibility, deadlines, regulations.>
 
+## Architecture
+<!--
+✶ Include when the task involves significant structural change.
+Cover whatever is useful: current state, target state, key changes, diagrams.
+Use the form that communicates structure most clearly — prose, ASCII, Mermaid, etc.
+Omit for small self-contained changes.
+-->
+<Architectural context and/or target design.>
+
+## Design
+<!--
+✶ Include when Architecture alone isn't enough to implement without ambiguity.
+Useful candidates: module responsibilities, key interfaces and contracts,
+data models, important flows or sequences.
+Cover only what reduces ambiguity — don't over-specify what can be left to the implementer.
+-->
+<Design details that matter for implementation.>
+
 ## Decisions
 <!--
 Record key decisions made during the interview.
