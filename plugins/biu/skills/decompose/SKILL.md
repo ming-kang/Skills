@@ -45,7 +45,7 @@ However, this is not a requirement. User can skip or reorder them as needed.
 
 `.biu/SPEC.md` is the required input. `.biu/tasks/` will contain TASK files for the current SPEC.
 
-Read `.biu/SPEC.md`. If `status` is not `ready`, or `## Open Questions` still has unresolved items, stop and tell the user to complete the SPEC via `/biu:interview` first.
+Read `.biu/SPEC.md`. If `status` is not `ready`, or `## Open Questions` still has unresolved items, stop and tell the user to complete the SPEC via `/biu:interview` first. Also, assess any identified `## Risks` to ensure they can be effectively mitigated within the upcoming implementation tasks.
 
 ### Decompose
 
@@ -56,6 +56,7 @@ Present a draft task list to the user before writing files. Explain:
 - Dependencies between tasks.
 - Which AC IDs each task covers.
 - The intended approach for each task: key files or modules involved, and any design decisions already made for the executor.
+- Any specific risks from SPEC that apply to the task, and how they should be mitigated.
 - Why each task is scoped the way it is — briefly justify any non-obvious boundary.
 
 Discuss and adjust until the user agrees on the shape.

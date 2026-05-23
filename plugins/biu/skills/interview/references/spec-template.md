@@ -15,12 +15,14 @@ the interview hasn't gone deep enough — keep asking.
 -->
 <One or two sentences describing the problem to solve and the expected outcome.>
 
-## Background
+## Background & Facts
 <!--
 ✶ Include only if the Goal alone doesn't explain why this matters.
-Ask: would someone unfamiliar with this project understand the motivation?
+✶ List concrete facts verified from the codebase during the interview
+  (e.g., "The current API returns XML", "The DB already has a users table").
+  This provides critical grounding for downstream implementation tasks.
 -->
-<Context that Goal alone doesn't capture.>
+<Context and verified current-state facts.>
 
 ## Scope
 <!--
@@ -57,9 +59,9 @@ Omit for small self-contained changes.
 ## Design
 <!--
 ✶ Include when Architecture alone isn't enough to implement without ambiguity.
-Useful candidates: module responsibilities, key interfaces and contracts,
-data models, important flows or sequences.
-Cover only what reduces ambiguity — don't over-specify what can be left to the implementer.
+✶ Useful candidates: module responsibilities, key interfaces and contracts,
+  data models, important flows or sequences, compatibility and migration notes.
+✶ Cover only what reduces ambiguity — don't over-specify what can be left to the implementer.
 -->
 <Design details that matter for implementation.>
 

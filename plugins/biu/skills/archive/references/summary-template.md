@@ -10,10 +10,11 @@ head_commit: <sha or "none">
 ## Outcome
 
 <What was actually achieved, and how it differs from the SPEC's goal. Don't restate the goal — the archived SPEC is adjacent.>
+*(Scale of change: e.g., roughly 15 files changed, +400/-120 lines, based on git diff)*
 
-## Decisions
+## Decisions & Discoveries
 
-- <Key decisions made during implementation — synthesized from each TASK's Implementation Decisions and Notes. Excludes decisions already recorded in SPEC.>
+- <Key decisions made and new domain knowledge discovered during implementation — synthesized from each TASK's Implementation Decisions and Notes. Excludes what was already known in SPEC.>
 
 ## Deviations
 

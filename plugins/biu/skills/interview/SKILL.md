@@ -47,11 +47,17 @@ However, this is not a requirement. User can skip or reorder them as needed.
 
 Start every interview by asking the user's intention first. It may be ambiguous at the beginning — the interview will make it clearer.
 
-Interview relentlessly about every aspect of the plan until a shared understanding is reached. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+Interview relentlessly about every aspect of the plan until a shared understanding is reached. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
 
-Ask one question at a time. If a question can be answered by exploring the codebase, explore the codebase instead of asking.
-
-Push deeper on edge cases and error states — don't settle for the happy path. Never rush toward marking the SPEC as ready; the goal is thorough understanding, not speed.
+**Interview Rules**:
+- **Strict Evidence Rule**: If a question can be answered by exploring the codebase (code, tests, docs), explore it directly instead of asking. **Do not ask process questions** (e.g., "Should I check the code?"). Ask the user ONLY about product intent, preferences, scope boundaries, or risk tolerance.
+- **One Question at a Time**: Never overwhelm the user. Ask only one question per message.
+- **Structured Questions**: Each question MUST include:
+  1. The decision needed.
+  2. Why the answer matters.
+  3. Your recommended answer.
+  4. Trade-offs if the user chooses differently.
+- **Push Deeper**: Push on edge cases and error states — don't settle for the happy path. Never rush toward marking the SPEC as ready; the goal is thorough understanding, not speed.
 
 You can suggest the user read `SPEC.md` directly — this makes discussion more efficient.
 
@@ -61,7 +67,10 @@ When enough context exists, create `.biu/SPEC.md` using the template, marking it
 
 Refine the spec alongside ongoing interviews; add, remove, or clarify sections as needed.
 
-Only mark the status as `ready` after the user explicitly approves.
+Before marking the status as `ready`, you MUST ensure:
+- All Open Questions are resolved.
+- Acceptance Criteria are strictly testable/verifiable.
+- The user has explicitly approved the final state.
 
 ### Baseline
 

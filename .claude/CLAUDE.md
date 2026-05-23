@@ -1,44 +1,79 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file guides Claude Code when maintaining this repository.
 
 ## Repository Purpose
 
-Claude Code plugin marketplace for distributing the user's commonly used plugins and skills. This repository serves as a personal marketplace for plugin distribution.
+This repository is a personal Claude Code plugin marketplace for distributing the user's commonly used plugins and skills.
+
+The published marketplace entry is `.claude-plugin/marketplace.json`. The only current plugin is `biu`, defined at `plugins/biu/.claude-plugin/plugin.json`.
 
 ## Plugin: biu
 
-biu ships three user-invocable skills: `/biu:interview`, `/biu:decompose`, and `/biu:archive`.
+`biu` is a lightweight development-document protocol. It ships three user-invocable skills:
 
-## Plugin Structure Rule
+- `/biu:interview` - clarify a development goal and produce `.biu/SPEC.md`.
+- `/biu:decompose` - turn `.biu/SPEC.md` into `.biu/tasks/TASK-*.md` handoffs.
+- `/biu:archive` - summarize and archive the completed `.biu/` cycle.
 
-Claude Code skill supporting files belong inside the corresponding `skills/<skill-name>/` directory, alongside that skill's `SKILL.md` or in a subdirectory below it. biu uses `skills/<skill-name>/references/` for templates. Do not add a plugin-root `references/` directory for skill templates. For plugin skills, `${CLAUDE_SKILL_DIR}` points to the specific skill directory, not the plugin root.
+## Structure Rules
+
+- Keep each skill's supporting files inside that skill directory: `plugins/biu/skills/<skill-name>/`.
+- Put templates under `plugins/biu/skills/<skill-name>/references/`.
+- Do not add a plugin-root `references/` directory for skill templates.
+- For plugin skills, `${CLAUDE_SKILL_DIR}` points to the specific skill directory, not the plugin root.
+- Keep `.biu/` git-ignored. It is user/project-local working state, not marketplace content.
+
+## Change Checklist
+
+When changing skill behavior, check the whole published surface before finishing:
+
+- Update the relevant `plugins/biu/skills/<skill-name>/SKILL.md`.
+- Update that skill's `references/*.md` template if the generated artifact changes.
+- Check whether `README.md` needs user-facing documentation updates.
+- Check whether this file needs maintenance-workflow updates.
+- Check whether `plugins/biu/.claude-plugin/plugin.json` needs a version bump or metadata change.
+- Check whether `.claude-plugin/marketplace.json` still describes the plugin accurately.
+
+Do not bump the plugin version for documentation-only maintenance unless the user asks for a release version or the documentation change describes newly published behavior.
+
+## Validation
+
+There is no build or test suite for this repository. Validate changes by inspection:
+
+- Run `git status --short` and review every changed file.
+- Run `git diff --check` before proposing a commit or release.
+- Confirm skill instructions and templates agree on filenames, statuses, frontmatter fields, and archive layout.
+- Confirm `README.md`, `CLAUDE.md`, `plugin.json`, and `marketplace.json` are in sync with current behavior.
 
 ## Git Workflow
 
-- **`main` = published history.** Each push to `main` publishes the version currently in `plugins/biu/.claude-plugin/plugin.json`.
-- **Development happens on temporary branches** named simply, e.g. `feat/<short>` or `fix/<short>`. The user decides the target version number, and `plugin.json` is bumped early on the branch. Commits during the cycle can be loose — they get squashed when the cycle ships.
-- **Before any `git commit`**, draft the message and show it to the user for approval. Messages should explain what changed and why — detailed but not bloated.
-- **Release flow** (triggered when the user says "push" or "release" on a feature branch):
-  1. Confirm `plugin.json` version is correct and that `CLAUDE.md` / `README.md` are in sync with current behavior.
-  2. `git checkout main && git merge --squash <branch>`.
-  3. Draft the squash commit message in this form, get user approval, then commit:
-     ```text
-     biu vX.Y.Z: <one-line headline>
+Develop directly on `main`. No feature branches.
 
-     - <change>
-     - <change>
-     ```
-     For chore-only cycles that don't bump the version, drop `vX.Y.Z` and use a `chore: ...` headline instead.
-  4. `git push` — this is the publication moment.
-  5. `git branch -D <branch>` (capital `-D`: squash-merge isn't recorded as a merge).
-- **Never push on every commit.** "push" from the user means "release the current cycle."
+Before any commit, draft the message for user approval. Commits stay local — never push individually.
+
+When the user says "push" or "release":
+
+1. Confirm `plugin.json` version is correct and `CLAUDE.md` / `README.md` are in sync.
+2. Squash all local commits since last publish:
+   ```bash
+   git reset --soft $(git merge-base main origin/main)
+   ```
+3. Draft the squash commit message, get user approval, then commit:
+   ```text
+   biu vX.Y.Z: <one-line headline>
+   
+   - <change>
+   - <change>
+   ```
+   For chore-only cycles, drop `vX.Y.Z` and use `chore: ...`.
+4. `git push`. This is the publication moment.
 
 ## References
 
-> **Documentation Index**
-> Fetch the complete documentation index at: https://code.claude.com/docs/llms.txt
-> Use this file to discover all available pages before exploring further.
+> Documentation index: https://code.claude.com/docs/llms.txt
+>
+> Use this index to discover available Claude Code documentation before exploring further.
 
 - Agent Skills specification: <https://agentskills.io/specification>
 - Claude Code Plugins Reference: <https://code.claude.com/docs/en/plugins-reference>

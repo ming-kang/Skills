@@ -2,7 +2,28 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ming-kang/Skills)
 
-Personal Claude Code plugin marketplace. Currently ships one plugin: **biu**.
+Personal Claude Code plugin marketplace. It currently publishes one plugin: **biu**.
+
+## Biu
+
+Biu is a lightweight development-document protocol for Claude Code. It turns vague development goals into a SPEC, turns that SPEC into executable task handoffs, and archives the finished cycle with a summary.
+
+All artifacts are plain Markdown in a project-local `.biu/` directory:
+
+```text
+.biu/
+├── SPEC.md
+├── tasks/
+│   └── TASK-<short-name>.md
+└── archived/
+    └── YYYY-MM-DD-NN/
+        ├── SPEC.md
+        ├── Summary.md
+        └── tasks/
+            └── TASK-<short-name>.md
+```
+
+Biu has no runtime dependencies. It is just Claude Code skills and Markdown templates.
 
 ## Install
 
@@ -11,35 +32,33 @@ Personal Claude Code plugin marketplace. Currently ships one plugin: **biu**.
 /plugin install biu@ming-kang-skills
 ```
 
-To update later, refresh the marketplace and then update the installed plugin:
+To update later:
 
 ```bash
 /plugin marketplace update ming-kang-skills
 /plugin update biu@ming-kang-skills
 ```
 
-## Biu — lightweight dev-doc protocol
+## Commands
 
-Biu turns vague development goals into specs, specs into executable task handoffs, and finished cycles into archives. All artifacts are plain Markdown under a project-local `.biu/` directory.
+| Command | Use it when | Output |
+|---|---|---|
+| `/biu:interview` | The goal is still ambiguous and needs clarification | `.biu/SPEC.md` |
+| `/biu:decompose` | `.biu/SPEC.md` is ready and implementation work needs task handoffs | `.biu/tasks/TASK-*.md` |
+| `/biu:archive` | The current development cycle is complete or ready to close | `.biu/archived/YYYY-MM-DD-NN/` |
 
-| Command | What it does |
-|---|---|
-| `/biu:interview` | Ask clarifying questions, write `.biu/SPEC.md` |
-| `/biu:decompose` | Split the SPEC into `.biu/tasks/TASK-*.md` handoffs |
-| `/biu:archive` | Close the cycle to `.biu/archived/YYYY-MM-DD-NN/` with a `Summary.md` |
-
-A typical cycle:
+## Typical Workflow
 
 ```text
-/biu:interview            # → .biu/SPEC.md
-/biu:decompose            # → .biu/tasks/TASK-filter-state.md, TASK-wire-ui.md, ...
-@.biu/tasks/TASK-filter-state.md   # tell Claude to execute a task
-/biu:archive              # wrap up
+/biu:interview
+/biu:decompose
+@.biu/tasks/TASK-filter-state.md
+/biu:archive
 ```
 
-Biu has no runtime dependencies — it's just skills and Markdown templates.
+The skills can also be skipped or reordered when the project context calls for it.
 
-## For developers
+## For Developers
 
 This marketplace follows the [Claude Code plugin marketplace spec](https://code.claude.com/docs/en/plugin-marketplaces).
 

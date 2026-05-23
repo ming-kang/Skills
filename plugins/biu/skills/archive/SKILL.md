@@ -59,7 +59,7 @@ Read `baseline_commit` from SPEC frontmatter. If it resolves in the current repo
 Analyze the cycle and draft `Summary.md` directly under `.biu/`. Read each TASK's `## Implementation Decisions` and `## Notes` — these are the primary source material for the Summary.
 
 - **Outcome**: what was actually achieved, and how it differs from the SPEC's goal.
-- **Decisions**: synthesize from each TASK's `## Implementation Decisions`. During discussion, explicitly ask the user whether any significant decisions made during implementation are missing from the task files. Exclude decisions already recorded in SPEC.
+- **Decisions & Discoveries**: synthesize from each TASK's `## Implementation Decisions` and `## Notes`. During discussion, explicitly ask the user whether any significant decisions or new domain knowledge discovered during implementation are missing from the task files. Exclude decisions already recorded in SPEC.
 - **Deviations**: what changed mid-cycle from the original SPEC and what triggered it.
 - **Task Results**: group by AC, not TASK order. Use the task's own frontmatter status (`completed` / `in_progress` / `ready`). The Notes column is a brief evaluation: key issues encountered for that AC and how they were resolved.
 - **Gaps & Follow-Ups**: what was not verified, and items the next cycle could pick up.
@@ -72,7 +72,7 @@ Determine the archive directory: `.biu/archived/YYYY-MM-DD-NN/`, where `NN` star
 
 If the repository uses Git, run `git rev-parse HEAD` and record the result as `head_commit` in `Summary.md` frontmatter.
 
-Create the archive directory. Move `SPEC.md`, `tasks/`, and `Summary.md` into it. Confirm `.biu/` now contains only `archived/`.
+Create the archive directory. Move `SPEC.md`, `tasks/`, `Summary.md`, and any other temporary cycle artifacts into it. Confirm `.biu/` now contains only `archived/`.
 
 If `## Gaps & Follow-Ups` in Summary is non-empty, remind the user they can refer to these items when starting the next cycle.
 
