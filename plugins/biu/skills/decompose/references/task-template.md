@@ -17,7 +17,15 @@ When executing this task, set frontmatter `status` to `in_progress` and update `
 
 ## Context
 
-<What the executor needs to know that they cannot easily discover themselves: which files to touch, which existing patterns to follow, which boundaries not to cross, and any design decisions already made.>
+<!--
+What the executor needs to know:
+- Key files to modify (with paths)
+- Existing code to reuse (name + path + what it does)
+- Patterns and conventions to follow
+- Boundaries not to cross
+- Design decisions already made
+Cover only what reduces ambiguity — do not over-specify what can be left to the implementer.
+-->
 
 ## Steps
 
@@ -26,7 +34,11 @@ When executing this task, set frontmatter `status` to `in_progress` and update `
 
 ## Verify
 
-- [ ] <Verifiable condition and how to check it.>
+If a subagent is available, spawn one to verify this task independently — it must not modify any project files. Approach: <what to run and what edge cases to probe>.
+
+**The goal is to break it, not confirm it works.** Do not read code and narrate — run it. Do not stop when the happy path works; test edge cases and error states.
+
+- [ ] <Verifiable condition.>
 
 ## Covers
 

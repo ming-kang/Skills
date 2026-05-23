@@ -47,29 +47,38 @@ However, this is not a requirement. User can skip or reorder them as needed.
 
 Read `.biu/SPEC.md`. If `status` is not `ready`, or `## Open Questions` still has unresolved items, stop and tell the user to complete the SPEC via `/biu:interview` first. Also, assess any identified `## Risks` to ensure they can be effectively mitigated within the upcoming implementation tasks.
 
-### Decompose
+### Explore
 
-Inspect code only as needed to identify natural task boundaries. Give each task a short unique name reflecting its objective.
+Explore the codebase to map the SPEC to code reality. Identify natural task boundaries and give each task a short unique name reflecting its objective.
 
-Present a draft task list to the user before writing files. Explain:
+**Reuse-First**: Before proposing new code, search for existing functions, utilities, and patterns that can be reused. Reference them by file path. Prefer extension over reinvention.
+
+Capture findings incrementally as you explore — don't wait until exploration is complete to start forming the task structure. Do not ask the user about anything that can be answered by reading the code.
+
+### Align
+
+Present the proposed task structure to the user — start with the high-level breakdown before elaborating per-task detail. Explain:
 - How the SPEC maps to these tasks.
 - Dependencies between tasks.
 - Which AC IDs each task covers.
-- The intended approach for each task: key files or modules involved, and any design decisions already made for the executor.
+- The intended approach for each task: key files to modify (with paths), existing code identified for reuse, and any design decisions already made for the executor.
 - Any specific risks from SPEC that apply to the task, and how they should be mitigated.
 - Why each task is scoped the way it is — briefly justify any non-obvious boundary.
 
-Discuss and adjust until the user agrees on the shape.
+For non-obvious decomposition decisions that cannot be resolved from the SPEC or codebase — scope boundaries, sequencing trade-offs, approach choices — surface them for the user. If such ambiguities are frequent, the SPEC likely needs further refinement first.
 
-### Check
-
-Before writing, verify:
-
+Before confirming, verify:
 - Every AC in SPEC is covered by at least one task.
 - Every `depends_on` reference resolves to another task in the set, and the dependency graph is acyclic.
 - Each task has a single clear objective and is specific enough for another agent to execute without extra context.
 
-Surface any issues and adjust with the user. After the checks pass and the user confirms, write tasks one at a time — create each `.biu/tasks/TASK-*.md` with `status: ready` sequentially before proceeding to the next. Once all tasks are written, report the generated files.
+Surface any issues and adjust. The structure is ready when checks pass and the user confirms.
+
+### Write
+
+When writing each task's `## Verify` section, describe the approach based on what the task changes — for API changes: run endpoints with valid and invalid inputs; for migrations: run up/down and verify schema; for CLI changes: test with representative and edge inputs; and so on. Start the checklist with the baseline (build succeeds, existing tests pass, linter clean), then add task-specific items that probe edge cases and error states, not just the happy path.
+
+Write tasks one at a time — create each `.biu/tasks/TASK-*.md` with `status: ready` sequentially before proceeding to the next. Once all tasks are written, report the generated files.
 
 ## Task Lifecycle
 

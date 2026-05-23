@@ -47,6 +47,14 @@ However, this is not a requirement. User can skip or reorder them as needed.
 
 Start every interview by asking the user's intention first. It may be ambiguous at the beginning — the interview will make it clearer.
 
+**Work in the open.** After the first substantive exchange — once you understand the basic intent — immediately create `.biu/SPEC.md` as a rough skeleton. Fill in what you know (Goal, a tentative Scope, initial Open Questions). Leave the rest as placeholders. Don't wait until you have "enough context" in your head; the SPEC grows with the conversation.
+
+From there, iterate:
+
+1. **Ask** one question following the Interview Rules below.
+2. **Update the SPEC** — capture the answer immediately. Add sections, refine the Goal, narrow the Scope, record a Decision, close an Open Question. Don't batch updates; write them while they're fresh.
+3. **Repeat** until the SPEC is solid.
+
 Interview relentlessly about every aspect of the plan until a shared understanding is reached. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
 
 **Interview Rules**:
@@ -63,9 +71,9 @@ You can suggest the user read `SPEC.md` directly — this makes discussion more 
 
 ### Draft and Refine
 
-When enough context exists, create `.biu/SPEC.md` using the template, marking its status as `draft`.
+The SPEC starts as a skeleton and solidifies through the Ask → Update → Repeat loop above. Keep `status` as `draft` throughout the interview.
 
-Refine the spec alongside ongoing interviews; add, remove, or clarify sections as needed.
+As the SPEC matures, fill in sections that were initially placeholders: Architecture and Design once the structure is clear, Risks as you identify them, Acceptance Criteria as decisions lock in. Add, remove, or clarify sections as the conversation evolves.
 
 Before marking the status as `ready`, you MUST ensure:
 - All Open Questions are resolved.

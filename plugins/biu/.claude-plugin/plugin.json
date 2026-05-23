@@ -1,7 +1,7 @@
 {
   "name": "biu",
   "description": "Lightweight development document protocol for specs, task handoffs, status, and archive summaries",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "author": {
     "name": "ming-kang"
   },
