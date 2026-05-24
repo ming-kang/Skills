@@ -34,4 +34,4 @@ Notes: brief overall evaluation for that AC — key issues encountered and how t
 
 ## Gaps & Follow-Ups
 
-- <What was not verified, or `None`. Items the next cycle could pick up.>
+- <What was not verified, or `None`. Items the next cycle can pick up.>

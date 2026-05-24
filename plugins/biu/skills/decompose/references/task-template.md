@@ -18,14 +18,21 @@ When executing this task, set frontmatter `status` to `in_progress` and update `
 ## Context
 
 <!--
-What the executor needs to know:
-- Key files to modify (with paths)
-- Existing code to reuse (name + path + what it does)
-- Patterns and conventions to follow
-- Boundaries not to cross
-- Design decisions already made
-Cover only what reduces ambiguity — do not over-specify what can be left to the implementer.
+What the executor needs to know. Start with ### Critical Files (below). Then capture
+any other essential context: existing code to reuse (name + path + what it does),
+patterns and conventions to follow, boundaries not to cross, design decisions already made.
+Cover only what reduces ambiguity — don't over-specify what can be left to the implementer.
 -->
+
+### Critical Files
+
+<!--
+3-5 files most central to this task — files that will be modified, or that the executor
+must read first to understand the change. One-line note on why each one matters.
+Tangential references belong in the prose below, not here.
+-->
+
+- `path/to/file.ts` — <why it matters>
 
 ## Steps
 
@@ -37,6 +44,11 @@ Cover only what reduces ambiguity — do not over-specify what can be left to th
 If a subagent is available, spawn one to verify this task independently — it must not modify any project files. Approach: <what to run and what edge cases to probe>.
 
 **The goal is to break it, not confirm it works.** Do not read code and narrate — run it. Do not stop when the happy path works; test edge cases and error states.
+
+Recognize and reject common rationalizations:
+- "The code looks correct based on my reading" — reading is not verification.
+- "Tests already pass" — verify independently; don't trust the implementer's own tests as the only signal.
+- "This is probably fine" — probably is not verified.
 
 - [ ] <Verifiable condition.>
 
@@ -51,7 +63,7 @@ List the AC IDs from SPEC that this task contributes to.
 ## Implementation Decisions
 
 <!--
-Record key decisions made during execution that are not already captured in Context:
+Record key decisions made during execution that aren't already captured in Context:
 choices between approaches, responses to unexpected situations, direction changes prompted by the user.
 Leave empty if no significant decisions were made.
 -->

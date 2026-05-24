@@ -20,7 +20,7 @@ the interview hasn't gone deep enough — keep asking.
 ✶ Include only if the Goal alone doesn't explain why this matters.
 ✶ List concrete facts verified from the codebase during the interview
   (e.g., "The current API returns XML", "The DB already has a users table").
-  This provides critical grounding for downstream implementation tasks.
+  This grounds downstream implementation tasks.
 -->
 <Context and verified current-state facts.>
 
@@ -33,7 +33,7 @@ the interview hasn't gone deep enough — keep asking.
 
 ## Non-Goals
 <!--
-✶ Boundaries prevent scope creep. Each item should name
+✶ Boundaries prevent scope creep. Each item names
 something you deliberately chose NOT to do and briefly why.
 This section is as important as Scope — don't skip it.
 -->
@@ -68,7 +68,7 @@ Omit for small self-contained changes.
 ## Decisions
 <!--
 Record key decisions made during the interview.
-Each decision can include the alternatives that were rejected.
+Each decision can list the alternatives that were rejected.
 -->
 
 - **Decision**: <what we decided>

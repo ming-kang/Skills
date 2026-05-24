@@ -18,9 +18,9 @@ Biu provides three skills covering the full development cycle from idea to archi
 | `decompose` | Decompose SPEC into `.biu/tasks/TASK-*.md` implementation handoffs |
 | `archive` | Summarize outcomes and archive the completed cycle |
 
-Typical usage is as follows: `/biu:interview` → `/biu:decompose` → Implement → `/biu:archive`
+Typical usage: `/biu:interview` → `/biu:decompose` → Implement → `/biu:archive`
 
-However, this is not a requirement. User can skip or reorder them as needed.
+This is not a requirement. The user can skip or reorder them as needed.
 
 ### Directory Layout
 
@@ -45,24 +45,36 @@ However, this is not a requirement. User can skip or reorder them as needed.
 
 Active cycle inputs are `.biu/SPEC.md` and `.biu/tasks/TASK-*.md`. Archive output lives under `.biu/archived/YYYY-MM-DD-NN/`.
 
-Verify `.biu/SPEC.md` exists and `.biu/tasks/` contains TASK files. Read them all.
+**Pre-flight checks:**
+- Verify `.biu/SPEC.md` exists
+- Verify `.biu/tasks/` contains TASK files
+- Read all SPEC and TASK files
 
-Check each TASK's frontmatter `status`:
+**Status evaluation:**
+- **All completed** → proceed to summarize
+- **Any in_progress or ready** → list them and ask the user how to close:
+  - Continue work
+  - Mark selected tasks
+  - Archive as-is
 
-- All `completed` — proceed to summarize.
-- Any `in_progress` or `ready` — list them and ask the user how to close: continue work, mark selected tasks, or archive as-is. Do not proceed until the user decides.
+Do not proceed until the user decides.
 
-Read `baseline_commit` from SPEC frontmatter. If it resolves in the current repo, run `git diff --stat <baseline>..HEAD` as context for the Summary. Treat missing or unresolvable baselines as "no diff available."
+**Baseline context:**
+Read `baseline_commit` from SPEC frontmatter. If it resolves in the current repo, run `git diff --stat <baseline>..HEAD` as context for the Summary. Treat a missing or unresolvable baseline as "no diff available."
 
 ### Summarize
 
-Analyze the cycle and draft `Summary.md` directly under `.biu/`. Read each TASK's `## Implementation Decisions` and `## Notes` — these are the primary source material for the Summary.
+Analyze the cycle and draft `Summary.md` directly under `.biu/`. The primary source material is each TASK's `## Implementation Decisions` and `## Notes`.
 
-- **Outcome**: what was actually achieved, and how it differs from the SPEC's goal.
-- **Decisions & Discoveries**: synthesize from each TASK's `## Implementation Decisions` and `## Notes`. During discussion, explicitly ask the user whether any significant decisions or new domain knowledge discovered during implementation are missing from the task files. Exclude decisions already recorded in SPEC.
-- **Deviations**: what changed mid-cycle from the original SPEC and what triggered it.
-- **Task Results**: group by AC, not TASK order. Use the task's own frontmatter status (`completed` / `in_progress` / `ready`). The Notes column is a brief evaluation: key issues encountered for that AC and how they were resolved.
-- **Gaps & Follow-Ups**: what was not verified, and items the next cycle could pick up.
+- **Outcome** — what was actually achieved, and how it differs from the SPEC's goal
+- **Decisions & Discoveries** — synthesize from each TASK's Implementation Decisions and Notes
+  - During discussion, explicitly ask the user whether any significant decisions or new domain knowledge discovered during implementation are missing from the task files
+  - Exclude decisions already recorded in SPEC
+- **Deviations** — what changed mid-cycle from the original SPEC and what triggered it
+- **Task Results** — group by AC, not TASK order
+  - Use the task's own frontmatter status (`completed` / `in_progress` / `ready`)
+  - Notes column: brief evaluation of key issues encountered for that AC and how they were resolved
+- **Gaps & Follow-Ups** — what was not verified, and items the next cycle can pick up
 
 Present the draft to the user. Discuss and adjust until confirmed.
 
@@ -74,7 +86,7 @@ If the repository uses Git, run `git rev-parse HEAD` and record the result as `h
 
 Create the archive directory. Move `SPEC.md`, `tasks/`, `Summary.md`, and any other temporary cycle artifacts into it. Confirm `.biu/` now contains only `archived/`.
 
-If `## Gaps & Follow-Ups` in Summary is non-empty, remind the user they can refer to these items when starting the next cycle.
+If `## Gaps & Follow-Ups` in Summary is non-empty, remind the user they can pick up these items when starting the next cycle.
 
 ## Reference
 
