@@ -1,5 +1,5 @@
 ---
-name: decompose
+name: biu-decompose
 description: Decompose .biu/SPEC.md into .biu/tasks/TASK-*.md handoff files.
 disable-model-invocation: true
 ---
@@ -18,7 +18,7 @@ Biu provides three skills covering the full development cycle from idea to archi
 | `decompose` | Decompose SPEC into `.biu/tasks/TASK-*.md` implementation handoffs |
 | `archive` | Summarize outcomes and archive the completed cycle |
 
-Typical usage: `/biu:interview` → `/biu:decompose` → Implement → `/biu:archive`
+Typical usage: `biu-interview` -> `biu-decompose` -> Implement -> `biu-archive`
 
 This is not a requirement. The user can skip or reorder them as needed.
 
@@ -51,7 +51,7 @@ This is not a requirement. The user can skip or reorder them as needed.
 - Verify `## Open Questions` has no unresolved items
 - Assess identified `## Risks` for mitigation feasibility
 
-If checks fail, stop and tell the user to complete the SPEC via `/biu:interview` first.
+If checks fail, stop and tell the user to complete the SPEC with `biu-interview` first.
 
 ### Explore
 
@@ -112,4 +112,4 @@ When significant decisions are made during execution — choices not already in 
 
 ## Reference
 
-Template: `${CLAUDE_SKILL_DIR}/references/task-template.md`
+Template: `references/task-template.md` relative to this skill directory.

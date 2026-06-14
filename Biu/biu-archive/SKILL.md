@@ -1,5 +1,5 @@
 ---
-name: archive
+name: biu-archive
 description: Archive the current biu cycle and summarize SPEC/TASK outcomes.
 disable-model-invocation: true
 ---
@@ -18,7 +18,7 @@ Biu provides three skills covering the full development cycle from idea to archi
 | `decompose` | Decompose SPEC into `.biu/tasks/TASK-*.md` implementation handoffs |
 | `archive` | Summarize outcomes and archive the completed cycle |
 
-Typical usage: `/biu:interview` → `/biu:decompose` → Implement → `/biu:archive`
+Typical usage: `biu-interview` -> `biu-decompose` -> Implement -> `biu-archive`
 
 This is not a requirement. The user can skip or reorder them as needed.
 
@@ -90,4 +90,4 @@ If `## Gaps & Follow-Ups` in Summary is non-empty, remind the user they can pick
 
 ## Reference
 
-Template: `${CLAUDE_SKILL_DIR}/references/summary-template.md`
+Template: `references/summary-template.md` relative to this skill directory.

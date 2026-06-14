@@ -1,5 +1,5 @@
 ---
-name: interview
+name: biu-interview
 description: Interview the user to clarify intention & goal, and produce .biu/SPEC.md.
 disable-model-invocation: true
 ---
@@ -18,7 +18,7 @@ Biu provides three skills covering the full development cycle from idea to archi
 | `decompose` | Decompose SPEC into `.biu/tasks/TASK-*.md` implementation handoffs |
 | `archive` | Summarize outcomes and archive the completed cycle |
 
-Typical usage: `/biu:interview` → `/biu:decompose` → Implement → `/biu:archive`
+Typical usage: `biu-interview` -> `biu-decompose` -> Implement -> `biu-archive`
 
 This is not a requirement. The user can skip or reorder them as needed.
 
@@ -97,4 +97,4 @@ If the repository uses Git, record the current commit hash in `baseline_commit`.
 
 ## Reference
 
-Template: `${CLAUDE_SKILL_DIR}/references/spec-template.md`
+Template: `references/spec-template.md` relative to this skill directory.
