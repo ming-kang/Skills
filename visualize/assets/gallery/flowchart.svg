@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 520" width="720" height="520" role="img">
+  <title>Pre-deploy quality gate</title>
+  <desc>A change passes review and tests; a failing test routes back to fixes, a passing one proceeds to deploy.</desc>
+  <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect width="720" height="520" fill="#FFFFFF"/>
+  <line x1="340" y1="96" x2="340" y2="136" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="340" y1="192" x2="360" y2="230" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="460" y1="280" x2="540" y2="272" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path d="M600 244 L615 212 L470 212 L470 164 L400 164" fill="none" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="360" y1="330" x2="340" y2="420" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="280" y="40" width="120" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="280" y="136" width="120" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <polygon points="360,230 460,280 360,330 260,280" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect x="540" y="244" width="120" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect x="280" y="420" width="120" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="340" y="60" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Open PR</text>
+  <text x="340" y="77" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">diff ready</text>
+  <text x="340" y="156" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Code review</text>
+  <text x="340" y="173" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">human + lint</text>
+  <text x="360" y="280" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Tests pass?</text>
+  <text x="600" y="264" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Fix issues</text>
+  <text x="600" y="281" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">amend diff</text>
+  <text x="340" y="440" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Deploy</text>
+  <text x="340" y="457" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">ship to prod</text>
+  <text x="500" y="268" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">no</text>
+  <text x="358" y="375" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">yes</text>
+</svg>

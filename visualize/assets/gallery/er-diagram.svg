@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" width="760" height="420" role="img">
+  <title>E-commerce ER schema</title>
+  <desc>Users place orders; each order contains products.</desc>
+  <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect width="760" height="420" fill="#FFFFFF"/>
+  <line x1="120" y1="170" x2="248" y2="200" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="296" y1="236" x2="310" y2="125" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="370" y1="170" x2="506" y2="200" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="562" y1="236" x2="560" y2="125" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="60" y="80" width="120" height="90" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <line x1="60" y1="108" x2="180" y2="108" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="310" y="80" width="120" height="90" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <line x1="310" y1="108" x2="430" y2="108" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="560" y="80" width="120" height="90" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <line x1="560" y1="108" x2="680" y2="108" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <polygon points="248,200 296,236 248,272 200,236" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <polygon points="506,200 562,236 506,272 450,236" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <text x="120" y="94" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">User</text>
+  <text x="72" y="122" dominant-baseline="central" font-size="12" fill="#0F6E56">id (PK)</text>
+  <text x="72" y="140" dominant-baseline="central" font-size="12" fill="#0F6E56">email</text>
+  <text x="72" y="158" dominant-baseline="central" font-size="12" fill="#0F6E56">name</text>
+  <text x="370" y="94" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Order</text>
+  <text x="322" y="122" dominant-baseline="central" font-size="12" fill="#3D3D3A">id (PK)</text>
+  <text x="322" y="140" dominant-baseline="central" font-size="12" fill="#3D3D3A">user_id (FK)</text>
+  <text x="322" y="158" dominant-baseline="central" font-size="12" fill="#3D3D3A">total</text>
+  <text x="620" y="94" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Product</text>
+  <text x="572" y="122" dominant-baseline="central" font-size="12" fill="#3D3D3A">id (PK)</text>
+  <text x="572" y="140" dominant-baseline="central" font-size="12" fill="#3D3D3A">sku</text>
+  <text x="572" y="158" dominant-baseline="central" font-size="12" fill="#3D3D3A">price</text>
+  <text x="248" y="236" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">places</text>
+  <text x="506" y="236" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">contains</text>
+  <text x="155" y="175" dominant-baseline="central" font-size="12" fill="#3D3D3A">1</text>
+  <text x="255" y="175" dominant-baseline="central" font-size="12" fill="#3D3D3A">N</text>
+  <text x="395" y="175" dominant-baseline="central" font-size="12" fill="#3D3D3A">1</text>
+  <text x="530" y="175" dominant-baseline="central" font-size="12" fill="#3D3D3A">N</text>
+  <rect x="40" y="394" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="58" y="400" dominant-baseline="central" font-size="12" fill="#3D3D3A">primary entity</text>
+  <rect x="178" y="394" width="12" height="12" rx="3" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <text x="196" y="400" dominant-baseline="central" font-size="12" fill="#3D3D3A">relationship</text>
+</svg>

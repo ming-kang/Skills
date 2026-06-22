@@ -16,18 +16,18 @@ npx skills add ming-kang/skills
 
 Biu is a lightweight development-document workflow. It helps turn an unclear development goal into a SPEC, decompose that SPEC into implementation tasks, and archive the completed cycle.
 
-| Skill | Use it when | Output |
-|:-:|:-:|:-:|
-| `biu-interview` | Clarify a development goal | `.biu/SPEC.md` |
-| `biu-decompose` | Turn a ready SPEC into task handoffs | `.biu/tasks/TASK-*.md` |
-| `biu-archive` | Summarize and archive a completed cycle | `.biu/archived/YYYY-MM-DD-NN/` |
-
-Typical workflow:
-
 ```text
 biu-interview -> biu-decompose -> implement -> biu-archive
 ```
 
+→ [Biu/README.md](Biu/README.md)
+
+### Visualize
+
+Visualize generates clean technical diagrams as self-contained SVG — architecture, flowchart, sequence, data flow, ER, network topology, and more.
+
+→ [visualize/README.md](visualize/README.md)
+
 ## License
 
-MIT
+[MIT](LICENSE)

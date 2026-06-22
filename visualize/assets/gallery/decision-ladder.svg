@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 380" width="920" height="380" role="img">
+  <title>Permission decision ladder</title>
+  <desc>A tool request walks a chain of numbered checks; each either allows (rises to Execute) or denies (drops to Blocked).</desc>
+  <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect width="920" height="380" fill="#FFFFFF"/>
+  <line x1="238" y1="178" x2="286" y2="178" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="438" y1="178" x2="486" y2="178" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="638" y1="178" x2="686" y2="178" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="163" y1="150" x2="163" y2="72" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="163" y1="206" x2="163" y2="300" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="362" y1="150" x2="362" y2="72" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="362" y1="206" x2="362" y2="300" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="562" y1="150" x2="562" y2="72" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="562" y1="206" x2="562" y2="300" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="761" y1="150" x2="761" y2="72" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="761" y1="206" x2="761" y2="300" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="40" y="44" width="840" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<rect x="40" y="300" width="840" height="28" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect x="88" y="150" width="150" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <circle cx="110" cy="178" r="11" fill="#F1EFE8" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="286" y="150" width="152" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <circle cx="308" cy="178" r="11" fill="#F1EFE8" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="486" y="150" width="152" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <circle cx="508" cy="178" r="11" fill="#F1EFE8" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="686" y="150" width="150" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <circle cx="708" cy="178" r="11" fill="#F1EFE8" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<text x="60" y="58" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Execute</text>
+<text x="60" y="314" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Blocked</text>
+  <text x="110" y="178" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">1</text>
+  <text x="132" y="170" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Hooks</text>
+  <text x="132" y="187" dominant-baseline="central" font-size="12" fill="#3D3D3A">PreToolUse</text>
+  <text x="308" y="178" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">2</text>
+  <text x="330" y="170" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Deny rules</text>
+  <text x="330" y="187" dominant-baseline="central" font-size="12" fill="#3D3D3A">settings.json</text>
+  <text x="508" y="178" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">3</text>
+  <text x="530" y="170" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Allow rules</text>
+  <text x="530" y="187" dominant-baseline="central" font-size="12" fill="#3D3D3A">settings.json</text>
+  <text x="708" y="178" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">4</text>
+  <text x="730" y="170" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">canUseTool</text>
+  <text x="730" y="187" dominant-baseline="central" font-size="12" fill="#3D3D3A">your code</text>
+  <rect x="40" y="354" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="58" y="360" dominant-baseline="central" font-size="12" fill="#3D3D3A">allow → Execute</text>
+  <rect x="185" y="354" width="12" height="12" rx="3" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <text x="203" y="360" dominant-baseline="central" font-size="12" fill="#3D3D3A">deny → Blocked</text>
+</svg>
