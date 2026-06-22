@@ -4,9 +4,9 @@ Visualize is an Agent Skill for generating clean technical diagrams as self-cont
 
 Use it when you want an architecture diagram, flowchart, sequence diagram, memory architecture, data flow, UML-style diagram, comparison matrix, timeline, or another technical visual from a plain-language prompt.
 
-![RAG pipeline example](assets/samples/hero.svg)
+![RAG pipeline example](../visualize/assets/samples/hero.svg)
 
-![Agent loop example](assets/samples/sample-agent-loop.svg)
+![Agent loop example](../visualize/assets/samples/sample-agent-loop.svg)
 
 ## How To Use
 
@@ -47,9 +47,9 @@ No dependencies are installed by this skill.
 | Mind map | Central concept with curved branches |
 | Timeline / Gantt | Phases, milestones, and duration bars |
 
-Every supported type has an owned reference diagram under `assets/gallery/<type>.svg`. See [`references/diagram-gallery.md`](references/diagram-gallery.md) for the full index.
+Every supported type has an owned reference diagram under `assets/gallery/<type>.svg`. See [`references/diagram-gallery.md`](../visualize/references/diagram-gallery.md) for the full index.
 
-The gallery also ships `decision-ladder.svg` — not a separate type, but a compositing-pattern example (a step-by-step allow/deny chain) documented in [`references/layout-patterns.md`](references/layout-patterns.md) §3.
+The gallery also ships `decision-ladder.svg` — not a separate type, but a compositing-pattern example (a step-by-step allow/deny chain) documented in [`references/layout-patterns.md`](../visualize/references/layout-patterns.md) §3.
 
 ## Style
 
@@ -65,7 +65,7 @@ Color carries meaning:
 | Terracotta | Warning, limitation, failure |
 | Amber | Highlighted or special module |
 
-The exact tokens live in [`references/style.md`](references/style.md).
+The exact tokens live in [`references/style.md`](../visualize/references/style.md).
 
 ## Repository Map
 

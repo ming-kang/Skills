@@ -20,13 +20,13 @@ Biu is a lightweight development-document workflow. It helps turn an unclear dev
 biu-interview -> biu-decompose -> implement -> biu-archive
 ```
 
-→ [Biu/README.md](Biu/README.md)
+→ [docs/README.biu.md](docs/README.biu.md)
 
 ### Visualize
 
 Visualize generates clean technical diagrams as self-contained SVG — architecture, flowchart, sequence, data flow, ER, network topology, and more.
 
-→ [visualize/README.md](visualize/README.md)
+→ [docs/README.visualize.md](docs/README.visualize.md)
 
 ## License
 

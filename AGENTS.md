@@ -6,12 +6,12 @@ This repository is a personal source repository for agent Skills.
 
 ## Structure Rules
 
-- Each usable skill is a directory containing `SKILL.md`.
-- Top-level directories may group related skills, such as `Biu/`.
+- Each usable skill is a top-level directory containing `SKILL.md`. Skill directories are flat — no nested grouping folders.
 - Keep each skill's supporting files inside that skill directory.
-- Put templates and long reference material under `references/`.
-- Put helper scripts under `scripts/`.
-- Put reusable assets under `assets/`.
+- Put templates and long reference material under `<skill>/references/`.
+- Put helper scripts under `<skill>/scripts/`.
+- Put reusable assets under `<skill>/assets/`.
+- Put user-facing documentation under `docs/` as `README.<name>.md` (e.g. `docs/README.biu.md`, `docs/README.visualize.md`). The root `README.md` is a short index that links to these files.
 
 ## Change Checklist
 
