@@ -92,7 +92,7 @@ WARM_PALETTE: set[str] = {
     # decorative pastels — whitelisted because the warm-hue test would false-positive on them
     "#fac775", "#f5c4b3", "#9fe1cb", "#cecbf6", "#f4c0d1", "#c0dd97", "#b5d4f4",
     # alt neutrals + canvas + ink seen in the examples
-    "#f1efe8", "#5f5e5a", "#ffffff", "#000000", "#fff",
+    "#f1efe8", "#dad8cf", "#5f5e5a", "#ffffff", "#000000", "#fff",
 }
 COLOR_KEYWORDS_OK = {"none", "transparent", "context-stroke", "currentcolor", "inherit"}
 
