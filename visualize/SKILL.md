@@ -20,12 +20,10 @@ Index with a one-line description of each: `references/diagram-gallery.md` — o
 
 1. **Understand the request** — Identify the diagram type (architecture, data flow, flowchart, agent architecture, memory architecture, sequence, comparison, mind map, ER, state machine, network, class, use case, timeline/gantt; full per-type rules in `references/diagram-types.md`) and the entities / relationships.
 2. **Plan the layout** — Pick a viewBox (width ~680–760 is typical), 40px margins, 56px two-line boxes, ≥56px vertical gaps. For anything non-trivial (≥6 nodes or multi-layer) read `references/svg-layout-best-practices.md`. If the request is a trust-boundary split, a numbered recipe, an allow/deny decision chain, a repeating scope, or any structure a flat graph hides, read `references/layout-patterns.md` and use its `svgkit` one-liners (`.step/.panel/.scope/.zone`). If the user wants a **mobile / narrow** version, re-lay-out per `references/layout-patterns.md` §10 (a separate `<name>_mobile.svg`).
-
-   **Quick rule**: simple pipeline (≤5 nodes) → skip to step 3; anything else → read both layout files before drawing.
-3. **Assign color families by meaning** — Neutral cream for plumbing; **Green** for the primary / happy path / retrieval; **Purple** for an alternate or parallel branch; **Terracotta** for warnings / limitations / failure; **Amber** for a highlighted special module. Exact tokens: `references/style.md`. **Default to fewer families** — one accent + Neutral often beats three; see the Restraint subsection in `references/style.md` and the tint-within-family technique before reaching for a second family. Per-type guidance: `references/diagram-types.md`. Shape choices: `references/shape-vocabulary.md`. Product icons (optional, **at most 1-2 per diagram** — cold colors, will trip validator if overused): `references/product-colors.md`.
+3. **Assign color families by meaning** — Neutral cream for plumbing; **Green** for the primary / happy path / retrieval; **Purple** for an alternate or parallel branch; **Terracotta** for warnings / limitations / failure; **Amber** for a highlighted special module. Exact tokens: `references/style.md`. **Default to fewer families** — one accent + Neutral often beats three; see the Restraint subsection in `references/style.md` and the tint-within-family technique before reaching for a second family. Per-type guidance: `references/diagram-types.md`. Shape choices: `references/shape-vocabulary.md`. Product icons (optional): `references/product-colors.md`.
 4. **Write the SVG** — If `python3` is available, build it with the **`svgkit` helper** (`references/svg-cookbook.md` §0): you write the layout and it computes box widths from the text, anchors arrows on edges, and guarantees the marker / z-order / closing tag. Otherwise assemble the skeleton and snippets from the cookbook by hand (Python list method, one `lines.append(...)` per line so the file cannot be truncated mid-tag).
 5. **Save SVG** — Default to the working directory, or the path the user gave (`--output /path/` or `输出到 /path/`). Semantic kebab-case filename.
-6. **Self-check pass before declaring done** — trace every arrow against every box (reroute straight hits as L-bends), confirm no label overlaps, confirm no text clips its box. Run `python3 scripts/validate_svg.py <file>` if available.
+6. **DRC self-check before declaring done** — treat boxes, text, arrows, and label plates as collision objects: no solid object overlaps, keep 8px clearance, trace every arrow against every obstacle (reroute straight hits as L-bends), confirm no label overlaps and no text clips its box. Run `python3 scripts/validate_svg.py <file>` if available.
 
 > A worked example shipped with the skill: `assets/samples/hero.svg` (a RAG pipeline) — open it to see every token in context.
 
@@ -95,8 +93,9 @@ EOF
 - Arrows anchor on box **edges**, never centers; orthogonal L-paths for branches and crossings; only the arriving segment carries the marker.
 - Text: title 14/500, sub 12/400, captions 12. Centered text uses `text-anchor="middle" dominant-baseline="central"`.
 - Arrow labels: ≤3 words; midpoint offset 6–15px; add a `#FFFFFF` background plate only if it would overlap a line or box.
+- Collision model: solid shapes/text/arrows are checked as objects; no solid sibling overlap, ≥8px clearance, no text-on-arrow without a plate, and no color block painted over text.
 
-Full routing, spacing, and the validation checklist: `references/svg-layout-best-practices.md`.
+Full routing, spacing, DRC collision rules, and the validation checklist: `references/svg-layout-best-practices.md`.
 
 ## Output
 
