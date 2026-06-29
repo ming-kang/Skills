@@ -36,10 +36,10 @@
   <text x="572" y="158" dominant-baseline="central" font-size="12" fill="#3D3D3A">price</text>
   <text x="248" y="236" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">places</text>
   <text x="506" y="236" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">contains</text>
-  <text x="148" y="188" dominant-baseline="central" font-size="12" fill="#3D3D3A">1</text>
-  <text x="255" y="184" dominant-baseline="central" font-size="12" fill="#3D3D3A">N</text>
-  <text x="388" y="188" dominant-baseline="central" font-size="12" fill="#3D3D3A">1</text>
-  <text x="530" y="184" dominant-baseline="central" font-size="12" fill="#3D3D3A">N</text>
+  <text x="155" y="175" dominant-baseline="central" font-size="12" fill="#3D3D3A">1</text>
+  <text x="255" y="175" dominant-baseline="central" font-size="12" fill="#3D3D3A">N</text>
+  <text x="395" y="175" dominant-baseline="central" font-size="12" fill="#3D3D3A">1</text>
+  <text x="530" y="175" dominant-baseline="central" font-size="12" fill="#3D3D3A">N</text>
   <rect x="40" y="394" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <text x="58" y="400" dominant-baseline="central" font-size="12" fill="#3D3D3A">primary entity</text>
   <rect x="178" y="394" width="12" height="12" rx="3" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>

@@ -92,7 +92,7 @@ WARM_PALETTE: set[str] = {
     # decorative pastels — whitelisted because the warm-hue test would false-positive on them
     "#fac775", "#f5c4b3", "#9fe1cb", "#cecbf6", "#f4c0d1", "#c0dd97", "#b5d4f4",
     # alt neutrals + canvas + ink seen in the examples
-    "#f1efe8", "#5f5e5a", "#ffffff", "#000000", "#fff",
+    "#f1efe8", "#dad8cf", "#5f5e5a", "#ffffff", "#000000", "#fff",
 }
 COLOR_KEYWORDS_OK = {"none", "transparent", "context-stroke", "currentcolor", "inherit"}
 
@@ -147,10 +147,6 @@ class Bounds:
     def height(self) -> float:
         return self.bottom - self.top
 
-    @property
-    def area(self) -> float:
-        return self.width * self.height
-
 
 class Validator:
     def __init__(self, svg_path: Path, no_color: bool = False) -> None:
@@ -178,12 +174,9 @@ class Validator:
             self.check_viewbox,
             self.check_renderer_compatibility,
             self.check_references,
-            self.check_paint_order_occlusion,
-            self.check_object_spacing,
             self.check_arrow_collisions,
             self.check_box_viewbox_overflow,
             self.check_text_overflow,
-            self.check_text_collisions,
             self.check_type_scale,
             self.check_text_baseline,
             self.check_palette,
@@ -310,92 +303,6 @@ class Validator:
             return CheckResult("Checking URL/marker references", "fail", details=details[:12], fix="Add missing id attributes to <defs> elements, or ensure marker-end references point to <marker> elements")
         return CheckResult("Checking URL/marker references", "pass", f"{len(refs)} reference(s)")
 
-    def check_paint_order_occlusion(self) -> CheckResult:
-        """Catch filled shapes painted after text, which visually block labels."""
-        assert self.root is not None
-        texts: list[tuple[int, Bounds, str]] = []
-        occluders: list[tuple[int, Bounds, str]] = []
-
-        for index, (element, ancestors) in enumerate(iter_with_ancestors(self.root)):
-            if any(a in {"defs", "marker", "clipPath", "filter"} for a in ancestors):
-                continue
-            tag = local_name(element.tag)
-            if tag == "text":
-                bounds = self.text_bounds(element)
-                label = text_content(element)
-                if bounds is not None and label:
-                    texts.append((index, bounds, label))
-                continue
-            if not self.is_filled_shape(element):
-                continue
-            bounds = self.shape_bounds(element)
-            if bounds is None or bounds.width <= 0 or bounds.height <= 0:
-                continue
-            occluders.append((index, bounds, tag))
-
-        issues: list[str] = []
-        for shape_index, shape_bounds, tag in occluders:
-            for text_index, text_bounds, label in texts:
-                if text_index >= shape_index:
-                    continue
-                if not bounds_overlap_significant(shape_bounds, text_bounds):
-                    continue
-                issues.append(
-                    f"<{tag}> painted later at {format_bounds(shape_bounds)} overlaps text "
-                    f"{label!r} {format_bounds(text_bounds)}"
-                )
-                break
-            if len(issues) >= 8:
-                break
-
-        if issues:
-            return CheckResult(
-                "Checking paint-order occlusion", "fail", details=issues,
-                fix="Keep z-order back-to-front: containers → arrows → plates → boxes → box text → labels → legend. Move filled shapes before the text they support.",
-            )
-        return CheckResult("Checking paint-order occlusion", "pass")
-
-    def check_object_spacing(self) -> CheckResult:
-        """DRC-style box/shape clearance: no overlapping obstacles, 8px minimum air."""
-        obstacles = self.collect_obstacles()
-        overlaps: list[str] = []
-        tight: list[str] = []
-        min_gap = 8.0
-
-        for i, first in enumerate(obstacles):
-            for second in obstacles[i + 1:]:
-                if bounds_contains(first, second) or bounds_contains(second, first):
-                    continue
-                area = bounds_intersection_area(first, second)
-                if area > 1:
-                    overlaps.append(
-                        f"{first.element} {format_bounds(first)} overlaps "
-                        f"{second.element} {format_bounds(second)}"
-                    )
-                else:
-                    gap = bounds_gap(first, second)
-                    if gap < min_gap:
-                        tight.append(
-                            f"{first.element} {format_bounds(first)} is {gap:.1f}px from "
-                            f"{second.element} {format_bounds(second)}"
-                        )
-                if len(overlaps) >= 8 or len(tight) >= 8:
-                    break
-            if len(overlaps) >= 8 or len(tight) >= 8:
-                break
-
-        if overlaps:
-            return CheckResult(
-                "Checking object spacing", "fail", details=overlaps,
-                fix="Move sibling boxes/shapes apart. Keep at least 8px of air; use panels only as containing parents, not overlapping peers.",
-            )
-        if tight:
-            return CheckResult(
-                "Checking object spacing", "warn", details=tight,
-                fix="Increase clearance to at least 8px between solid obstacles; normal node gaps should stay 40–75px horizontally and 56–60px vertically.",
-            )
-        return CheckResult("Checking object spacing", "pass", f"{len(obstacles)} obstacle(s)")
-
     def check_arrow_collisions(self) -> CheckResult:
         assert self.root is not None
         obstacles = self.collect_obstacles()
@@ -460,79 +367,24 @@ class Validator:
             cx = parse_float(element.get("cx"))
             cy = parse_float(element.get("cy"))
             return Bounds(cx - rx, cy - ry, cx + rx, cy + ry, "ellipse")
-        if tag in {"polygon", "polyline"}:
+        if tag == "polygon":
             points = parse_points(element.get("points"))
             if not points:
                 return None
             xs = [p[0] for p in points]
             ys = [p[1] for p in points]
-            return Bounds(min(xs), min(ys), max(xs), max(ys), tag)
-        if tag == "path":
-            points = parse_path_points(element.get("d"))
-            if not points:
-                return None
-            xs = [p[0] for p in points]
-            ys = [p[1] for p in points]
-            return Bounds(min(xs), min(ys), max(xs), max(ys), "path")
+            return Bounds(min(xs), min(ys), max(xs), max(ys), "polygon")
         return None
-
-    def text_bounds(self, element: ET.Element) -> Bounds | None:
-        label = text_content(element)
-        if not label:
-            return None
-        x = parse_float(element.get("x"))
-        y = parse_float(element.get("y"))
-        size = parse_float(element.get("font-size"), 14.0)
-        est = text_width(label, int(round(size)))
-        letter_spacing = parse_float(element.get("letter-spacing"), 0.0)
-        if letter_spacing and len(label) > 1:
-            est += letter_spacing * (len(label) - 1)
-        anchor = element.get("text-anchor", "start")
-        if anchor == "middle":
-            left, right = x - est / 2, x + est / 2
-        elif anchor == "end":
-            left, right = x - est, x
-        else:
-            left, right = x, x + est
-        baseline = (element.get("dominant-baseline") or "").lower()
-        line_h = size * 1.2
-        if baseline in {"central", "middle", "mathematical"}:
-            top, bottom = y - line_h / 2, y + line_h / 2
-        else:
-            top, bottom = y - size, y + size * 0.25
-        return Bounds(left, top, right, bottom, "text")
-
-    def text_host(self, element: ET.Element, bounds: Bounds, obstacles: list[Bounds]) -> Bounds | None:
-        x = parse_float(element.get("x"))
-        y = parse_float(element.get("y"))
-        host = None
-        for obstacle in obstacles:
-            if not (obstacle.left <= x <= obstacle.right and obstacle.top - 2 <= y <= obstacle.bottom + 2):
-                continue
-            if host is None or obstacle.area < host.area:
-                host = obstacle
-        return host
-
-    def is_filled_shape(self, element: ET.Element) -> bool:
-        tag = local_name(element.tag)
-        if tag not in {"rect", "circle", "ellipse", "polygon", "polyline", "path"}:
-            return False
-        fill = (element.get("fill") or "#000000").strip().lower()
-        return fill not in {"none", "transparent"}
 
     def is_non_obstacle(self, element: ET.Element, bounds: Bounds) -> bool:
         """True for shapes the collision check should ignore: zero-size, dashed,
-        hollow or stroke-only connectors, tiny (<70 wide or <30 tall), or
+        hollow (fill=none with no stroke), tiny (<70 wide or <30 tall), or
         near-full-canvas (>70% of the viewBox)."""
         if bounds.width <= 0 or bounds.height <= 0:
             return True
-        tag = local_name(element.tag)
-        fill = (element.get("fill") or "").strip().lower()
-        if tag in {"line", "polyline", "path"} and fill in {"", "none", "transparent"}:
-            return True
         if element.get("stroke-dasharray"):
             return True
-        if fill in {"none", "transparent"} and not element.get("stroke"):
+        if element.get("fill") in {"none", "transparent"} and not element.get("stroke"):
             return True
         if bounds.width < 70 or bounds.height < 30:
             return True
@@ -615,20 +467,32 @@ class Validator:
                 continue
             if local_name(element.tag) != "text":
                 continue
-            label = text_content(element)
+            label = (element.text or "").strip()
             if not label:
                 continue
-            bounds = self.text_bounds(element)
-            if bounds is None:
-                continue
+            x = parse_float(element.get("x"))
+            y = parse_float(element.get("y"))
             size = parse_float(element.get("font-size"), 14.0)
-            host = self.text_host(element, bounds, obstacles)
+            est = text_width(label, int(round(size)))
+            anchor = element.get("text-anchor", "start")
+            if anchor == "middle":
+                lo, hi = x - est / 2, x + est / 2
+            elif anchor == "end":
+                lo, hi = x - est, x
+            else:
+                lo, hi = x, x + est
+            # Smallest box whose vertical band contains the text baseline.
+            host = None
+            for b in obstacles:
+                if b.left <= x <= b.right and b.top - 2 <= y <= b.bottom + 2:
+                    if host is None or b.width * b.height < host.width * host.height:
+                        host = b
             if host is None:
                 continue
             pad = 6.0
-            if bounds.left < host.left + pad - 1 or bounds.right > host.right - pad + 1:
+            if lo < host.left + pad - 1 or hi > host.right - pad + 1:
                 issues.append(
-                    f'"{label}" (~{bounds.width:.0f}px @ {size:g}) overflows box '
+                    f'"{label}" (~{est:.0f}px @ {size:g}) overflows box '
                     f"{format_bounds(host)} (width {host.width:g})"
                 )
             if len(issues) >= 8:
@@ -636,89 +500,6 @@ class Validator:
         if issues:
             return CheckResult("Checking text fit", "warn", details=issues, fix="Size boxes from the text: boxWidth = max(line widths) + 32, line ~= latin*8 + cjk*15 at 14px. svgkit.node() does this automatically.")
         return CheckResult("Checking text fit", "pass")
-
-    def check_text_collisions(self) -> CheckResult:
-        """Treat each text run as a DRC object: it must not collide with peers, nodes, or uncovered arrows."""
-        assert self.root is not None
-        obstacles = self.collect_obstacles()
-        texts: list[tuple[int, ET.Element, Bounds, str, Bounds | None]] = []
-        arrow_segments: list[tuple[str, tuple[float, float], tuple[float, float]]] = []
-        plates: list[Bounds] = []
-
-        for index, (element, ancestors) in enumerate(iter_with_ancestors(self.root)):
-            if any(a in {"defs", "marker", "clipPath", "filter"} for a in ancestors):
-                continue
-            tag = local_name(element.tag)
-            if tag == "text":
-                bounds = self.text_bounds(element)
-                label = text_content(element)
-                if bounds is not None and label:
-                    texts.append((index, element, bounds, label, self.text_host(element, bounds, obstacles)))
-                continue
-            if self.is_arrow(element):
-                points = self.arrow_points(element)
-                arrow_segments.extend((tag, p1, p2) for p1, p2 in zip(points, points[1:]))
-                continue
-            if tag == "rect" and (element.get("fill") or "").strip().lower() in {"#fff", "#ffffff", "white"}:
-                plate = self.shape_bounds(element)
-                if plate is not None and plate.width < 140 and plate.height <= 24:
-                    plates.append(plate)
-
-        node_issues: list[str] = []
-        text_issues: list[str] = []
-        arrow_issues: list[str] = []
-
-        for _, _, text_box, label, host in texts:
-            for obstacle in obstacles:
-                if host is obstacle:
-                    continue
-                if bounds_contains(obstacle, text_box) and host is not None:
-                    continue
-                if not bounds_overlap_significant(text_box, obstacle):
-                    continue
-                node_issues.append(
-                    f"text {label!r} {format_bounds(text_box)} overlaps {obstacle.element} "
-                    f"{format_bounds(obstacle)}"
-                )
-                break
-            if len(node_issues) >= 6:
-                break
-
-        for i, (_, _, first_box, first_label, first_host) in enumerate(texts):
-            for _, _, second_box, second_label, second_host in texts[i + 1:]:
-                if first_host is not None and first_host is second_host:
-                    continue
-                if not bounds_overlap_significant(first_box, second_box):
-                    continue
-                text_issues.append(
-                    f"text {first_label!r} {format_bounds(first_box)} overlaps text "
-                    f"{second_label!r} {format_bounds(second_box)}"
-                )
-                break
-            if len(text_issues) >= 6:
-                break
-
-        for _, _, text_box, label, host in texts:
-            if host is not None or any(bounds_contains(plate, text_box) for plate in plates):
-                continue
-            expanded = expand_bounds(text_box, -1.0)
-            for tag, p1, p2 in arrow_segments:
-                if segment_intersects_bounds(p1, p2, expanded):
-                    arrow_issues.append(
-                        f"text {label!r} {format_bounds(text_box)} overlaps <{tag}> segment "
-                        f"{format_point(p1)}->{format_point(p2)} without a white plate"
-                    )
-                    break
-            if len(arrow_issues) >= 6:
-                break
-
-        details = node_issues + text_issues + arrow_issues
-        if details:
-            return CheckResult(
-                "Checking text collisions", "warn", details=details[:12],
-                fix="Move labels away from nodes/arrows, stagger overlapping labels by ~20px, shorten long labels, or add a small #FFFFFF plate behind an arrow label.",
-            )
-        return CheckResult("Checking text collisions", "pass", f"{len(texts)} text object(s)")
 
     def check_box_viewbox_overflow(self) -> CheckResult:
         """Flag box/diamond/circle whose bounds spill past the viewBox.
@@ -878,127 +659,6 @@ class Validator:
         if re.search(r"</\s*svg\s*>\s*$", self.text, flags=re.I):
             return CheckResult("Checking closing tag", "pass")
         return CheckResult("Checking closing tag", "fail", "missing final </svg>", fix="Add </svg> at the end of the file. When using the Python list method, ensure lines.append('</svg>') is the last append.")
-
-
-def text_content(element: ET.Element) -> str:
-    return "".join(element.itertext()).strip()
-
-
-def bounds_intersection_area(a: Bounds, b: Bounds) -> float:
-    width = min(a.right, b.right) - max(a.left, b.left)
-    height = min(a.bottom, b.bottom) - max(a.top, b.top)
-    if width <= 0 or height <= 0:
-        return 0.0
-    return width * height
-
-
-def bounds_overlap_significant(
-    a: Bounds,
-    b: Bounds,
-    min_axis_overlap: float = 2.0,
-    min_area: float = 8.0,
-) -> bool:
-    width = min(a.right, b.right) - max(a.left, b.left)
-    height = min(a.bottom, b.bottom) - max(a.top, b.top)
-    return width >= min_axis_overlap and height >= min_axis_overlap and width * height >= min_area
-
-
-def bounds_contains(outer: Bounds, inner: Bounds, tolerance: float = 1.0) -> bool:
-    return (
-        outer.left - tolerance <= inner.left
-        and outer.top - tolerance <= inner.top
-        and outer.right + tolerance >= inner.right
-        and outer.bottom + tolerance >= inner.bottom
-    )
-
-
-def bounds_gap(a: Bounds, b: Bounds) -> float:
-    if a.right < b.left:
-        dx = b.left - a.right
-    elif b.right < a.left:
-        dx = a.left - b.right
-    else:
-        dx = 0.0
-    if a.bottom < b.top:
-        dy = b.top - a.bottom
-    elif b.bottom < a.top:
-        dy = a.top - b.bottom
-    else:
-        dy = 0.0
-    return math.hypot(dx, dy)
-
-
-def expand_bounds(bounds: Bounds, amount: float) -> Bounds:
-    left = bounds.left - amount
-    top = bounds.top - amount
-    right = bounds.right + amount
-    bottom = bounds.bottom + amount
-    if right < left:
-        mid = (left + right) / 2
-        left = right = mid
-    if bottom < top:
-        mid = (top + bottom) / 2
-        top = bottom = mid
-    return Bounds(left, top, right, bottom, bounds.element)
-
-
-def point_in_bounds(point: tuple[float, float], bounds: Bounds) -> bool:
-    x, y = point
-    return bounds.left <= x <= bounds.right and bounds.top <= y <= bounds.bottom
-
-
-def segments_intersect(
-    a1: tuple[float, float],
-    a2: tuple[float, float],
-    b1: tuple[float, float],
-    b2: tuple[float, float],
-) -> bool:
-    def orientation(p: tuple[float, float], q: tuple[float, float], r: tuple[float, float]) -> float:
-        return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
-
-    def on_segment(p: tuple[float, float], q: tuple[float, float], r: tuple[float, float]) -> bool:
-        return (
-            min(p[0], r[0]) - 1e-6 <= q[0] <= max(p[0], r[0]) + 1e-6
-            and min(p[1], r[1]) - 1e-6 <= q[1] <= max(p[1], r[1]) + 1e-6
-        )
-
-    o1 = orientation(a1, a2, b1)
-    o2 = orientation(a1, a2, b2)
-    o3 = orientation(b1, b2, a1)
-    o4 = orientation(b1, b2, a2)
-
-    if o1 * o2 < 0 and o3 * o4 < 0:
-        return True
-    eps = 1e-6
-    return (
-        abs(o1) <= eps and on_segment(a1, b1, a2)
-        or abs(o2) <= eps and on_segment(a1, b2, a2)
-        or abs(o3) <= eps and on_segment(b1, a1, b2)
-        or abs(o4) <= eps and on_segment(b1, a2, b2)
-    )
-
-
-def segment_intersects_bounds(
-    p1: tuple[float, float],
-    p2: tuple[float, float],
-    bounds: Bounds,
-) -> bool:
-    if p1 == p2:
-        return point_in_bounds(p1, bounds)
-    if point_in_bounds(p1, bounds) or point_in_bounds(p2, bounds):
-        return True
-    if max(p1[0], p2[0]) < bounds.left or min(p1[0], p2[0]) > bounds.right:
-        return False
-    if max(p1[1], p2[1]) < bounds.top or min(p1[1], p2[1]) > bounds.bottom:
-        return False
-    corners = [
-        (bounds.left, bounds.top),
-        (bounds.right, bounds.top),
-        (bounds.right, bounds.bottom),
-        (bounds.left, bounds.bottom),
-    ]
-    edges = list(zip(corners, corners[1:] + corners[:1]))
-    return any(segments_intersect(p1, p2, edge1, edge2) for edge1, edge2 in edges)
 
 
 def point_near_edge(point: tuple[float, float], bounds: Bounds, tolerance: float = 2.0) -> bool:

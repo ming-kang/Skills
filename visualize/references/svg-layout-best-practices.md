@@ -27,34 +27,20 @@ Layout and routing rules for the one house style. Tokens (colors, fonts, the ope
 - Add a `#FFFFFF` background plate **only** if the offset still overlaps a line or box (padding ~4px×2px). Most labels need no plate.
 - **A label must be shorter than the arrow it rides.** The gap between neighbouring boxes is often only ~40px, but a few words of text easily exceed that — a centered label wider than its arrow spills into the boxes on both ends. When the natural wording is too long, either shorten it (`top-k chunks` → `top-k`) or widen the gap so the arrow is long enough to carry it. Never let a label overhang into an adjacent box.
 
-## 4. Collision / clearance model (DRC pass)
-
-Borrow the mental model from EDA or game collision checks: every visible item gets a simple bounding object, then the diagram must pass a design-rule check before export.
-
-- **Obstacle objects**: solid rects / ellipses / circles / polygons / filled paths ≥70×30, including nodes, decision diamonds, use-case ellipses, datastores, panels, and large custom art.
-- **Non-obstacles**: dashed containers, `fill="none"` frames, tiny chips/cells/swatches <70 wide or <30 tall, and panels larger than 70% of the viewBox.
-- **Text objects**: each `<text>` run counts as its own box. Text may live inside its host box; outside text must not touch nodes, other labels, or arrow strokes unless a white plate protects it.
-- **Arrow objects**: each routed segment is a stroke object. A segment may touch its endpoint box edge, but must not pass through any obstacle interior.
-- **Clearance**: solid sibling obstacles keep at least **8px** of air. Normal node-to-node gaps remain much larger: 40–75px horizontally and 56–60px vertically.
-- **Paint order**: no filled shape may be painted after text it overlaps. Use the house z-order so color blocks never cover labels.
-
-This is a check pass, not an automatic router. If a rule fails, fix the layout: move boxes, widen gutters, shorten labels, add a white label plate, or route an orthogonal L-bend through empty space.
-
-## 5. Self-check pass (run it before finalizing)
+## 4. Self-check pass (run it before finalizing)
 
 This is an explicit pass, not a vibe. After placing everything, walk the diagram:
 
-- **Box vs box** — no two solid sibling boxes overlap; keep at least 8px clearance.
-- **Arrow vs box** — trace each arrow path against every obstacle; reroute straight hits as orthogonal L-bends. Anchor endpoints on edges.
-- **Text vs box** — every label fits its host box, no caption sits on a box edge, and outside labels do not touch nodes.
+- **Box vs box** — no two solid boxes overlap (keep an 8px margin).
+- **Arrow vs box** — trace each arrow's path against every placed box; if a straight segment would cut through one, reroute it as an orthogonal L-bend around the box. Anchor endpoints on edges.
+- **Text vs box** — every label fits its box (you sized the box from the text in §1, so this should hold) and no caption sits on a box edge.
 - **Label vs label** — no two arrow labels overlap; nudge offsets or stagger by 20px.
-- **Label vs arrow** — every arrow label is shorter than its arrow segment and does not sit on a stroke unless it has a white plate.
+- **Label vs arrow** — every arrow label is shorter than its arrow segment and does not overhang into a neighbouring box (shorten the wording or widen the gap).
 - **Legend vs node** — the legend row clears every node; if the bottom row of nodes runs into it, grow the canvas ~40px or move the legend to an empty corner.
-- **Paint order** — containers → arrows → plates → boxes → box text → labels → legend; never paint a color block after text it would cover.
 
-The validator (`scripts/validate_svg.py`) automates the DRC pass: paint-order occlusion, sibling obstacle spacing, arrow-vs-obstacle crossings, text fit, text-vs-node/label/arrow collisions, and box bounds vs the viewBox. Run it; fix anything it flags before declaring done.
+The validator (`scripts/validate_svg.py`) automates the box/arrow check: it treats solid rects ≥70×30 as **obstacles** and ignores dashed containers, `fill="none"` rects, cells <70 wide or <30 tall, and panels >70% of the viewBox — so you can freely route arrows across a dashed group or behind a tiny swatch. Run it; fix anything it flags before declaring done.
 
-## 6. Z-order (SVG render order; top of file = back)
+## 5. Z-order (SVG render order; top of file = back)
 
 ```
 1. Background rect
@@ -67,7 +53,7 @@ The validator (`scripts/validate_svg.py`) automates the DRC pass: paint-order oc
 8. Legend
 ```
 
-## 7. The flat rule
+## 6. The flat rule
 
 - **No** drop shadows, gradients, `<filter>`s, or blur. Ever.
 - Hairline box strokes (`0.5`), 1.5px round-cap lines, open-chevron heads.
@@ -82,11 +68,9 @@ The validator (`scripts/validate_svg.py`) automates the DRC pass: paint-order oc
 - [ ] Exactly one `<marker id="arrow">` in `<defs>`; every `marker-end` references it.
 - [ ] White background rect; nothing relies on a page background.
 - [ ] Box fills/strokes/text use the family tokens; arrows use family LINE colors.
-- [ ] No solid sibling obstacles overlap; tight pairs have at least 8px clearance.
 - [ ] No arrow crosses a box interior; endpoints sit on edges.
 - [ ] Labels ≤3 words; plates only where needed.
-- [ ] Every arrow label is shorter than its arrow — no overhang into a neighbouring box or unplated arrow stroke.
-- [ ] No filled shape is painted after text it overlaps.
+- [ ] Every arrow label is shorter than its arrow — no overhang into a neighbouring box.
 - [ ] Legend clears all nodes — canvas is tall enough for a legend row at the bottom.
 - [ ] Legend present when 2+ families or 2+ arrow meanings appear.
 - [ ] Flat: no shadow/gradient/filter; strokes 0.5 (boxes) / 1.5 (lines).

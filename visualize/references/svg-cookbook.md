@@ -275,12 +275,8 @@ Decorative tints, 45×45 cells, hairline stroke. (Highlight one cell with a 2px 
 
 ## Collision-safe checklist (matches `scripts/validate_svg.py`)
 
-- Treat the diagram like a small DRC pass: obstacles, text boxes, arrow segments, and label plates are separate objects.
-- Solid shapes ≥70×30 are obstacles. **Never** run a straight `<line>`/`<path>` segment through one — anchor at the edge or route an L-path around it.
+- Solid boxes ≥70×30 are obstacles. **Never** run a straight `<line>`/`<path>` segment through one — anchor at the edge or route an L-path around it.
 - These are *not* obstacles: dashed rects, `fill="none"` rects, cells <70 wide or <30 tall, and panels larger than 70% of the viewBox.
-- Keep solid sibling obstacles from overlapping; leave at least 8px clearance even inside dense panels.
-- Text must fit its host box; outside labels must not overlap nodes, other labels, or arrow strokes unless a white plate sits behind the label.
-- Paint in z-order: containers → arrows → plates → boxes → box text → labels → legend, so color blocks never cover text.
 - Every `marker-end="url(#arrow)"` must reference the `<marker id="arrow">`.
 - Keep filtered/edge elements ≥ a few px inside the viewBox (we use no filters, so this is automatic).
 

@@ -804,7 +804,7 @@ class Diagram:
 
         For regions that *mean* something — "EACH TURN", "AGENTIC LOOP",
         "RETRY ×3". Visually a container() variant, but the label is uppercased,
-        weight 600, and tracked out (letter-spacing 2) so it reads as a scope
+        weight 500, and tracked out (letter-spacing 2) so it reads as a scope
         badge rather than a group title. Still dashed, still a non-obstacle, so
         arrows cross it freely. Returns a Box for anchoring inner content.
         """
