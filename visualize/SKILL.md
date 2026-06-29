@@ -25,7 +25,12 @@ Index with a one-line description of each: `references/diagram-gallery.md` — o
 3. **Assign color families by meaning** — Neutral cream for plumbing; **Green** for the primary / happy path / retrieval; **Purple** for an alternate or parallel branch; **Terracotta** for warnings / limitations / failure; **Amber** for a highlighted special module. Exact tokens: `references/style.md`. **Default to fewer families** — one accent + Neutral often beats three; see the Restraint subsection in `references/style.md` and the tint-within-family technique before reaching for a second family. Per-type guidance: `references/diagram-types.md`. Shape choices: `references/shape-vocabulary.md`. Product icons (optional, **at most 1-2 per diagram** — cold colors, will trip validator if overused): `references/product-colors.md`.
 4. **Write the SVG** — If `python3` is available, build it with the **`svgkit` helper** (`references/svg-cookbook.md` §0): you write the layout and it computes box widths from the text, anchors arrows on edges, and guarantees the marker / z-order / closing tag. Otherwise assemble the skeleton and snippets from the cookbook by hand (Python list method, one `lines.append(...)` per line so the file cannot be truncated mid-tag).
 5. **Save SVG** — Default to the working directory, or the path the user gave (`--output /path/` or `输出到 /path/`). Semantic kebab-case filename.
-6. **Self-check pass before declaring done** — trace every arrow against every box (reroute straight hits as L-bends), confirm no label overlaps, confirm no text clips its box. Run `python3 scripts/validate_svg.py <file>` if available.
+6. **Self-check pass before declaring done** — trace every arrow against every box (reroute straight hits as L-bends), confirm no label overlaps, confirm no text clips its box, and check that the legend has room at the bottom. Run `python3 scripts/validate_svg.py <file>` if available.
+
+   **Validation retry strategy** (same three-step pattern as SVG generation):
+   - **First failure** → targeted fix on whatever the validator flags (reroute a crossing arrow, widen a box, grow the canvas for legend space). Re-run the validator.
+   - **Second failure** → switch method: if you drew by hand, rebuild with `svgkit` so box widths and z-order are automatic; if you already used `svgkit`, check coordinate arithmetic and the pre-export checklist in `references/svg-layout-best-practices.md`.
+   - **Third failure** → stop and report. Show the validator output and the generated SVG to the user. Do not retry the same failing approach a fourth time.
 
 > A worked example shipped with the skill: `assets/samples/hero.svg` (a RAG pipeline) — open it to see every token in context.
 

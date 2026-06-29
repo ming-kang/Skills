@@ -117,6 +117,10 @@ def is_cold_color(value: str) -> bool:
     r = int(hx[1:3], 16)
     g = int(hx[3:5], 16)
     b = int(hx[5:7], 16)
+    # Saturation filter: near-grays (all channels close) are not cold even if
+    # slightly blue-dominant — avoids false-positives on light warm grays.
+    if max(r, g, b) - min(r, g, b) <= 15:
+        return False
     # Cold = blue clearly above red and roughly tied with green (b > r+12 and
     # b >= g-4); catches Tailwind blue/slate/sky without flagging warm tints.
     return b > r + 12 and b >= g - 4
@@ -181,6 +185,7 @@ class Validator:
             self.check_text_baseline,
             self.check_palette,
             self.check_filter_boundaries,
+            self.check_legend_overlap,
             self.check_closing_tag,
         ]
 
@@ -654,6 +659,26 @@ class Validator:
         if issues:
             return CheckResult("Checking filter boundaries", "warn", details=issues[:8], fix="Move filtered elements at least 30px away from viewBox edges, or enlarge the viewBox. Filters extend ~20% beyond the bounding box.")
         return CheckResult("Checking filter boundaries", "pass")
+
+    def check_legend_overlap(self) -> CheckResult:
+        """Warn if obstacles reach within 40px of the viewBox bottom — no
+        room for a clean legend row at the default ``y = height - 20``."""
+        assert self.root is not None
+        if not self.viewbox:
+            return CheckResult("Checking legend space", "warn", "skipped without viewBox")
+        _, _, _, vb_h = self.viewbox
+        obstacles = self.collect_obstacles()
+        lowest = max((b.bottom for b in obstacles), default=0.0)
+        margin = vb_h - lowest
+        if margin < 40:
+            return CheckResult(
+                "Checking legend space", "warn",
+                f"bottom-most node at y={lowest:g} leaves only {margin:g}px "
+                f"(need \u226540px for a legend row)",
+                fix="Grow the canvas (Diagram(w, h)) by ~40px so the legend gets "
+                    "its own clear row, or pass an explicit ``y`` to ``legend()``.",
+            )
+        return CheckResult("Checking legend space", "pass")
 
     def check_closing_tag(self) -> CheckResult:
         if re.search(r"</\s*svg\s*>\s*$", self.text, flags=re.I):

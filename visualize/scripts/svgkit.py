@@ -531,8 +531,8 @@ class Diagram:
         attrs = attrs or []
         methods = methods or []
         name_h = 30 + (10 if stereotype else 0)
-        attr_h = max(len(attrs), 1) * 18 + 8
-        meth_h = max(len(methods), 1) * 18 + 8
+        attr_h = len(attrs) * 18 + 8 if attrs else 0
+        meth_h = len(methods) * 18 + 8 if methods else 0
         h = name_h + attr_h + meth_h
         if w is None:
             cand = [box_width(name), 160]
@@ -545,14 +545,18 @@ class Diagram:
             f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
-        self._layers["boxes"].append(
-            f'  <line x1="{snap(x)}" y1="{snap(y + name_h)}" x2="{snap(x + w)}" '
-            f'y2="{snap(y + name_h)}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
-        )
-        self._layers["boxes"].append(
-            f'  <line x1="{snap(x)}" y1="{snap(y + name_h + attr_h)}" x2="{snap(x + w)}" '
-            f'y2="{snap(y + name_h + attr_h)}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
-        )
+        has_attrs = bool(attrs)
+        has_methods = bool(methods)
+        if has_attrs or has_methods:
+            self._layers["boxes"].append(
+                f'  <line x1="{snap(x)}" y1="{snap(y + name_h)}" x2="{snap(x + w)}" '
+                f'y2="{snap(y + name_h)}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
+            )
+        if has_attrs and has_methods:
+            self._layers["boxes"].append(
+                f'  <line x1="{snap(x)}" y1="{snap(y + name_h + attr_h)}" x2="{snap(x + w)}" '
+                f'y2="{snap(y + name_h + attr_h)}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
+            )
         italic = ' font-style="italic"' if abstract else ''
         cx = x + w / 2
         if stereotype:
@@ -700,27 +704,33 @@ class Diagram:
     # -- arrows ------------------------------------------------------------ #
 
     def arrow(self, a: Point, b: Point, color: str | None = None,
-              label: str | None = None, plate: bool = False) -> None:
+              label: str | None = None, plate: bool = False,
+              dashed: bool = False) -> None:
         """A straight connector ``a -> b``. ``color`` is a family name or hex."""
         stroke = _resolve_line(color)
+        attrs = f'stroke="{stroke}" stroke-width="1.5" stroke-linecap="round"'
+        if dashed:
+            attrs += ' stroke-dasharray="4 3"'
         self._layers["arrows"].append(
             f'  <line x1="{snap(a[0])}" y1="{snap(a[1])}" x2="{snap(b[0])}" y2="{snap(b[1])}" '
-            f'stroke="{stroke}" stroke-width="1.5" stroke-linecap="round" '
-            f'marker-end="{self._marker_for(color)}"/>'
+            f'{attrs} marker-end="{self._marker_for(color)}"/>'
         )
         if label:
             self._place_label(a, b, label, plate)
 
     def lpath(self, points: list[Point], color: str | None = None,
-              label: str | None = None, plate: bool = False) -> None:
+              label: str | None = None, plate: bool = False,
+              dashed: bool = False) -> None:
         """An orthogonal multi-segment route; only the arriving end carries the marker."""
         if len(points) < 2:
             raise ValueError("lpath needs at least two points")
         stroke = _resolve_line(color)
         d = "M" + " L".join(f"{snap(px)} {snap(py)}" for px, py in points)
+        attrs = f'fill="none" stroke="{stroke}" stroke-width="1.5" stroke-linecap="round"'
+        if dashed:
+            attrs += ' stroke-dasharray="4 3"'
         self._layers["arrows"].append(
-            f'  <path d="{d}" fill="none" stroke="{stroke}" stroke-width="1.5" '
-            f'stroke-linecap="round" marker-end="{self._marker_for(color)}"/>'
+            f'  <path d="{d}" {attrs} marker-end="{self._marker_for(color)}"/>'
         )
         if label:
             # Place the label on the longest segment — the most readable spot,
@@ -882,7 +892,25 @@ class Diagram:
             )
             cx += item_w
 
-    # -- escape hatch ------------------------------------------------------ #
+    # -- labels & escape hatch --------------------------------------------- #
+
+    def label(self, x: float, y: float, text: str,
+               size: int = 12, color: str = CAPTION,
+               anchor: str = "start", weight: int = 400) -> None:
+        """A standalone text label (not inside a box, not on an arrow).
+
+        Use for timeline tick labels, diagram sub-headings, footnotes, and any
+        annotation that lives outside the box/arrow/legend vocabulary.
+        ``color`` accepts a hex string or a family name; ``anchor`` is SVG's
+        ``text-anchor`` (start / middle / end).
+        """
+        if color in FAMILIES:
+            color = FAMILIES[color]["title"]
+        self._layers["labels"].append(
+            f'  <text x="{snap(x)}" y="{snap(y)}" text-anchor="{anchor}" '
+            f'dominant-baseline="central" font-size="{size}" font-weight="{weight}" '
+            f'fill="{color}">{_esc(text)}</text>'
+        )
 
     def raw(self, svg: str, layer: str = "boxes") -> None:
         """Drop hand-written SVG onto ``layer`` (one of the z-order layers).
