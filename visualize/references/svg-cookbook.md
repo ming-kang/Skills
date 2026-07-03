@@ -38,12 +38,12 @@ That is the **entire** diagram. The equivalent by hand is ~30 lines of `<rect>`/
 | Call | Emits |
 |---|---|
 | `text_width(s, size=14)` | px width estimate (Latin×8 / CJK×15 at 14px) — the boring math |
-| `Diagram(w, h, title, desc)` | skeleton + marker + white bg + title/desc + auto z-order |
+| `Diagram(w, h, title, desc, fixed_size=False)` | skeleton + marker + white bg + title/desc + auto z-order; canvas height auto-grows to fit content + legend (use `fixed_size=True` to lock the declared size) |
 | `.node(x, y, title, sub=None, family="neutral", w=None, lines=None)` → `Box` | a box; auto-sizes width if `w` omitted; `lines` adds extra 12/SUB rows (multi-line card); returns edge anchors `.top/.bottom/.left/.right/.cx/.cy` |
 | `.right_of(box, gap=60)` | X coordinate `gap` px to the right of `box` (for the next node) |
 | `.below(box, gap=60)` | Y coordinate `gap` px below `box` (vertical twin of `right_of`) |
-| `.row([{...}, …], x=40, y=40, gap=56)` → `[Box]` | lay nodes left→right on one baseline with equal gaps |
-| `.col([{...}, …], x=40, y=40, gap=60)` → `[Box]` | lay nodes top→bottom in a column with equal gaps |
+| `.row([{...}, …], x=40, y=40, gap=56, align="center")` → `[Box]` | lay nodes left→right with equal gaps; `align="center"` (default) centres mixed-height rows on a common midline, `align="top"` keeps the old top-edge baseline |
+| `.col([{...}, …], x=40, y=40, gap=60, align="center")` → `[Box]` | lay nodes top→bottom in a column with equal gaps; `align="center"` (default) centres mixed-width columns on a common centre line, `align="left"` keeps the old flush-left behaviour |
 | `.state(x, y, title, sub=None, …)` → `Box` | state-machine rounded rect (alias of `node`) |
 | `.diamond(x, y, title, family="amber", hw=None, hh=40)` → `Box` | flowchart decision diamond with centred title |
 | `.usecase(x, y, label, family="neutral", w=None, h=60)` → `Box` | UML use-case ellipse (min 140×60). Ellipses ARE collision obstacles — route «include»/«extend» with `.lpath()` around neighbours |
@@ -51,30 +51,33 @@ That is the **entire** diagram. The equivalent by hand is ~30 lines of `<rect>`/
 | `.cylinder(x, y, title, sub=None, family="green", w=None, h=54)` → `Box` | datastore cylinder |
 | `.lifeline(x, label, y0, y1, family="neutral")` → `Lifeline` | sequence actor box + dashed vertical lifeline |
 | `.state_dot(x, y, kind="initial"\|"final")` → `Point` | UML initial / final pseudo-state |
+| `.point(x, y, label=None, family="neutral", r=5)` → `Point` | small filled circle marker (with optional label) for scatter / concept-map dots. Not a collision obstacle |
 | `.entity(x, y, name, attrs, family="neutral")` → `Box` | ER entity with header band + attribute lines |
 | `.class_box(x, y, name, attrs=None, methods=None, family="neutral", abstract=False, stereotype=None)` → `Box` | UML three-compartment class box (min width 160; abstract name italic; `<<interface>>` stereotype when given) |
 | `.step(x, y, n, title, sub=None, family="neutral")` → `Box` | numbered step card (circled badge + title + sub) — recipe / ladder |
 | `.bar(x, y, w, label, family="neutral", h=28)` → `Box` | Gantt / timeline bar; rounded rect with centred inside label. h=28 < 30 so it is NOT a collision obstacle. Width is the time span, not the label |
 | `.panel(x, y, w, h, title, subtitle=None, family="neutral")` → `Box` | white card with a colored header band (the "Step 1 / Result" window) |
-| `.arrow(a, b, color=None, label=None, plate=False)` | straight edge-to-edge connector (only the arrival carries the marker) |
+| `.arrow(a, b, color=None, label=None, plate=False, route="auto")` | connector with obstacle avoidance (only the arrival carries the marker); `route="auto"` routes around placed boxes (L-bend for diagonal/horizontal, U-bend above/below for the three-boxes-in-a-row case), `route="straight"` keeps the old straight line |
 | `.lpath([p1, p2, …], color=None, label=None)` | orthogonal L-route around obstacles |
 | `.curve(a, b, color=None, label=None)` | cubic bezier branch (mind-map / concept-map) |
 | `.container(x, y, w, h, label=None, sub=None, solid=False)` | dashed group (rx14) or solid panel (rx20) |
 | `.scope(x, y, w, h, label, sub=None)` → `Box` | dashed loop/scope frame with an uppercase tracked badge (`EACH TURN`…) |
 | `.zone(divider_x, y_top, y_bottom, left_label, right_label, left_cx, right_cx)` | vertical dashed trust-boundary divider + two column headers |
 | `.legend([(family, label), …])` | swatch+label row near the bottom |
-| `.raw(svg, layer=…)` | **escape hatch** — hand-written SVG on a chosen z-layer |
+| `.raw(svg, layer)` | **escape hatch** — hand-written SVG on a chosen z-layer. `layer` is required (no silent default): pick one of `containers`, `arrows`, `plates`, `boxes`, `box_text`, `labels`, `legend`. Text must go on `box_text` or `labels` — never `boxes` — or it will be painted under later color blocks |
 
 `family` is one of `neutral / green / purple / terracotta / amber`. `color` takes a family name **or** a raw hex. Layers for `.raw()`: `containers, arrows, plates, boxes, box_text, labels, legend`.
 
 > **Compositing patterns** (zone splits, step ladders, verdict rails, titled panels, scope frames, right-gutter loop-backs, side-rails, two-line payload labels, stateful cell strips) live in `references/layout-patterns.md` — reach for it whenever the request is more than a flat box/arrow graph. `.step`, `.panel`, `.scope`, and `.zone` above are the one-liner forms of the most common ones.
 
-**Use `.raw()` for the artistic 20%** — scatter points, patch grids, vector bars (snippets §5–§8 below). svgkit handles boxes/arrows/containers/legend; you hand-draw the custom shapes onto the right layer:
+**Use `.raw()` for the artistic 20%** — scatter points, patch grids, vector bars (snippets §5–§8 below). svgkit handles boxes/arrows/containers/legend; you hand-draw the custom shapes onto the right layer. The `layer` argument is **required** — picking the wrong one is the easiest way to bury text under a color block:
 
 ```python
 d.raw('<circle cx="450" cy="140" r="5" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>', layer="boxes")
-d.raw('<text x="460" y="135" font-size="12" fill="#3D3D3A">king</text>', layer="box_text")
+d.raw('<text x="460" y="135" font-size="12" fill="#3D3D3A">king</text>', layer="box_text")  # box_text, NOT boxes
 ```
+
+Layer roles (back → front in the SVG paint order): `containers` — backdrop art · `arrows` — line/path connectors · `plates` — opaque backgrounds for arrow labels · `boxes` — solid shapes · `box_text` — text inside a box · `labels` — standalone text (NOT in a box) · `legend` — swatch+text rows. Text always lives on `box_text` or `labels`.
 
 A committed, validator-clean parity sample produced by `svgkit` lives at `assets/samples/svgkit-rag.svg`.
 
@@ -239,7 +242,15 @@ Rows of varying width + opacity depict a numeric vector.
 
 ## 7. Scatter points + leader line
 
-For concept / embedding-space diagrams (put inside a dashed container).
+For concept / embedding-space diagrams (put inside a dashed container). Use `d.point()` for the marker (circle + optional label) and `d.arrow()` for the leader:
+
+```python
+p = d.point(450, 140, "king", family="green", r=5)
+d.arrow((420, 290), p, color="green")   # leader from origin to the point
+```
+
+The hand-written form (still valid for shapes svgkit doesn't cover):
+
 ```xml
 <!-- direction line from origin to a point -->
 <line x1="420" y1="290" x2="450" y2="140" stroke="#1D9E75" stroke-width="1.5"

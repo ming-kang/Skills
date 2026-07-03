@@ -185,12 +185,180 @@ class Diagram:
     """Accumulate primitives on z-ordered layers, then ``render()``/``save()``."""
 
     def __init__(self, width: float, height: float, title: str = "",
-                 desc: str = ""):
+                 desc: str = "", fixed_size: bool = False):
         self.width = width
         self.height = height
         self.title = title
         self.desc = desc
+        # When True, render() emits the declared (width, height) verbatim and
+        # only warns on overflow. When False (default), render() grows the
+        # height automatically so content + legend never clip. Escape hatch
+        # for layouts the agent has hand-sized.
+        self.fixed_size = fixed_size
         self._layers: dict[str, list[str]] = {name: [] for name in _LAYERS}
+        # Obstacle registry — every Box-returning primitive (node, state,
+        # diamond, usecase, actor, cylinder, entity, class_box, step, panel,
+        # bar) appends its bounds here. ``arrow()`` consults this list to
+        # route around placed content. ``container``/``scope``/``zone``/
+        # ``raw`` are NOT registered (pass-through or hand-written).
+        self._obstacles: list[Box] = []
+        # Content extent tracker — the bounding box of every emitted element
+        # (boxes, arrows, labels, legend). TASK-render-autofit grows the
+        # canvas height from this so content + legend never clip.
+        self._extent: tuple[float, float, float, float] | None = None
+        # Deferred legend — legend() records here; render() lays it out last
+        # when the final canvas height is known.
+        self._pending_legend: dict | None = None
+
+    # -- registry & geometry helpers --------------------------------------- #
+
+    def _register(self, box: Box) -> Box:
+        """Add ``box`` to the obstacle registry and update the content extent.
+
+        Called by every Box-returning primitive. Returns the box unchanged so
+        call sites can ``return self._register(self._build_box(...))``.
+        """
+        self._obstacles.append(box)
+        self._track_extent(box.x, box.y, box.x + box.w, box.y + box.h)
+        return box
+
+    def _track_extent(self, x1: float, y1: float, x2: float, y2: float) -> None:
+        """Expand the content extent to cover the rect (x1,y1)-(x2,y2)."""
+        lo_x, lo_y = min(x1, x2), min(y1, y2)
+        hi_x, hi_y = max(x1, x2), max(y1, y2)
+        if self._extent is None:
+            self._extent = (lo_x, lo_y, hi_x, hi_y)
+            return
+        ex0, ey0, ex1, ey1 = self._extent
+        self._extent = (min(ex0, lo_x), min(ey0, lo_y), max(ex1, hi_x), max(ey1, hi_y))
+
+    @staticmethod
+    def _point_in_box(p: Point, box: Box, tol: float = 1.0) -> bool:
+        """True if ``p`` sits within ``box``'s bounds (with a small tolerance).
+
+        Used for endpoint-owner exclusion: an arrow leaving a box owns it,
+        so the box should be removed from the obstacle list for that arrow.
+        Tolerance 1.0 absorbs any integer-snap drift.
+        """
+        return (box.x - tol <= p[0] <= box.x + box.w + tol
+                and box.y - tol <= p[1] <= box.y + box.h + tol)
+
+    @staticmethod
+    def _segment_intersects_rect(a: Point, b: Point, box: Box, eps: float = 1e-9) -> bool:
+        """Liang-Barsky: does segment ``a``→``b`` overlap rect ``box``?
+
+        Returns True for any non-empty overlap, including touching the boundary.
+        Deliberately stronger than the validator's orthogonal-only test — it
+        catches diagonals too, which the validator misses.
+        """
+        dx = b[0] - a[0]
+        dy = b[1] - a[1]
+        t0, t1 = 0.0, 1.0
+        for p, q in ((a[0] - box.x, -dx), (box.x + box.w - a[0], dx),
+                     (a[1] - box.y, -dy), (box.y + box.h - a[1], dy)):
+            if abs(q) < eps:
+                if p < -eps:
+                    return False
+                continue
+            r = p / q
+            if q < 0:
+                if r > t1:
+                    return False
+                if r > t0:
+                    t0 = r
+            else:
+                if r < t0:
+                    return False
+                if r < t1:
+                    t1 = r
+        return t0 <= t1
+
+    def _segment_hits_obstacle(self, a: Point, b: Point) -> bool:
+        """True if segment ``a``→``b`` crosses an obstacle's interior.
+
+        Excludes any obstacle whose bounds contain ``a`` or ``b`` (the boxes
+        the arrow is leaving from / arriving at — see validator's
+        ``point_near_edge`` tolerance idea).
+        """
+        for box in self._obstacles:
+            if self._point_in_box(a, box) or self._point_in_box(b, box):
+                continue
+            if self._segment_intersects_rect(a, b, box):
+                return True
+        return False
+
+    def _path_hits_obstacle(self, points: list[Point]) -> bool:
+        """True if any segment of an orthogonal path crosses an obstacle."""
+        for i in range(len(points) - 1):
+            if self._segment_hits_obstacle(points[i], points[i + 1]):
+                return True
+        return False
+
+    def _try_route(self, a: Point, b: Point) -> list[Point] | None:
+        """Find a path from ``a`` to ``b`` that avoids registered obstacles.
+
+        Returns a list of points (start → … → end) the caller can hand to
+        ``_emit_arrow_path``. Returns ``None`` when no clear single- or
+        two-bend detour exists — the caller falls back to a straight line
+        and prints a warning.
+
+        Strategy (cheapest first):
+        1. If the straight line is already clear, use it.
+        2. Try two single-bend L candidates (corner at ``(b.x, a.y)`` or
+           ``(a.x, b.y)``). For a horizontal ``A.y == B.y`` arrow both
+           collapse to the straight line and are skipped.
+        3. Try two U-bend candidates that go above/below the obstacles the
+           straight line crossed (3 segments, 2 bends). This handles the
+           three-boxes-in-a-row case where single-bend L is degenerate.
+        """
+        hit_obs = [obs for obs in self._obstacles
+                   if self._segment_intersects_rect(a, b, obs)]
+        if not hit_obs:
+            return [a, b]
+
+        for path in self._l_bends(a, b):
+            if not self._path_hits_obstacle(path):
+                return path
+
+        for path in self._u_bends(a, b, hit_obs):
+            if not self._path_hits_obstacle(path):
+                return path
+
+        return None
+
+    @staticmethod
+    def _l_bends(a: Point, b: Point) -> list[list[Point]]:
+        """Two single-bend L candidates: horizontal-first and vertical-first.
+
+        Each is a 3-point path (corner at one of the endpoint's coordinates).
+        When ``a.y == b.y`` the H-first candidate's corner equals ``b`` (it
+        collapses to the straight line); when ``a.x == b.x`` V-first collapses
+        the same way. The caller still gets to test them — both will hit and
+        fall through to the U-bend fallback.
+        """
+        return [
+            [a, (b[0], a[1]), b],
+            [a, (a[0], b[1]), b],
+        ]
+
+    @staticmethod
+    def _u_bends(a: Point, b: Point, hit_obs: list[Box]) -> list[list[Point]]:
+        """3-segment U-bends that loop above or below the hit obstacles.
+
+        Yields at most two paths — one above the topmost obstacle, one below
+        the bottommost, both with a 16px safety margin. A degenerate zero-
+        length vertical leg (when ``a.x == b.x``) collapses to a 2-point
+        path, which is harmless — the segment test will pass it through.
+        """
+        if not hit_obs:
+            return []
+        margin = 16
+        top_y = min(obs.y for obs in hit_obs) - margin
+        bot_y = max(obs.y + obs.h for obs in hit_obs) + margin
+        return [
+            [a, (a[0], top_y), (b[0], top_y), b],
+            [a, (a[0], bot_y), (b[0], bot_y), b],
+        ]
 
     # -- layout helpers ---------------------------------------------------- #
 
@@ -205,36 +373,99 @@ class Diagram:
         return box.y + box.h + gap
 
     def row(self, specs: list[dict], x: float = 40, y: float = 40,
-            gap: float = 56) -> list[Box]:
-        """Lay ``specs`` left→right on one baseline; equal ``gap`` between each.
+            gap: float = 56, align: str = "center") -> list[Box]:
+        """Lay ``specs`` left→right with equal ``gap`` between each.
 
         Each spec is a kwargs dict for ``node()`` (without ``x``/``y``). Returns
         the boxes so you can anchor arrows off their edges. The gap is constant
         so connectors between neighbours are all the same length.
+
+        ``align`` controls vertical placement:
+
+        * ``"center"`` (default) — all boxes share a common midline. Mixed-
+          height rows (40px single-line next to 56px two-line boxes) come
+          out visually balanced.
+        * ``"top"`` — every box's top edge sits on ``y`` (the old baseline
+          behaviour). Use when the rows are already uniform-height, e.g.
+          a numbered step ladder.
         """
         boxes: list[Box] = []
+        if align == "center":
+            heights = [self._spec_height(s) for s in specs]
+            max_h = max(heights) if heights else 0
+            ys = [y + (max_h - h) / 2 for h in heights]
+        elif align == "top":
+            ys = [y] * len(specs)
+        else:
+            raise ValueError(f"row() align must be 'center' or 'top', got {align!r}")
         cur_x = x
-        for spec in specs:
-            b = self.node(cur_x, y, **spec)
+        for spec, cur_y in zip(specs, ys):
+            b = self.node(cur_x, cur_y, **spec)
             boxes.append(b)
             cur_x = self.right_of(b, gap)
         return boxes
 
     def col(self, specs: list[dict], x: float = 40, y: float = 40,
-            gap: float = 60) -> list[Box]:
-        """Lay ``specs`` top→bottom in a column; equal ``gap`` between each.
+            gap: float = 60, align: str = "center") -> list[Box]:
+        """Lay ``specs`` top→bottom in a column with equal ``gap`` between each.
 
-        Vertical twin of ``row``. Note the boxes are left-aligned on ``x`` (not
-        center-aligned) — snap arrow anchors to ``.top``/``.bottom`` rather than
-        assuming equal widths.
+        Vertical twin of ``row``. Each box's vertical placement is computed
+        from ``y`` and the previous box's bottom edge (``gap`` apart).
+
+        ``align`` controls horizontal placement:
+
+        * ``"center"`` (default) — every box shares a common horizontal
+          centre line at ``x + max_w/2``. Boxes of different widths sit
+          centred in the column instead of all flush-left, so the column
+          reads as a coherent block.
+        * ``"left"`` — every box's left edge sits on ``x`` (the old
+          flush-left behaviour). Use for list-style columns where the
+          left edge IS the visual anchor.
         """
         boxes: list[Box] = []
+        if align == "center":
+            widths = [self._spec_width(s) for s in specs]
+            max_w = max(widths) if widths else 0
+            xs = [x + (max_w - w) / 2 for w in widths]
+        elif align == "left":
+            xs = [x] * len(specs)
+        else:
+            raise ValueError(f"col() align must be 'center' or 'left', got {align!r}")
         cur_y = y
-        for spec in specs:
-            b = self.node(x, cur_y, **spec)
+        for spec, cur_x in zip(specs, xs):
+            b = self.node(cur_x, cur_y, **spec)
             boxes.append(b)
             cur_y = self.below(b, gap)
         return boxes
+
+    @staticmethod
+    def _spec_width(spec: dict) -> float:
+        """The box width a ``row()``/``col()`` spec would produce via ``node()``.
+
+        Mirrors the width-resolution rules in ``node()`` so the centering
+        helper can pre-compute widths before placement.
+        """
+        if spec.get("w") is not None:
+            return float(spec["w"])
+        title = spec.get("title", "")
+        sub = spec.get("sub")
+        lines = spec.get("lines")
+        if lines is not None:
+            cand = [box_width(title)]
+            cand.extend(box_width(l, sizes=(12,)) for l in lines)
+            return max(cand)
+        return box_width(title, sub)
+
+    @staticmethod
+    def _spec_height(spec: dict) -> float:
+        """The box height a ``row()``/``col()`` spec would produce via ``node()``."""
+        if spec.get("h") is not None:
+            return float(spec["h"])
+        sub = spec.get("sub")
+        lines = spec.get("lines")
+        if lines is not None:
+            return 22 + 18 * (1 + len(lines))
+        return 56 if sub else 40
 
     def _marker_for(self, color: str | None) -> str:
         """Resolve ``marker-end``.
@@ -307,7 +538,7 @@ class Diagram:
                 f'dominant-baseline="central" font-size="14" font-weight="500" '
                 f'fill="{fam["title"]}">{_esc(title)}</text>'
             )
-        return Box(x, y, w, h, family)
+        return self._register(Box(x, y, w, h, family))
 
     def state(self, x: float, y: float, title: str, sub: str | None = None,
               family: str = "neutral", w: float | None = None,
@@ -338,7 +569,7 @@ class Diagram:
             f'dominant-baseline="central" font-size="14" font-weight="500" '
             f'fill="{fam["title"]}">{_esc(title)}</text>'
         )
-        return Box(x, y, w, h, family)
+        return self._register(Box(x, y, w, h, family))
 
     def usecase(self, x: float, y: float, label: str,
                 family: str = "neutral", w: float | None = None,
@@ -364,7 +595,7 @@ class Diagram:
             f'dominant-baseline="central" font-size="14" font-weight="500" '
             f'fill="{fam["title"]}">{_esc(label)}</text>'
         )
-        return Box(x, y, w, h, family)
+        return self._register(Box(x, y, w, h, family))
 
     def actor(self, cx: float, y: float, label: str,
               family: str = "neutral") -> Box:
@@ -403,7 +634,7 @@ class Diagram:
             f'dominant-baseline="central" font-size="14" font-weight="500" '
             f'fill="{fam["title"]}">{_esc(label)}</text>'
         )
-        return Box(cx - 20, y, 40, 64, family)
+        return self._register(Box(cx - 20, y, 40, 64, family))
 
     def cylinder(self, x: float, y: float, title: str, sub: str | None = None,
                  family: str = "green", w: float | None = None, h: float = 54) -> Box:
@@ -447,7 +678,7 @@ class Diagram:
                 f'dominant-baseline="central" font-size="14" font-weight="500" '
                 f'fill="{fam["title"]}">{_esc(title)}</text>'
             )
-        return Box(x, y, w, total_h, family)
+        return self._register(Box(x, y, w, total_h, family))
 
     def lifeline(self, x: float, label: str, y0: float, y1: float,
                  family: str = "neutral", w: float | None = None) -> Lifeline:
@@ -460,6 +691,40 @@ class Diagram:
             f'stroke-dasharray="4 3"/>'
         )
         return Lifeline(actor=actor, x=cx, y0=y0, y1=y1)
+
+    def point(self, x: float, y: float, label: str | None = None,
+              family: str = "neutral", r: int = 5) -> Point:
+        """A small filled circle marker (with optional label) — scatter / concept-map dot.
+
+        Replaces the cookbook §7 hand-written snippet for embedding-space
+        points and concept-map leaves: one ``<circle r={r}>`` in the family
+        fill, plus an optional 12/CAPTION label offset to the upper-right.
+        The point itself sits on the ``boxes`` layer (it's a visual
+        artifact, not an obstacle) and the label on ``labels`` (drawn on
+        top, immune to being buried under later color blocks).
+
+        Returns the centre ``Point`` so callers can chain ``d.arrow()``
+        to it. Use ``r=8`` for milestone dots, ``r=3`` for dense scatter.
+
+        Not registered as a collision obstacle — ``r`` ≤ 8 is far below the
+        validator's 30px floor and arrows are expected to point AT the
+        point (leader lines), not flow around it.
+        """
+        fam = FAMILIES[family]
+        self._layers["boxes"].append(
+            f'  <circle cx="{snap(x)}" cy="{snap(y)}" r="{r}" '
+            f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
+        )
+        if label:
+            self._layers["labels"].append(
+                f'  <text x="{snap(x + r + 8)}" y="{snap(y - 4)}" font-size="12" '
+                f'fill="{CAPTION}">{_esc(label)}</text>'
+            )
+        self._track_extent(x - r, y - r, x + r, y + r)
+        if label:
+            tw = text_width(label, 12)
+            self._track_extent(x + r + 8, y - 4 - 6, x + r + 8 + tw, y - 4 + 6)
+        return (x, y)
 
     def state_dot(self, x: float, y: float, kind: str = "initial") -> Point:
         """UML initial (filled) or final (double circle) pseudo-state."""
@@ -508,7 +773,7 @@ class Diagram:
                 f'dominant-baseline="central" font-size="12" '
                 f'fill="{fam["sub"]}">{_esc(attr)}</text>'
             )
-        return Box(x, y, w, h, family)
+        return self._register(Box(x, y, w, h, family))
 
     def class_box(self, x: float, y: float, name: str,
                   attrs: list[str] | None = None,
@@ -590,7 +855,7 @@ class Diagram:
                 f'dominant-baseline="central" font-size="12" '
                 f'fill="{fam["sub"]}">{_esc(meth)}</text>'
             )
-        return Box(x, y, w, h, family)
+        return self._register(Box(x, y, w, h, family))
 
     def step(self, x: float, y: float, n: int, title: str,
              sub: str | None = None, family: str = "neutral",
@@ -638,7 +903,7 @@ class Diagram:
                 f'  <text x="{snap(tx)}" y="{snap(y + h / 2)}" dominant-baseline="central" '
                 f'font-size="14" font-weight="500" fill="{fam["title"]}">{_esc(title)}</text>'
             )
-        return Box(x, y, w, h, family)
+        return self._register(Box(x, y, w, h, family))
 
     def bar(self, x: float, y: float, w: float, label: str,
             family: str = "neutral", h: float = 28) -> Box:
@@ -661,7 +926,7 @@ class Diagram:
             f'dominant-baseline="central" font-size="12" '
             f'fill="{fam["sub"]}">{_esc(label)}</text>'
         )
-        return Box(x, y, w, h, family)
+        return self._register(Box(x, y, w, h, family))
 
     def panel(self, x: float, y: float, w: float, h: float, title: str,
               subtitle: str | None = None, family: str = "neutral") -> Box:
@@ -699,14 +964,66 @@ class Diagram:
                 f'  <text x="{snap(x + 16 + tw + 12)}" y="{snap(cy)}" dominant-baseline="central" '
                 f'font-size="12" fill="{fam["sub"]}">{_esc(subtitle)}</text>'
             )
-        return Box(x, y, w, h, family)
+        return self._register(Box(x, y, w, h, family))
 
     # -- arrows ------------------------------------------------------------ #
 
     def arrow(self, a: Point, b: Point, color: str | None = None,
               label: str | None = None, plate: bool = False,
-              dashed: bool = False) -> None:
-        """A straight connector ``a -> b``. ``color`` is a family name or hex."""
+              dashed: bool = False, route: str = "auto") -> None:
+        """A connector ``a -> b``. ``color`` is a family name or hex.
+
+        ``route`` controls obstacle avoidance (default ``"auto"``):
+
+        * ``"auto"`` — emit a straight line when clear; otherwise try a single-
+          bend L detour and a two-bend U detour around the blocking boxes.
+          When no clear detour exists, emit the straight line and print a
+          one-line warning naming the segment and the first obstacle hit.
+        * ``"straight"`` — always emit a straight line (escape hatch for
+          layouts where the agent has hand-routed around obstacles via
+          ``lpath()`` and wants to keep the geometry exactly as given).
+
+        ``lpath()`` and ``curve()`` are user-driven and never auto-route —
+        the agent already specified their geometry.
+        """
+        if route == "auto" and self._obstacles:
+            path = self._try_route(a, b)
+            if path is None:
+                self._warn_unrouteable(a, b)
+                self._emit_arrow_line(a, b, color=color, dashed=dashed)
+                if label:
+                    self._place_label(a, b, label, plate)
+                self._track_extent(a[0], a[1], b[0], b[1])
+                return
+            # Dedupe adjacent equal points so a degenerate corner collapses
+            # back to a 2-point straight line (emits a <line>, not a <path>).
+            cleaned = [path[0]]
+            for p in path[1:]:
+                if p != cleaned[-1]:
+                    cleaned.append(p)
+            if len(cleaned) == 2:
+                self._emit_arrow_line(cleaned[0], cleaned[1], color=color, dashed=dashed)
+                if label:
+                    self._place_label(cleaned[0], cleaned[1], label, plate)
+                self._track_extent(cleaned[0][0], cleaned[0][1],
+                                    cleaned[1][0], cleaned[1][1])
+                return
+            # Multi-segment detour: emit as a path with longest-segment label.
+            self._emit_arrow_path(cleaned, color=color, label=label,
+                                   plate=plate, dashed=dashed)
+            for p, q in zip(cleaned[:-1], cleaned[1:]):
+                self._track_extent(p[0], p[1], q[0], q[1])
+            return
+
+        # route == "straight" or no obstacles registered yet — old behavior.
+        self._emit_arrow_line(a, b, color=color, dashed=dashed)
+        if label:
+            self._place_label(a, b, label, plate)
+        self._track_extent(a[0], a[1], b[0], b[1])
+
+    def _emit_arrow_line(self, a: Point, b: Point, color: str | None,
+                          dashed: bool = False) -> None:
+        """Emit a straight ``<line>`` segment with the marker chevron."""
         stroke = _resolve_line(color)
         attrs = f'stroke="{stroke}" stroke-width="1.5" stroke-linecap="round"'
         if dashed:
@@ -715,15 +1032,14 @@ class Diagram:
             f'  <line x1="{snap(a[0])}" y1="{snap(a[1])}" x2="{snap(b[0])}" y2="{snap(b[1])}" '
             f'{attrs} marker-end="{self._marker_for(color)}"/>'
         )
-        if label:
-            self._place_label(a, b, label, plate)
 
-    def lpath(self, points: list[Point], color: str | None = None,
-              label: str | None = None, plate: bool = False,
-              dashed: bool = False) -> None:
-        """An orthogonal multi-segment route; only the arriving end carries the marker."""
-        if len(points) < 2:
-            raise ValueError("lpath needs at least two points")
+    def _emit_arrow_path(self, points: list[Point], color: str | None,
+                          label: str | None = None, plate: bool = False,
+                          dashed: bool = False) -> None:
+        """Emit a multi-segment ``<path>``; place label on the longest segment.
+
+        Shared by ``arrow()`` (auto-routed detours) and ``lpath()``.
+        """
         stroke = _resolve_line(color)
         d = "M" + " L".join(f"{snap(px)} {snap(py)}" for px, py in points)
         attrs = f'fill="none" stroke="{stroke}" stroke-width="1.5" stroke-linecap="round"'
@@ -733,11 +1049,38 @@ class Diagram:
             f'  <path d="{d}" {attrs} marker-end="{self._marker_for(color)}"/>'
         )
         if label:
-            # Place the label on the longest segment — the most readable spot,
-            # not whichever index happens to sit at the middle.
             segs = [(points[i], points[i + 1]) for i in range(len(points) - 1)]
             longest = max(segs, key=lambda s: abs(s[1][0] - s[0][0]) + abs(s[1][1] - s[0][1]))
             self._place_label(longest[0], longest[1], label, plate)
+
+    def _warn_unrouteable(self, a: Point, b: Point) -> None:
+        """Print a one-line warning naming the segment and the obstacles hit."""
+        hit = [obs for obs in self._obstacles
+               if self._segment_intersects_rect(a, b, obs)]
+        names = [f"[{obs.x:g},{obs.y:g}-{obs.x + obs.w:g},{obs.y + obs.h:g}]"
+                 for obs in hit[:2]]
+        more = "..." if len(hit) > 2 else ""
+        print(
+            f"svgkit: arrow ({a[0]:g},{a[1]:g})→({b[0]:g},{b[1]:g}) "
+            f"can't avoid {', '.join(names)}{more}; emitting straight line. "
+            f"Re-layout or pass route='straight' to suppress this warning."
+        )
+
+    def lpath(self, points: list[Point], color: str | None = None,
+              label: str | None = None, plate: bool = False,
+              dashed: bool = False) -> None:
+        """An orthogonal multi-segment route; only the arriving end carries the marker.
+
+        User-driven geometry — ``lpath()`` does NOT consult the obstacle
+        registry (the agent already specified the route). Use this when you
+        want full manual control over the path; use ``arrow()`` for automatic
+        obstacle avoidance.
+        """
+        if len(points) < 2:
+            raise ValueError("lpath needs at least two points")
+        self._emit_arrow_path(points, color=color, label=label, plate=plate, dashed=dashed)
+        for p, q in zip(points[:-1], points[1:]):
+            self._track_extent(p[0], p[1], q[0], q[1])
 
     def curve(self, a: Point, b: Point, color: str | None = None,
               label: str | None = None, marker: bool = True) -> None:
@@ -762,8 +1105,21 @@ class Diagram:
         )
         if label:
             self._place_label(a, b, label, plate=False)
+        self._track_extent(a[0], a[1], b[0], b[1])
 
     def _place_label(self, a: Point, b: Point, label: str, plate: bool) -> None:
+        # Warn if the label is wider than the carrying segment — a residual
+        # defect mode the d25cf57 fix only patched partially. Warn-only;
+        # never mutate the label (the agent may have intentional verbosity).
+        seg_len = math.hypot(b[0] - a[0], b[1] - a[1])
+        label_w = text_width(label, 12)
+        if label_w > seg_len - 4 and seg_len > 0:
+            print(
+                f"svgkit: arrow label '{label}' is ~{label_w:.0f}px wide on a "
+                f"~{seg_len:.0f}px segment — it will overlap the arrow. "
+                f"Use a shorter label, give the arrow more room, or wrap with "
+                f"a plate=True background rect."
+            )
         mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
         vertical = abs(b[0] - a[0]) < abs(b[1] - a[1])
         if vertical:
@@ -797,6 +1153,8 @@ class Diagram:
                     f'rx="14" fill="none" stroke="rgba(31,30,29,0.3)" '
                     f'stroke-width="0.5" stroke-dasharray="4 3"/>')
         self._layers["containers"].append(rect)
+        # Track container extent even though arrows pass through (passive).
+        self._track_extent(x, y, x + w, y + h)
         if label:
             self._layers["containers"].append(
                 f'  <text x="{snap(x + 20)}" y="{snap(y + 26)}" dominant-baseline="central" '
@@ -823,6 +1181,8 @@ class Diagram:
             f'rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" '
             f'stroke-dasharray="6 4"/>'
         )
+        # Scope extent matters for auto-fit height but not for obstacle avoidance.
+        self._track_extent(x, y, x + w, y + h)
         self._layers["containers"].append(
             f'  <text x="{snap(x + 22)}" y="{snap(y + 26)}" dominant-baseline="central" '
             f'font-size="14" font-weight="500" letter-spacing="2" '
@@ -865,14 +1225,30 @@ class Diagram:
 
     def legend(self, items: list[tuple[str, str]], x: float = 40,
                y: float | None = None, gap: float = 24) -> None:
-        """A horizontal swatch+label row. ``items`` = [(family, label), ...].
+        """Record legend items; ``render()`` emits them after auto-fit.
 
-        Wraps to a new line (24px down) if the next item would pass the right
-        margin (40px from the edge); the first item on a row never triggers a
-        wrap, so many-item legends never overflow.
+        ``items`` is a list of ``(family, label)`` pairs. The legend wraps to
+        a new line (24px down) if the next item would pass the right margin
+        (40px from the edge); the first item on a row never wraps, so
+        many-item legends never overflow.
+
+        ``y`` is honored verbatim when given (caller took control). When
+        ``None``, the legend sits at the bottom of the auto-fit canvas with
+        a 20px margin below the last content row.
+
+        Deferral is required: the legend's own height feeds back into the
+        canvas-height computation in ``render()``.
         """
-        if y is None:
-            y = self.height - 20
+        self._pending_legend = {
+            "items": list(items),
+            "x": x,
+            "y": y,           # None = auto-place after auto-fit
+            "gap": gap,
+        }
+
+    def _emit_legend(self, y: float, items: list[tuple[str, str]],
+                      x: float, gap: float) -> None:
+        """Lay out and append the legend strings at the given baseline ``y``."""
         right_limit = self.width - 40
         cx = x
         row_y = y
@@ -891,6 +1267,8 @@ class Diagram:
                 f'font-size="12" fill="{CAPTION}">{_esc(label)}</text>'
             )
             cx += item_w
+        # Track the legend's own footprint for later extent bookkeeping.
+        self._track_extent(x, y, cx, row_y + 8)
 
     # -- labels & escape hatch --------------------------------------------- #
 
@@ -911,13 +1289,41 @@ class Diagram:
             f'dominant-baseline="central" font-size="{size}" font-weight="{weight}" '
             f'fill="{color}">{_esc(text)}</text>'
         )
+        # Approximate text extent via text_width; ascender/descender tolerance.
+        tw = text_width(text, size)
+        th = size * 1.2
+        if anchor == "middle":
+            self._track_extent(x - tw / 2, y - th / 2, x + tw / 2, y + th / 2)
+        elif anchor == "end":
+            self._track_extent(x - tw, y - th / 2, x, y + th / 2)
+        else:
+            self._track_extent(x, y - th / 2, x + tw, y + th / 2)
 
-    def raw(self, svg: str, layer: str = "boxes") -> None:
+    def raw(self, svg: str, layer: str) -> None:
         """Drop hand-written SVG onto ``layer`` (one of the z-order layers).
 
         Use for scatter plots, patch grids, vector bars — anything outside the
         box/arrow/container/legend vocabulary.
+
+        ``layer`` is **required**: the silent ``layer="boxes"`` default used
+        to bury ``<text>`` under later color blocks because ``box_text``
+        (rendered above ``boxes``) was the right layer for text. The
+        guiding error below names each layer's role so the mistake can't
+        recur.
         """
+        if layer is None:
+            raise ValueError(
+                "raw() requires an explicit layer argument. The seven layers "
+                "(back → front in the SVG paint order) are:\n"
+                "  'containers' — backdrop art (rects, paths drawn BEHIND everything)\n"
+                "  'arrows'     — line/path connectors\n"
+                "  'plates'     — opaque background rectangles for arrow labels\n"
+                "  'boxes'      — solid colored shapes (boxes, ellipses, cylinders)\n"
+                "  'box_text'   — text inside a box (renders above boxes)\n"
+                "  'labels'     — standalone text labels (NOT inside a box)\n"
+                "  'legend'     — swatch+text legend rows\n"
+                "Text goes on 'box_text' or 'labels', never 'boxes'."
+            )
         if layer not in self._layers:
             raise ValueError(f"unknown layer {layer!r}; choose from {_LAYERS}")
         self._layers[layer].append(svg)
@@ -925,7 +1331,70 @@ class Diagram:
     # -- output ------------------------------------------------------------ #
 
     def render(self) -> str:
-        w, h = snap(self.width), snap(self.height)
+        """Render the diagram to SVG text.
+
+        Auto-fits the canvas height (growing past the declared height when
+        content + legend need more room) unless ``fixed_size=True``. Width
+        is never auto-changed; a single warning is printed if content
+        spills past the right margin.
+
+        The legend (if any) is laid out last, below the content extent, so
+        the canvas-height growth can absorb it. Explicit ``legend(y=...)``
+        is honored verbatim even when the canvas grew.
+        """
+        # 1. Compute the legend's own footprint (number of rows × row height).
+        legend_h = 0
+        if self._pending_legend is not None:
+            items = self._pending_legend["items"]
+            x = self._pending_legend["x"]
+            gap = self._pending_legend["gap"]
+            right_limit = self.width - 40
+            cx_row, rows = x, 1
+            for _family, label in items:
+                item_w = 18 + text_width(label, 12) + gap
+                if cx_row != x and cx_row + item_w > right_limit:
+                    rows += 1
+                    cx_row = x
+                cx_row += item_w
+            # Each row is 24px tall; legend spans rows*24 with a 12px fudge
+            # (rect sits ±6 around the text baseline).
+            legend_h = rows * 24
+
+        # 2. Decide the final height.
+        content_bottom = self._extent[3] if self._extent is not None else 0
+        margin_bottom = 20
+        # When there's a legend AND no explicit y, leave room for it.
+        if self._pending_legend is not None and self._pending_legend["y"] is None:
+            auto_h = content_bottom + legend_h + margin_bottom
+        else:
+            auto_h = content_bottom + margin_bottom
+        final_h = max(self.height, auto_h) if not self.fixed_size else self.height
+
+        # 3. Width-overflow warning (no auto-widen per SPEC risk).
+        if self._extent is not None and self._extent[2] > self.width - 40:
+            print(
+                f"svgkit: content extends to x={self._extent[2]:g} but canvas "
+                f"width is {self.width:g}; content overflows the right margin. "
+                f"Re-lay-out or widen Diagram()."
+            )
+
+        # 4. Emit the pending legend (now that final_h is known).
+        if self._pending_legend is not None:
+            if self._pending_legend["y"] is None:
+                # Place below content extent, leaving a 20px bottom margin.
+                # Legend baseline = final_h - 20 - legend_h + 12 (puts the
+                # baseline of the FIRST row such that the last row's text
+                # baseline + 6 sits at final_h - 20).
+                legend_y = final_h - margin_bottom - legend_h + 12
+            else:
+                legend_y = self._pending_legend["y"]
+            self._emit_legend(legend_y, items=self._pending_legend["items"],
+                              x=self._pending_legend["x"],
+                              gap=self._pending_legend["gap"])
+
+        # 5. Render.
+        w = snap(self.width)
+        h = snap(final_h)
         out: list[str] = []
         out.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" '
                    f'width="{w}" height="{h}" role="img">')
