@@ -11,7 +11,7 @@ This repository is a personal source repository for agent Skills.
 - Put templates and long reference material under `<skill>/references/`.
 - Put helper scripts under `<skill>/scripts/`.
 - Put reusable assets under `<skill>/assets/`.
-- Put user-facing documentation under `docs/` as `README.<name>.md` (e.g. `docs/README.biu.md`, `docs/README.visualize.md`). The root `README.md` is a short index that links to these files.
+- Put user-facing documentation under `docs/` as `README.<name>.md` (e.g. `docs/README.visualize.md`). The root `README.md` is a short index that links to these files.
 
 ## Change Checklist
 
