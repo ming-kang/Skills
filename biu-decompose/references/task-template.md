@@ -2,6 +2,7 @@
 id: TASK-<short-name>
 title: <Title>
 status: ready | in_progress | completed
+owner: <empty until claimed>
 depends_on: []
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
@@ -9,7 +10,11 @@ updated: YYYY-MM-DD
 
 # TASK-<short-name>: <Title>
 
-When executing this task, set frontmatter `status` to `in_progress` and update `updated` to today. When done, set `status` to `completed` and refresh `updated`.
+When executing this task, first check `owner`: if it names someone else, the task is already claimed — pick another. To claim it, set `owner` to your developer name (`git config user.name`), set `status` to `in_progress`, and update `updated` to today. When done, set `status` to `completed` and refresh `updated`.
+
+**Reflection checks.** Pause and surface to the user — do not silently continue — when you catch yourself: appending to an already-long file, adding a 4th parameter to a function, copy-pasting a code block, or writing an `if (special case)` patch branch.
+
+Then: a small fix the user approves goes into this task and its `## Implementation Decisions`; anything beyond this task's boundary goes into `## Notes` as a follow-up — do not expand scope.
 
 ## Objective
 

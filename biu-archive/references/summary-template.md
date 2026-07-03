@@ -24,13 +24,14 @@ head_commit: <sha or "none">
 
 <!--
 Group by AC, not TASK order. Status uses the task's own frontmatter value.
+Verified: result of the archive-time Verify pass (pass / fail / not verified).
 Notes: brief overall evaluation for that AC — key issues encountered and how they were resolved.
 -->
 
-| AC  | Tasks              | Status      | Notes |
-|:---:|:------------------:|:-----------:|:-----:|
-| AC1 | TASK-<name>, ...   | completed   | <result> |
-| AC2 | TASK-<name>        | in_progress | <result> |
+| AC  | Tasks              | Status      | Verified | Notes |
+|:---:|:------------------:|:-----------:|:--------:|:-----:|
+| AC1 | TASK-<name>, ...   | completed   | pass     | <result> |
+| AC2 | TASK-<name>        | in_progress | fail     | <result> |
 
 ## Gaps & Follow-Ups
 
