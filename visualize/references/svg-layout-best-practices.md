@@ -9,16 +9,19 @@ Layout and routing rules for the one house style. Tokens (colors, fonts, the ope
 - **Vertical gap** between stacked boxes: **≥ 56–60px** (the connector lives in the gap).
 - **Horizontal gap** between boxes: **≥ 40–75px**.
 - **Containers**: dashed group `rx="14"`; solid panel `rx="20"`; hairline `0.5` stroke.
-- **Reserve canvas height for the legend.** The legend defaults to the bottom row. If the lowest nodes (datastores, result boxes) already reach the bottom, grow the canvas by ~40px so the legend gets its own clear row instead of overlapping a node — a legend swimming into a cylinder reads as a mistake even when both are individually correct.
+- **Reserve canvas height for the legend.** With `svgkit`, `legend()` sits just below tracked content and `save()`/`fit()` grows the canvas so it never swims into a node. When hand-writing SVG, grow the canvas ~40px if the lowest nodes already reach the bottom.
 
 ## 2. Arrow routing & connection points
 
 - **One marker** — the open chevron (`references/style.md`). It recolors per line via `context-stroke`. Lines are `stroke-width="1.5"`, `stroke-linecap="round"`.
 - **Anchor on edges, never centers.** A vertical connector between two stacked boxes runs from the bottom-edge midpoint of one to the top-edge midpoint of the next.
+- **Prefer `svgkit.connect(a, b)` / `chain` / `fanout`.** They pick mid-side anchors and turn diagonals into orthogonal L-paths so straight segments never cut a box. Drop to raw `arrow`/`lpath` only when you need a custom anchor.
 - **Never run a straight segment through a box.** Use an orthogonal L-shaped `<path>` to route around it. Only the *arriving* segment carries `marker-end`.
-- **Branches**: split a parent into children with `M px py L bx py L bx cy` per child (color each branch with its family LINE color); merge with the mirror.
+- **Branches**: `d.fanout(parent, [c1, c2, …])` for a shared bus + L-paths; or hand-split with `M px py L bx py L bx cy` per child (color each branch with its family LINE color); merge with the mirror.
+- **Dashed edges**: async / optional / dependency / «include» / «implements» → `dashed=True` on `connect`/`arrow`/`lpath` (not a second marker).
 - **Multiple arrows between the same two rows**: stagger by 15–20px so heads don't overlap.
 - **Crossings**: prefer rerouting. If unavoidable, a 5px white jump-over arc on the lower-priority line reads cleanly (we use no other tricks).
+- **Canvas size**: with `svgkit`, `save()` (default `fit=True`) grows the viewBox so nodes and the legend clear the edges — do not leave boxes clipped by a too-small canvas.
 
 ## 3. Arrow labels
 
@@ -71,9 +74,10 @@ The validator (`scripts/validate_svg.py`) automates the box/arrow check: it trea
 - [ ] No arrow crosses a box interior; endpoints sit on edges.
 - [ ] Labels ≤3 words; plates only where needed.
 - [ ] Every arrow label is shorter than its arrow — no overhang into a neighbouring box.
-- [ ] Legend clears all nodes — canvas is tall enough for a legend row at the bottom.
+- [ ] Legend clears all nodes — canvas is tall enough for a legend row at the bottom (`svgkit.save()` does this).
 - [ ] Legend present when 2+ families or 2+ arrow meanings appear.
 - [ ] Flat: no shadow/gradient/filter; strokes 0.5 (boxes) / 1.5 (lines).
+- [ ] Edges built with `connect`/`chain`/`fanout` (or carefully edge-anchored hand paths).
 - [ ] Ends with `</svg>`. Passes `python3 scripts/validate_svg.py`.
 
 ## Common anti-patterns

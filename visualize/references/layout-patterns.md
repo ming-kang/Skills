@@ -2,7 +2,7 @@
 
 Single-element primitives (boxes, arrows, containers) live in `svg-cookbook.md`; per-type layout rules in `diagram-types.md`; routing in `svg-layout-best-practices.md`. **This file is the catalogue of multi-element *compositing patterns*** — the recurring ways those primitives are combined to express something a bare box/arrow can't. Each is shown in the house warm tokens.
 
-Reach for these when the request is one of: a trust-boundary split, a numbered recipe / pipeline, an allow-vs-deny decision, a titled result panel, a repeating scope, a long feedback return, out-of-band side events, a two-line payload label, or a stateful cell strip. If `python3` is available, the `svgkit` helper implements the bolded ones as one-liners (`.step`, `.panel`, `.scope`, `.zone`).
+Reach for these when the request is one of: a trust-boundary split, a numbered recipe / pipeline, an allow-vs-deny decision, a titled result panel, a repeating scope, a long feedback return, out-of-band side events, a two-line payload label, or a stateful cell strip. If `python3` is available, the `svgkit` helper implements the bolded ones as one-liners (`.step`, `.panel`, `.scope`, `.zone`). For ordinary edges between boxes prefer `.connect` / `.chain` / `.fanout` over hand-picked anchors.
 
 > Style tokens, the marker, the type scale, and the flat rule all still apply — a pattern never justifies a new color, a filled triangle, or a shadow.
 

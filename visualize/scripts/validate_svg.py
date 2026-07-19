@@ -181,6 +181,7 @@ class Validator:
             self.check_arrow_collisions,
             self.check_box_viewbox_overflow,
             self.check_text_overflow,
+            self.check_label_overhang,
             self.check_type_scale,
             self.check_text_baseline,
             self.check_palette,
@@ -505,6 +506,84 @@ class Validator:
         if issues:
             return CheckResult("Checking text fit", "warn", details=issues, fix="Size boxes from the text: boxWidth = max(line widths) + 32, line ~= latin*8 + cjk*15 at 14px. svgkit.node() does this automatically.")
         return CheckResult("Checking text fit", "pass")
+
+    def check_label_overhang(self) -> CheckResult:
+        """Warn when an arrow label is much wider than the arrow it rides.
+
+        A long label on a short gap spills into neighbouring boxes. Prefer a
+        shorter wording or a wider gap (layout-best-practices §3).
+
+        Multi-segment paths are scored by their *longest* segment so a short
+        bend stub does not false-positive against a label on the long run.
+        """
+        assert self.root is not None
+        # Each arrow → (longest_seg_len, midpoints for proximity matching).
+        arrows: list[tuple[float, list[tuple[float, float]]]] = []
+        for element, ancestors in iter_with_ancestors(self.root):
+            if any(a in {"defs", "marker", "clipPath", "filter"} for a in ancestors):
+                continue
+            if not self.is_arrow(element):
+                continue
+            pts = self.arrow_points(element)
+            if len(pts) < 2:
+                continue
+            longest = 0.0
+            mids: list[tuple[float, float]] = []
+            for p1, p2 in zip(pts, pts[1:]):
+                seg_len = abs(p2[0] - p1[0]) + abs(p2[1] - p1[1])
+                longest = max(longest, seg_len)
+                mids.append(((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2))
+            # Also accept the overall path midpoint for curved / long routes.
+            mids.append(((pts[0][0] + pts[-1][0]) / 2, (pts[0][1] + pts[-1][1]) / 2))
+            arrows.append((longest, mids))
+
+        if not arrows:
+            return CheckResult("Checking arrow label length", "pass", "no arrows")
+
+        issues: list[str] = []
+        for element, ancestors in iter_with_ancestors(self.root):
+            if any(a in {"defs", "marker", "clipPath", "filter"} for a in ancestors):
+                continue
+            if local_name(element.tag) != "text":
+                continue
+            label = (element.text or "").strip()
+            if not label:
+                continue
+            # Skip box titles (font-weight 500 / size 14) — only captions on arrows.
+            size = parse_float(element.get("font-size"), 14.0)
+            weight = element.get("font-weight", "400")
+            if size >= 14 or weight in {"500", "600", "700", "bold"}:
+                continue
+            x = parse_float(element.get("x"))
+            y = parse_float(element.get("y"))
+            est = text_width(label, int(round(size)))
+            # Nearest arrow within 28px of any of its segment midpoints.
+            best_len = None
+            best_dist = 28.0
+            for longest, mids in arrows:
+                for mx, my in mids:
+                    dist = abs(mx - x) + abs(my - y)
+                    if dist < best_dist:
+                        best_dist = dist
+                        best_len = longest
+            if best_len is None:
+                continue
+            # Require a clear overhang (label > segment + 20px) so slightly
+            # snug labels that still read cleanly do not warn.
+            if best_len > 0 and est > best_len + 20:
+                issues.append(
+                    f'"{label}" (~{est:.0f}px) wider than its arrow '
+                    f"(longest segment {best_len:g}px)"
+                )
+            if len(issues) >= 6:
+                break
+
+        if issues:
+            return CheckResult(
+                "Checking arrow label length", "warn", details=issues,
+                fix="Shorten the label (≤3 words) or widen the gap so the arrow carries it. See references/svg-layout-best-practices.md §3.",
+            )
+        return CheckResult("Checking arrow label length", "pass")
 
     def check_box_viewbox_overflow(self) -> CheckResult:
         """Flag box/diamond/circle whose bounds spill past the viewBox.

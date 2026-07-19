@@ -39,6 +39,8 @@ The five families are a *vocabulary*, not a quota — using all of them in one d
 <rect x="440" y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.4"/>
 ```
 
+With `svgkit`: `d.node(x, y, "Stage 1", family="green", opacity=0.9)` (and 0.55 / 0.4 for siblings).
+
 ### Decorative pastel tints
 
 For grids, patch-maps, and categorical cells — *fill only*, with a `rgba(31,30,29,0.3)` 0.5 stroke:

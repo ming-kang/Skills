@@ -117,7 +117,7 @@ Static structure showing classes, attributes, methods, and relationships.
 - **Interface**: `<<interface>>` stereotype above name; **Enum**: `<<enumeration>>`
 - Layout: parent classes top, children below; interfaces to the left/right
 - ViewBox: width ~720, height grows with content (taller for deep hierarchies)
-- Helper: `.class_box(x, y, name, attrs, methods, family=..., abstract=False, stereotype="interface")` renders the 3-compartment box (min width 160, abstract name italic). Dashed realization lines are hand-written via `.raw()` (svgkit's `.arrow()`/`.lpath()` are solid). See `assets/gallery/class-diagram.svg`.
+- Helper: `.class_box(x, y, name, attrs, methods, family=..., abstract=False, stereotype="interface")` renders the 3-compartment box (min width 160, abstract name italic). Dashed realization / dependency lines use `.connect(..., dashed=True)` or `.arrow(..., dashed=True)` (no hand-written path needed). See `assets/gallery/class-diagram.svg`.
 
 ## Use Case Diagram (UML)
 
@@ -134,7 +134,7 @@ System functionality from user perspective.
   - Extend: dashed line + chevron + label `«extend»` (extension → base)
   - Generalization (actor or use case): solid line + chevron + label `extends`
 - ViewBox: width ~720, height grows with content
-- Helpers: `.actor(cx, y, label, family=...)` (stick figure + 14px label; returns a Box for anchoring, and is NOT a collision obstacle — keep actors outside the boundary), `.usecase(x, y, label, family=...)` (ellipse min 140×60). **Ellipses ARE obstacles**, so route `«include»`/`«extend»` arrows with `.lpath()` through the row gutters around neighbouring ellipses. See `assets/gallery/use-case.svg`.
+- Helpers: `.actor(cx, y, label, family=...)` (stick figure + 14px label; returns a Box for anchoring, and is NOT a collision obstacle — keep actors outside the boundary), `.usecase(x, y, label, family=...)` (ellipse min 140×60). **Ellipses ARE obstacles**, so route `«include»`/`«extend»` with `.connect(..., dashed=True)` or `.lpath(..., dashed=True)` through the row gutters around neighbouring ellipses. See `assets/gallery/use-case.svg`.
 
 ## State Machine Diagram (UML)
 

@@ -15,38 +15,42 @@ python3 << 'EOF'
 import sys; sys.path.insert(0, 'scripts')   # adjust to the skill's scripts/ dir
 from svgkit import Diagram
 
-d = Diagram(760, 240,
+d = Diagram(760, 200,
             title="RAG pipeline",
             desc="Query is embedded, retrieves top-k, then grounded by the LLM.")
-q = d.node(40, 100, "Query", "user question")
-e = d.node(d.right_of(q, 56), 100, "Embed", "to vector")
-r = d.node(d.right_of(e, 56), 100, "Retriever", "top-k passages", family="green")
-l = d.node(d.right_of(r, 56), 100, "LLM", "grounded answer", family="purple")
-d.arrow(q.right, e.left)
-d.arrow(e.right, r.left, color="green",  label="vector")
-d.arrow(r.right, l.left, color="purple", label="context")
+boxes = d.row([
+    {"title": "Query", "sub": "user question"},
+    {"title": "Embed", "sub": "to vector"},
+    {"title": "Retriever", "sub": "top-k passages", "family": "green"},
+    {"title": "LLM", "sub": "grounded answer", "family": "purple"},
+], x=40, y=80, gap=56)
+d.chain(boxes, labels=[None, "vector", "context"])
 d.legend([("green", "retrieval path"), ("purple", "generation")])
-d.save("rag-pipeline.svg")
+d.save("rag-pipeline.svg")   # fit() grows the canvas to clear content + legend
 print("SVG generated")
 EOF
 ```
 
-That is the **entire** diagram. The equivalent by hand is ~30 lines of `<rect>`/ `<text>`/`<line>` plus four width computations and four edge-anchor calculations — more output tokens, and every coordinate is a chance to clip text or cross a box.
+That is the **entire** diagram. Prefer `row`/`col` + `chain`/`connect`/`fanout` over hand-picked coordinates and raw `arrow` calls — fewer tokens, fewer collisions, no text overflow.
 
 **API (primitives + shape helpers, 1:1 with the visual vocabulary):**
 
 | Call | Emits |
 |---|---|
 | `text_width(s, size=14)` | px width estimate (Latin×8 / CJK×15 at 14px) — the boring math |
-| `Diagram(w, h, title, desc, fixed_size=False)` | skeleton + marker + white bg + title/desc + auto z-order; canvas height auto-grows to fit content + legend (use `fixed_size=True` to lock the declared size) |
-| `.node(x, y, title, sub=None, family="neutral", w=None, lines=None)` → `Box` | a box; auto-sizes width if `w` omitted; `lines` adds extra 12/SUB rows (multi-line card); returns edge anchors `.top/.bottom/.left/.right/.cx/.cy` |
+| `Diagram(w, h, title, desc)` | skeleton + marker + white bg + title/desc + auto z-order |
+| `.node(x, y, title, sub=None, family="neutral", w=None, lines=None, opacity=None)` → `Box` | a box; auto-sizes width if `w` omitted; `lines` adds extra 12/SUB rows; `opacity` tints siblings within one family |
 | `.right_of(box, gap=60)` | X coordinate `gap` px to the right of `box` (for the next node) |
 | `.below(box, gap=60)` | Y coordinate `gap` px below `box` (vertical twin of `right_of`) |
-| `.row([{...}, …], x=40, y=40, gap=56, align="center")` → `[Box]` | lay nodes left→right with equal gaps; `align="center"` (default) centres mixed-height rows on a common midline, `align="top"` keeps the old top-edge baseline |
-| `.col([{...}, …], x=40, y=40, gap=60, align="center")` → `[Box]` | lay nodes top→bottom in a column with equal gaps; `align="center"` (default) centres mixed-width columns on a common centre line, `align="left"` keeps the old flush-left behaviour |
+| `.row([{...}, …], x=40, y=40, gap=56)` → `[Box]` | lay nodes left→right on one baseline with equal gaps |
+| `.col([{...}, …], x=40, y=40, gap=60)` → `[Box]` | lay nodes top→bottom in a column with equal gaps |
+| `.chain(boxes, color=None, labels=None, …)` | connect consecutive boxes via `connect` (pipeline one-liner) |
+| `.connect(src, dst, color=None, label=None, route="auto", dashed=False, bidirectional=False)` | **preferred** box-to-box edge: picks mid-side anchors; diagonals → orthogonal L-path |
+| `.fanout(parent, children, color=None, labels=None, gutter=24)` | one-to-many orthogonal branch with a shared bus |
+| `.fit(margin=40)` → `self` | grow canvas so tracked content + legend clear the edges |
 | `.state(x, y, title, sub=None, …)` → `Box` | state-machine rounded rect (alias of `node`) |
 | `.diamond(x, y, title, family="amber", hw=None, hh=40)` → `Box` | flowchart decision diamond with centred title |
-| `.usecase(x, y, label, family="neutral", w=None, h=60)` → `Box` | UML use-case ellipse (min 140×60). Ellipses ARE collision obstacles — route «include»/«extend» with `.lpath()` around neighbours |
+| `.usecase(x, y, label, family="neutral", w=None, h=60)` → `Box` | UML use-case ellipse (min 140×60). Ellipses ARE collision obstacles — route «include»/«extend» with `.lpath()` or `.connect` around neighbours |
 | `.actor(cx, y, label, family="neutral")` → `Box` | UML stick figure (circle head + body) with a 14px label below. Anchor-only Box (no rect drawn); NOT a collision obstacle — keep outside the boundary |
 | `.cylinder(x, y, title, sub=None, family="green", w=None, h=54)` → `Box` | datastore cylinder |
 | `.lifeline(x, label, y0, y1, family="neutral")` → `Lifeline` | sequence actor box + dashed vertical lifeline |
@@ -57,14 +61,17 @@ That is the **entire** diagram. The equivalent by hand is ~30 lines of `<rect>`/
 | `.step(x, y, n, title, sub=None, family="neutral")` → `Box` | numbered step card (circled badge + title + sub) — recipe / ladder |
 | `.bar(x, y, w, label, family="neutral", h=28)` → `Box` | Gantt / timeline bar; rounded rect with centred inside label. h=28 < 30 so it is NOT a collision obstacle. Width is the time span, not the label |
 | `.panel(x, y, w, h, title, subtitle=None, family="neutral")` → `Box` | white card with a colored header band (the "Step 1 / Result" window) |
-| `.arrow(a, b, color=None, label=None, plate=False, route="auto")` | connector with obstacle avoidance (only the arrival carries the marker); `route="auto"` routes around placed boxes (L-bend for diagonal/horizontal, U-bend above/below for the three-boxes-in-a-row case), `route="straight"` keeps the old straight line |
-| `.lpath([p1, p2, …], color=None, label=None)` | orthogonal L-route around obstacles |
-| `.curve(a, b, color=None, label=None)` | cubic bezier branch (mind-map / concept-map) |
+| `.arrow(a, b, color=None, label=None, plate=False, dashed=False, bidirectional=False)` | straight point-to-point connector (prefer `connect` when both ends are boxes) |
+| `.lpath([p1, p2, …], color=None, label=None, dashed=False)` | orthogonal L-route around obstacles |
+| `.curve(a, b, color=None, label=None, marker=True, dashed=False)` | cubic bezier branch (mind-map / concept-map) |
 | `.container(x, y, w, h, label=None, sub=None, solid=False)` | dashed group (rx14) or solid panel (rx20) |
 | `.scope(x, y, w, h, label, sub=None)` → `Box` | dashed loop/scope frame with an uppercase tracked badge (`EACH TURN`…) |
 | `.zone(divider_x, y_top, y_bottom, left_label, right_label, left_cx, right_cx)` | vertical dashed trust-boundary divider + two column headers |
-| `.legend([(family, label), …])` | swatch+label row near the bottom |
-| `.raw(svg, layer)` | **escape hatch** — hand-written SVG on a chosen z-layer. `layer` is required (no silent default): pick one of `containers`, `arrows`, `plates`, `boxes`, `box_text`, `labels`, `legend`. Text must go on `box_text` or `labels` — never `boxes` — or it will be painted under later color blocks |
+| `.legend([(family, label), …])` | swatch+label row just below tracked content (then `save`/`fit` grows canvas) |
+| `.save(path, fit=True)` | write SVG; default `fit=True` auto-grows the viewBox |
+| `.raw(svg, layer=…)` | **escape hatch** — hand-written SVG on a chosen z-layer |
+
+**Quality defaults:** use `connect` (or `chain`/`fanout`) instead of guessing edge midpoints; call `save()` so `fit()` prevents viewBox clipping; pass `dashed=True` for async/dependency/«implements» lines (no more hand-written dashed paths for ordinary edges).
 
 `family` is one of `neutral / green / purple / terracotta / amber`. `color` takes a family name **or** a raw hex. Layers for `.raw()`: `containers, arrows, plates, boxes, box_text, labels, legend`.
 

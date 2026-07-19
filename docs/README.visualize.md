@@ -18,13 +18,20 @@ Draw a Mem0 memory architecture diagram and save it to ~/Desktop/.
 Draw a microservice architecture diagram: Client -> API Gateway -> User Service / Order Service -> PostgreSQL + Redis.
 ```
 
-The agent identifies the diagram type, opens the matching reference from `assets/gallery/<type>.svg`, and writes an SVG in the Visualize house style.
+The agent classifies the diagram type, opens the matching gallery reference only when needed, and writes an SVG in the Visualize house style via the bundled `svgkit` helper.
 
 ## What It Produces
 
 Visualize writes SVG by default. The SVG is editable, scalable, and can be opened directly in a browser or embedded in documentation.
 
-When Python 3 is available, the skill uses the included `svgkit` helper to size boxes from their text, anchor arrows on box edges, and keep the SVG structure valid. If Python is not available, the agent can still write the SVG directly.
+When Python 3 is available, the skill uses `svgkit` to:
+
+- Size boxes from their text (Latin and CJK)
+- Anchor arrows on box edges (`connect` / `chain` / `fanout`)
+- Auto-grow the canvas so nodes and legends are not clipped
+- Keep the SVG structure valid (marker, z-order, closing tag)
+
+If Python is not available, the agent can still write the SVG directly.
 
 No dependencies are installed by this skill.
 
@@ -71,7 +78,7 @@ The exact tokens live in [`references/style.md`](../visualize/references/style.m
 
 ```text
 visualize/
-├── SKILL.md                         # Runtime entry point for the agent
+├── SKILL.md                         # Runtime entry point (progressive loading)
 ├── references/                      # On-demand knowledge files
 │   ├── style.md                     # Visual tokens and hard style rules
 │   ├── svg-cookbook.md              # svgkit API and SVG snippets
