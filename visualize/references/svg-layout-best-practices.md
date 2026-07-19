@@ -78,7 +78,7 @@ The validator (`scripts/validate_svg.py`) automates the box/arrow check: it trea
 - [ ] Legend present when 2+ families or 2+ arrow meanings appear.
 - [ ] Flat: no shadow/gradient/filter; strokes 0.5 (boxes) / 1.5 (lines).
 - [ ] Edges built with `connect`/`chain`/`fanout` (or carefully edge-anchored hand paths).
-- [ ] Ends with `</svg>`. Passes `python3 scripts/validate_svg.py`.
+- [ ] Ends with `</svg>`. Passes `python3 scripts/validate_svg.py -q`.
 
 ## Common anti-patterns
 

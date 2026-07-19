@@ -12,41 +12,55 @@ Read the matching diagram in `assets/gallery/<type>.svg` for the feel of each pa
 
 ```python
 python3 << 'EOF'
-import sys; sys.path.insert(0, 'scripts')   # adjust to the skill's scripts/ dir
+import sys
+from pathlib import Path
+# Resolve scripts/ from cwd (repo root or skill root) — see SKILL.md bootstrap
+for base in (Path.cwd(), *Path.cwd().parents):
+    for rel in (("visualize", "scripts"), ("scripts",)):
+        p = base.joinpath(*rel)
+        if (p / "svgkit.py").is_file():
+            sys.path.insert(0, str(p)); break
+    else:
+        continue
+    break
 from svgkit import Diagram
 
 d = Diagram(760, 200,
             title="RAG pipeline",
             desc="Query is embedded, retrieves top-k, then grounded by the LLM.")
-boxes = d.row([
+d.pipeline([
     {"title": "Query", "sub": "user question"},
     {"title": "Embed", "sub": "to vector"},
     {"title": "Retriever", "sub": "top-k passages", "family": "green"},
     {"title": "LLM", "sub": "grounded answer", "family": "purple"},
-], x=40, y=80, gap=56)
-d.chain(boxes, labels=[None, "vector", "context"])
-d.legend([("green", "retrieval path"), ("purple", "generation")])
+], labels=[None, "vector", "context"],
+   legend=[("green", "retrieval path"), ("purple", "generation")])
 d.save("rag-pipeline.svg")   # fit() grows the canvas to clear content + legend
 print("SVG generated")
 EOF
 ```
 
-That is the **entire** diagram. Prefer `row`/`col` + `chain`/`connect`/`fanout` over hand-picked coordinates and raw `arrow` calls — fewer tokens, fewer collisions, no text overflow.
+That is the **entire** diagram. Prefer `pipeline` (or `row`/`col` + `chain`/`connect`/`fanout`) over hand-picked coordinates and raw `arrow` calls — fewer tokens, fewer collisions, no text overflow. Domain skeletons: `references/recipes.md`.
 
 **API (primitives + shape helpers, 1:1 with the visual vocabulary):**
 
 | Call | Emits |
 |---|---|
 | `text_width(s, size=14)` | px width estimate (Latin×8 / CJK×15 at 14px) — the boring math |
+| `resolve_scripts_dir()` / `ensure_on_path()` | locate this skill's `scripts/` from cwd and put it on `sys.path` |
 | `Diagram(w, h, title, desc)` | skeleton + marker + white bg + title/desc + auto z-order |
 | `.node(x, y, title, sub=None, family="neutral", w=None, lines=None, opacity=None)` → `Box` | a box; auto-sizes width if `w` omitted; `lines` adds extra 12/SUB rows; `opacity` tints siblings within one family |
 | `.right_of(box, gap=60)` | X coordinate `gap` px to the right of `box` (for the next node) |
 | `.below(box, gap=60)` | Y coordinate `gap` px below `box` (vertical twin of `right_of`) |
 | `.row([{...}, …], x=40, y=40, gap=56)` → `[Box]` | lay nodes left→right on one baseline with equal gaps |
 | `.col([{...}, …], x=40, y=40, gap=60)` → `[Box]` | lay nodes top→bottom in a column with equal gaps |
-| `.chain(boxes, color=None, labels=None, …)` | connect consecutive boxes via `connect` (pipeline one-liner) |
+| `.grid([[{...}], …], x=40, y=40, gap_x=56, gap_y=60)` → `[[Box]]` | 2-D grid of node specs (rows of rows) |
+| `.pipeline([{...}, …], labels=None, legend=None, auto_legend=False, …)` → `[Box]` | **fast path** — `row` + `chain` (+ optional legend) in one call |
+| `.chain(boxes, color=None, labels=None, …)` | connect consecutive boxes via `connect` |
 | `.connect(src, dst, color=None, label=None, route="auto", dashed=False, bidirectional=False)` | **preferred** box-to-box edge: picks mid-side anchors; diagonals → orthogonal L-path |
 | `.fanout(parent, children, color=None, labels=None, gutter=24)` | one-to-many orthogonal branch with a shared bus |
+| `.heading(text, x=40, y=36, size=16)` | optional 15–16px canvas title above content |
+| `.auto_legend(labels=None)` → `bool` | legend from non-neutral families on tracked boxes (when 2+ families) |
 | `.fit(margin=40)` → `self` | grow canvas so tracked content + legend clear the edges |
 | `.state(x, y, title, sub=None, …)` → `Box` | state-machine rounded rect (alias of `node`) |
 | `.diamond(x, y, title, family="amber", hw=None, hh=40)` → `Box` | flowchart decision diamond with centred title |
@@ -71,7 +85,9 @@ That is the **entire** diagram. Prefer `row`/`col` + `chain`/`connect`/`fanout` 
 | `.save(path, fit=True)` | write SVG; default `fit=True` auto-grows the viewBox |
 | `.raw(svg, layer=…)` | **escape hatch** — hand-written SVG on a chosen z-layer |
 
-**Quality defaults:** use `connect` (or `chain`/`fanout`) instead of guessing edge midpoints; call `save()` so `fit()` prevents viewBox clipping; pass `dashed=True` for async/dependency/«implements» lines (no more hand-written dashed paths for ordinary edges).
+**Quality defaults:** use `pipeline` / `connect` (or `chain`/`fanout`) instead of guessing edge midpoints; call `save()` so `fit()` prevents viewBox clipping; pass `dashed=True` for async/dependency/«implements» lines (no more hand-written dashed paths for ordinary edges). Use `auto_legend=True` on `pipeline` (or `auto_legend()`) when two or more families appear and you do not need custom gloss text.
+
+**Validate (agent-friendly):** `python3 scripts/validate_svg.py -q out.svg` — one-line `OK`/`FAIL`; full check list still runs, failures still print with fixes.
 
 `family` is one of `neutral / green / purple / terracotta / amber`. `color` takes a family name **or** a raw hex. Layers for `.raw()`: `containers, arrows, plates, boxes, box_text, labels, legend`.
 

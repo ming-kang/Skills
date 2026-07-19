@@ -18,7 +18,7 @@ Draw a Mem0 memory architecture diagram and save it to ~/Desktop/.
 Draw a microservice architecture diagram: Client -> API Gateway -> User Service / Order Service -> PostgreSQL + Redis.
 ```
 
-The agent classifies the diagram type, opens the matching gallery reference only when needed, and writes an SVG in the Visualize house style via the bundled `svgkit` helper.
+The agent classifies the diagram type, opens only the references it needs (progressive loading), and writes an SVG in the Visualize house style via the bundled `svgkit` helper. Linear diagrams use a one-call `pipeline()` fast path; domain skeletons live in `references/recipes.md`.
 
 ## What It Produces
 
@@ -27,13 +27,19 @@ Visualize writes SVG by default. The SVG is editable, scalable, and can be opene
 When Python 3 is available, the skill uses `svgkit` to:
 
 - Size boxes from their text (Latin and CJK)
+- Build linear diagrams with `pipeline()` (row + chain + optional legend)
 - Anchor arrows on box edges (`connect` / `chain` / `fanout`)
 - Auto-grow the canvas so nodes and legends are not clipped
 - Keep the SVG structure valid (marker, z-order, closing tag)
+- Resolve its own `scripts/` path from the working directory when possible
 
 If Python is not available, the agent can still write the SVG directly.
 
-No dependencies are installed by this skill.
+No dependencies are installed by this skill. Validate with:
+
+```bash
+python3 visualize/scripts/validate_svg.py -q diagram.svg
+```
 
 ## Supported Diagram Types
 
@@ -80,6 +86,7 @@ The exact tokens live in [`references/style.md`](../visualize/references/style.m
 visualize/
 ├── SKILL.md                         # Runtime entry point (progressive loading)
 ├── references/                      # On-demand knowledge files
+│   ├── recipes.md                   # Domain / layout skeletons (fast copy-paste)
 │   ├── style.md                     # Visual tokens and hard style rules
 │   ├── svg-cookbook.md              # svgkit API and SVG snippets
 │   ├── svg-layout-best-practices.md # Layout, routing, and spacing rules
@@ -91,8 +98,9 @@ visualize/
 │   └── icons.md                     # Optional pictorial shape snippets
 ├── scripts/
 │   ├── svgkit.py                    # Default zero-dependency SVG helper
-│   ├── validate_svg.py              # SVG quality validator
-│   └── check_palette.py             # Palette drift check (style ↔ svgkit ↔ validator)
+│   ├── validate_svg.py              # SVG quality validator (-q for one-line summary)
+│   ├── check_palette.py             # Palette drift check (style ↔ svgkit ↔ validator)
+│   └── _regen_gallery.py            # Regenerate gallery/sample reference SVGs
 └── assets/
     ├── gallery/                     # Reference diagrams by type
     └── samples/                     # Showcase examples

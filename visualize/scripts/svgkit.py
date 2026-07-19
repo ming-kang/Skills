@@ -27,21 +27,39 @@ Quick start
 -----------
 >>> from svgkit import Diagram
 >>> d = Diagram(680, 200, title="RAG pipeline", desc="Query to grounded answer.")
->>> boxes = d.row([
+>>> d.pipeline([
 ...     {"title": "Query", "sub": "user question"},
 ...     {"title": "Retriever", "sub": "top-k", "family": "green"},
-... ], x=40, y=90, gap=60)
->>> d.chain(boxes, labels=["embed"])
+... ], labels=["embed"], auto_legend=True)
 >>> d.save("rag.svg")  # fit() grows the canvas; boxes sized from text
+
+Path bootstrap (any cwd)
+------------------------
+>>> from svgkit import ensure_on_path  # only if already importable
+>>> # Or, before import:
+>>> #   from pathlib import Path; import sys
+>>> #   from svgkit import ensure_on_path  # after sys.path has scripts/
 """
 
 from __future__ import annotations
 
 import math
+import sys
 import unicodedata
 from dataclasses import dataclass
+from pathlib import Path
 
-__all__ = ["FAMILIES", "text_width", "box_width", "snap", "Box", "Lifeline", "Diagram"]
+__all__ = [
+    "FAMILIES",
+    "text_width",
+    "box_width",
+    "snap",
+    "resolve_scripts_dir",
+    "ensure_on_path",
+    "Box",
+    "Lifeline",
+    "Diagram",
+]
 
 
 # --------------------------------------------------------------------------- #
@@ -136,6 +154,67 @@ def _resolve_line(color: str | None) -> str:
     if color in FAMILIES:
         return FAMILIES[color]["line"]
     return color
+
+
+def _family(name: str) -> dict[str, str]:
+    """Look up a color family; raise with a clear fix when the name is wrong."""
+    try:
+        return FAMILIES[name]
+    except KeyError:
+        known = ", ".join(FAMILIES)
+        raise KeyError(f"unknown family {name!r}; choose from: {known}") from None
+
+
+# Default legend glosses for auto_legend() — short, house-style meanings.
+_FAMILY_GLOSS: dict[str, str] = {
+    "neutral": "default / plumbing",
+    "green": "primary / success",
+    "purple": "alternate / parallel",
+    "terracotta": "warning / failure",
+    "amber": "highlight",
+}
+
+
+def resolve_scripts_dir(start: Path | str | None = None) -> Path | None:
+    """Find this skill's ``scripts/`` directory from ``start`` (or cwd).
+
+    Walks parents looking for either ``visualize/scripts/svgkit.py`` (repo root)
+    or ``scripts/svgkit.py`` (skill root). Returns ``None`` if nothing matches.
+    Lets agents import without hard-coding an absolute path or guessing cwd.
+    """
+    root = Path(start) if start is not None else Path.cwd()
+    if root.is_file():
+        root = root.parent
+    for base in (root, *root.parents):
+        for rel in (("visualize", "scripts"), ("scripts",)):
+            candidate = base.joinpath(*rel)
+            if (candidate / "svgkit.py").is_file():
+                return candidate.resolve()
+    # Last resort: directory of this file (when svgkit itself is already importable).
+    here = Path(__file__).resolve().parent
+    if (here / "svgkit.py").is_file():
+        return here
+    return None
+
+
+def ensure_on_path(start: Path | str | None = None) -> Path:
+    """Insert the skill ``scripts/`` dir on ``sys.path`` and return it.
+
+    Raises ``FileNotFoundError`` with a fix hint when the skill cannot be found.
+    Safe to call more than once.
+    """
+    scripts = resolve_scripts_dir(start)
+    if scripts is None:
+        raise FileNotFoundError(
+            "could not locate visualize/scripts/svgkit.py from "
+            f"{Path(start) if start is not None else Path.cwd()}; "
+            "pass the skill root or repo root to ensure_on_path(), or "
+            "sys.path.insert(0, '<path-to-visualize>/scripts')"
+        )
+    s = str(scripts)
+    if s not in sys.path:
+        sys.path.insert(0, s)
+    return scripts
 
 
 # --------------------------------------------------------------------------- #
@@ -311,6 +390,63 @@ class Diagram:
                 lab = labels[i]
             self.connect(boxes[i], boxes[i + 1], color=color, label=lab, **kw)
 
+    def pipeline(self, specs: list[dict], *, x: float = 40, y: float = 80,
+                 gap: float = 56, labels: list[str | None] | None = None,
+                 color: str | None = None,
+                 legend: list[tuple[str, str]] | None = None,
+                 auto_legend: bool = False, **chain_kw) -> list[Box]:
+        """Fast-path linear diagram: ``row`` + ``chain`` (+ optional legend).
+
+        Prefer this over separate ``row``/``chain`` calls for ≤5-node pipelines —
+        fewer tokens for the agent, fewer coordinate mistakes. Returns the boxes.
+
+        ``legend`` is an explicit ``[(family, gloss), …]`` list. ``auto_legend=True``
+        builds a legend from non-neutral families used on the boxes (see
+        ``auto_legend()``). Explicit ``legend`` wins if both are given.
+        """
+        boxes = self.row(specs, x=x, y=y, gap=gap)
+        self.chain(boxes, color=color, labels=labels, **chain_kw)
+        if legend is not None:
+            self.legend(legend)
+        elif auto_legend:
+            self.auto_legend()
+        return boxes
+
+    def grid(self, rows: list[list[dict]], *, x: float = 40, y: float = 40,
+             gap_x: float = 56, gap_y: float = 60) -> list[list[Box]]:
+        """Lay a 2-D grid of ``node`` specs; each inner list is one horizontal row.
+
+        Rows are left-aligned at ``x``; columns are *not* equal-width — each cell
+        sizes from its own text (use a fixed ``w`` in the spec when you need a
+        matrix look). Returns ``list[list[Box]]`` matching the input shape.
+        """
+        result: list[list[Box]] = []
+        cur_y = y
+        for specs in rows:
+            row_boxes = self.row(specs, x=x, y=cur_y, gap=gap_x)
+            result.append(row_boxes)
+            if row_boxes:
+                cur_y = max(self.below(b, gap_y) for b in row_boxes)
+            else:
+                cur_y += gap_y
+        return result
+
+    def heading(self, text: str, *, x: float = 40, y: float = 36,
+                size: int = 16) -> None:
+        """Optional canvas heading (15–16px). Place above the first content row.
+
+        Does not reserve layout space automatically — keep content ``y`` below
+        the heading (typical: heading at y=36, first row at y=72–80).
+        """
+        if size < 15 or size > 16:
+            size = 16
+        self._layers["labels"].append(
+            f'  <text x="{snap(x)}" y="{snap(y)}" dominant-baseline="central" '
+            f'font-size="{size}" font-weight="500" fill="{CONTAINER_TITLE}">'
+            f'{_esc(text)}</text>'
+        )
+        self._note_extent(x, y - size / 2, text_width(text, size), size)
+
     def fit(self, margin: float = 40, legend_room: float | None = None) -> "Diagram":
         """Grow the canvas so every tracked shape clears ``margin`` from the edges.
 
@@ -366,7 +502,7 @@ class Diagram:
         """
         if sub is not None and lines is not None:
             raise ValueError("node() accepts `sub` (one line) or `lines` (many), not both")
-        fam = FAMILIES[family]
+        fam = _family(family)
         if lines is not None:
             if w is None:
                 cand = [box_width(title)]
@@ -433,7 +569,7 @@ class Diagram:
         ``(x + hw, y + hh)`` and spans ``2*hw`` × ``2*hh``). If ``hw`` is None it
         is sized from ``title``.
         """
-        fam = FAMILIES[family]
+        fam = _family(family)
         if hw is None:
             hw = max(text_width(title, 14) / 2 + 16, 50)
         cx, cy = x + hw, y + hh
@@ -461,7 +597,7 @@ class Diagram:
         collision obstacle, so route ``<<include>>`` / ``<<extend>>`` arrows with
         ``lpath()`` around neighbouring ellipses.
         """
-        fam = FAMILIES[family]
+        fam = _family(family)
         if w is None:
             w = max(box_width(label), 140)
         rx, ry = w / 2, h / 2
@@ -492,7 +628,7 @@ class Diagram:
         never need to cross the body. The returned ``Box`` is a rough anchor
         envelope — the label text sits below it (to ~y+74).
         """
-        fam = FAMILIES[family]
+        fam = _family(family)
         head_r = 8
         body_top = y + head_r * 2
         body_bot = body_top + 24
@@ -523,7 +659,7 @@ class Diagram:
     def cylinder(self, x: float, y: float, title: str, sub: str | None = None,
                  family: str = "green", w: float | None = None, h: float = 54) -> Box:
         """Datastore cylinder. ``(x, y)`` is the top-left of the body; cap ry = min(w/6, 9) (flat cap)."""
-        fam = FAMILIES[family]
+        fam = _family(family)
         if w is None:
             w = box_width(title, sub)
         # Flat cap (ry capped at 9) — matches the house-style cylinder in the
@@ -634,7 +770,7 @@ class Diagram:
     def entity(self, x: float, y: float, name: str, attrs: list[str],
                family: str = "neutral", w: float | None = None) -> Box:
         """ER entity: header band + attribute lines."""
-        fam = FAMILIES[family]
+        fam = _family(family)
         header_h = 28
         line_h = 18
         if w is None:
@@ -679,7 +815,7 @@ class Diagram:
         renders as ``<<interface>>`` above it. Visibility markers (``+`` / ``-`` /
         ``#``) belong in the attr/method strings the caller passes.
         """
-        fam = FAMILIES[family]
+        fam = _family(family)
         attrs = attrs or []
         methods = methods or []
         name_h = 30 + (10 if stereotype else 0)
@@ -754,7 +890,7 @@ class Diagram:
         the family TITLE color. Width grows from the text (44px badge area +
         16px right pad, min 150), so labels never clip. Height 56 with sub, 44 without.
         """
-        fam = FAMILIES[family]
+        fam = _family(family)
         if h is None:
             h = 56 if sub else 44
         if w is None:
@@ -803,7 +939,7 @@ class Diagram:
         ``w >= text_width(label, 12) + 16`` or the label clips (surfaced by the
         validator's text-fit check as a deliberate contract).
         """
-        fam = FAMILIES[family]
+        fam = _family(family)
         self._layers["boxes"].append(
             f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="6" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
@@ -828,7 +964,7 @@ class Diagram:
         height 26 is under the validator's 30px obstacle floor, so arrows still
         treat the whole panel as a single collision box.
         """
-        fam = FAMILIES[family]
+        fam = _family(family)
         band_h = 26
         self._layers["boxes"].append(
             f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
@@ -1040,9 +1176,15 @@ class Diagram:
             return
         stroke = _resolve_line(color)
         dash = self._dash_attr(dashed)
+        # Prefer vertical when every child is clearly above/below the parent
+        # band — otherwise a left-most first child makes abs(dx) dominate and the
+        # bus is drawn *through* mid-row siblings (architecture fan-out bug).
+        below = all(c.y >= parent.y + parent.h - 4 for c in children)
+        above = all(c.y + c.h <= parent.y + 4 for c in children)
         c0 = children[0]
         dx, dy = c0.cx - parent.cx, c0.cy - parent.cy
-        if abs(dx) >= abs(dy):
+        vertical = below or above or abs(dy) > abs(dx)
+        if not vertical:
             # Horizontal fan (children to the right or left).
             going_right = dx >= 0
             stem = parent.right if going_right else parent.left
@@ -1060,7 +1202,7 @@ class Diagram:
                            color=color, label=lab, dashed=dashed)
         else:
             # Vertical fan (children below or above).
-            going_down = dy >= 0
+            going_down = below or (not above and dy >= 0)
             stem = parent.bottom if going_down else parent.top
             bus_y = (parent.y + parent.h + gutter) if going_down else (parent.y - gutter)
             self._layers["arrows"].append(
@@ -1220,7 +1362,7 @@ class Diagram:
         cx = x
         row_y = y
         for family, label in items:
-            fam = FAMILIES.get(family, FAMILIES["neutral"])
+            fam = FAMILIES[family] if family in FAMILIES else FAMILIES["neutral"]
             item_w = 18 + text_width(label, 12) + gap
             if cx != x and cx + item_w > right_limit:
                 cx = x
@@ -1236,7 +1378,39 @@ class Diagram:
             cx += item_w
             self._note_extent(cx, row_y + 10)
 
-    # -- labels & escape hatch --------------------------------------------- #
+    def auto_legend(self, labels: dict[str, str] | None = None,
+                    *, include_neutral: bool = False) -> bool:
+        """Build a legend from families used on tracked boxes. Returns True if drawn.
+
+        Skips when fewer than two families appear on the diagram (house rule:
+        legend only when 2+ families convey meaning). Accent families get the
+        short glosses in ``_FAMILY_GLOSS`` unless ``labels`` overrides a key.
+        Call after placing all nodes; before or instead of an explicit ``legend()``.
+        """
+        order: list[str] = []
+        seen: set[str] = set()
+        for box in self._boxes:
+            fam = box.family
+            if fam not in FAMILIES or fam in seen:
+                continue
+            if fam == "neutral" and not include_neutral:
+                continue
+            seen.add(fam)
+            order.append(fam)
+        # Count neutrals toward the "2+ families" rule even when not shown.
+        all_families = {b.family for b in self._boxes if b.family in FAMILIES}
+        if include_neutral:
+            family_count = len(all_families)
+        else:
+            family_count = len(all_families)  # neutrals still count if present
+        if family_count < 2 or not order:
+            return False
+        gloss = labels or {}
+        items = [(f, gloss.get(f, _FAMILY_GLOSS.get(f, f))) for f in order]
+        self.legend(items)
+        return True
+
+    # -- escape hatch ------------------------------------------------------ #
 
     def label(self, x: float, y: float, text: str,
                size: int = 12, color: str = CAPTION,

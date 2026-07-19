@@ -57,10 +57,10 @@
   <rect x="400" y="38" width="16" height="14" rx="3" fill="#1D9E75"/>
   <rect x="420" y="38" width="16" height="14" rx="3" fill="#1D9E75"/>
   <rect x="440" y="38" width="16" height="14" rx="3" fill="#1D9E75"/>
-  <rect x="460" y="38" width="16" height="14" rx="3" fill="#DAD8CF"/>
-  <rect x="480" y="38" width="16" height="14" rx="3" fill="#DAD8CF"/>
-  <rect x="500" y="38" width="16" height="14" rx="3" fill="#DAD8CF"/>
-  <rect x="520" y="38" width="16" height="14" rx="3" fill="#DAD8CF"/>
+  <rect x="460" y="38" width="16" height="14" rx="3" fill="#F1EFE8"/>
+  <rect x="480" y="38" width="16" height="14" rx="3" fill="#F1EFE8"/>
+  <rect x="500" y="38" width="16" height="14" rx="3" fill="#F1EFE8"/>
+  <rect x="520" y="38" width="16" height="14" rx="3" fill="#F1EFE8"/>
   <rect x="48" y="128" width="128" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <rect x="48" y="214" width="152" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <rect x="48" y="300" width="136" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>

@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Robust SVG validator for visualize.
 
-Run directly: ``python3 scripts/validate_svg.py <file>``. The parsing-heavy
-checks live in Python so they work consistently from Git Bash, macOS, Linux,
-and CI.
+Run directly: ``python3 scripts/validate_svg.py <file>``.
+Agent-friendly summary: ``python3 scripts/validate_svg.py -q <file>`` (one-line
+OK/FAIL; failures and warnings still print with fix hints).
+
+The parsing-heavy checks live in Python so they work consistently from Git Bash,
+macOS, Linux, and CI.
 """
 
 from __future__ import annotations
@@ -153,9 +156,11 @@ class Bounds:
 
 
 class Validator:
-    def __init__(self, svg_path: Path, no_color: bool = False) -> None:
+    def __init__(self, svg_path: Path, no_color: bool = False,
+                 quiet: bool = False) -> None:
         self.svg_path = svg_path
         self.no_color = no_color
+        self.quiet = quiet
         self.text = ""
         self.root: ET.Element | None = None
         self.failures = 0
@@ -163,14 +168,18 @@ class Validator:
         self.viewbox: tuple[float, float, float, float] | None = None
 
     def run(self) -> int:
-        print(f"Validating SVG: {self.svg_path}")
-        print("----------------------------------------")
+        if not self.quiet:
+            print(f"Validating SVG: {self.svg_path}")
+            print("----------------------------------------")
 
         for result in self.check_file_and_xml():
             self.report(result)
             if result.status == "fail":
-                print("----------------------------------------")
-                print(color("Validation failed (XML parse error)", "red", not self.no_color))
+                if self.quiet:
+                    print(color(f"FAIL {self.svg_path} (XML parse error)", "red", not self.no_color))
+                else:
+                    print("----------------------------------------")
+                    print(color("Validation failed (XML parse error)", "red", not self.no_color))
                 return 1
 
         checks = [
@@ -193,6 +202,14 @@ class Validator:
         for check in checks:
             self.report(check())
 
+        if self.quiet:
+            if self.failures == 0:
+                warn = f" ({self.warnings} warning(s))" if self.warnings else ""
+                print(color(f"OK {self.svg_path}{warn}", "green", not self.no_color))
+                return 0
+            print(color(f"FAIL {self.svg_path} ({self.failures} error(s))", "red", not self.no_color))
+            return 1
+
         print("----------------------------------------")
         if self.failures == 0:
             suffix = f" ({self.warnings} warning(s))" if self.warnings else ""
@@ -204,6 +221,8 @@ class Validator:
 
     def report(self, result: CheckResult) -> None:
         if result.status == "pass":
+            if self.quiet:
+                return
             status = color("✓ Pass", "green", not self.no_color)
         elif result.status == "warn":
             status = color("⚠ Warning", "yellow", not self.no_color)
@@ -899,9 +918,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate a generated SVG diagram.")
     parser.add_argument("svg_file", type=Path, help="SVG file to validate")
     parser.add_argument("--no-color", action="store_true", help="disable ANSI colors")
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="one-line OK/FAIL summary; still print failures and warnings",
+    )
     args = parser.parse_args()
 
-    return Validator(args.svg_file, no_color=args.no_color).run()
+    return Validator(args.svg_file, no_color=args.no_color, quiet=args.quiet).run()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Diagram gallery — owned, on-style references by type
 
-These are the skill's **own** reference diagrams, one per common diagram type, all in the single house style and all generated with `svgkit` (so they double as worked examples of the helper). They are license-clean — we drew them — and every file passes `scripts/validate_svg.py`. Read the one matching your task before drawing, then adapt.
+These are the skill's **own** reference diagrams, one per common diagram type, all in the single house style and all generated with `svgkit` (so they double as worked examples of the helper). They are license-clean — we drew them — and every file passes `scripts/validate_svg.py`. Read the one matching your task before drawing, then adapt. For linear / domain shortcuts that do not need a full type reference, prefer `references/recipes.md` first (cheaper tokens).
 
 Files live at `assets/gallery/<type>.svg`. Variants use a suffix, e.g. `data-flow_mobile.svg` for the narrow re-layout of the data-flow diagram.
 
@@ -9,7 +9,7 @@ Files live at `assets/gallery/<type>.svg`. Variants use a suffix, e.g. `data-flo
 | Architecture | `assets/gallery/architecture.svg` | Layered top-down: client → gateway → services → datastores; dashed service group; cylinders for stores; fan-out routed through row gutters. |
 | Data flow | `assets/gallery/data-flow.svg` | Linear pipeline with every arrow labeled by data shape (stream / batch / query); read vs write legend. `data-flow_mobile.svg` is the narrow re-layout variant (`layout-patterns.md` §10). |
 | Flowchart | `assets/gallery/flowchart.svg` | Decision **diamond** with yes/no branches and a terracotta feedback loop routed *around* the box (not through it). |
-| Sequence | `assets/gallery/sequence.svg` | Actors over dashed **lifelines**; colored request/response messages; return arrows in neutral. |
+| Sequence | `assets/gallery/sequence.svg` | Four actors over dashed **lifelines** (User → Client → Auth → Resource); dashed return messages; colored request arrows + legend. |
 | Comparison | `assets/gallery/comparison.svg` | Feature **matrix**; cell fill carries the verdict (green good / amber mixed / terracotta poor). |
 | Mind map | `assets/gallery/mind-map.svg` | Central node with **curved (bezier) branches** to radial leaves; branch color = family. |
 | Memory architecture | `assets/gallery/memory-architecture.svg` | Read/write split: manager writes to vector + graph stores, retrieval assembles context. |
