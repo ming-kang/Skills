@@ -272,16 +272,11 @@ class Diagram:
     """Accumulate primitives on z-ordered layers, then ``render()``/``save()``."""
 
     def __init__(self, width: float, height: float, title: str = "",
-                 desc: str = "", fixed_size: bool = False):
+                 desc: str = ""):
         self.width = width
         self.height = height
         self.title = title
         self.desc = desc
-        # When True, render() emits the declared (width, height) verbatim and
-        # only warns on overflow. When False (default), render() grows the
-        # height automatically so content + legend never clip. Escape hatch
-        # for layouts the agent has hand-sized.
-        self.fixed_size = fixed_size
         self._layers: dict[str, list[str]] = {name: [] for name in _LAYERS}
         # Geometry registry for fit() / connect() — every solid shape returned
         # from a primitive is tracked so the canvas can auto-grow and arrows can
@@ -364,14 +359,6 @@ class Diagram:
         sizes = [self._spec_size(spec) for spec in specs]
         max_h = max((h for _, h in sizes), default=0.0)
         boxes: list[Box] = []
-        if align == "center":
-            heights = [self._spec_height(s) for s in specs]
-            max_h = max(heights) if heights else 0
-            ys = [y + (max_h - h) / 2 for h in heights]
-        elif align == "top":
-            ys = [y] * len(specs)
-        else:
-            raise ValueError(f"row() align must be 'center' or 'top', got {align!r}")
         cur_x = x
         for spec, (_, h) in zip(specs, sizes):
             node_y = y + (max_h - h) / 2 if align == "center" else y
@@ -392,14 +379,6 @@ class Diagram:
         sizes = [self._spec_size(spec) for spec in specs]
         max_w = max((w for w, _ in sizes), default=0.0)
         boxes: list[Box] = []
-        if align == "center":
-            widths = [self._spec_width(s) for s in specs]
-            max_w = max(widths) if widths else 0
-            xs = [x + (max_w - w) / 2 for w in widths]
-        elif align == "left":
-            xs = [x] * len(specs)
-        else:
-            raise ValueError(f"col() align must be 'center' or 'left', got {align!r}")
         cur_y = y
         for spec, (w, _) in zip(specs, sizes):
             node_x = x + (max_w - w) / 2 if align == "center" else x
@@ -758,40 +737,6 @@ class Diagram:
         self._note_extent(x, y0, actor.w, y1 - y0)
         return Lifeline(actor=actor, x=cx, y0=y0, y1=y1)
 
-    def point(self, x: float, y: float, label: str | None = None,
-              family: str = "neutral", r: int = 5) -> Point:
-        """A small filled circle marker (with optional label) — scatter / concept-map dot.
-
-        Replaces the cookbook §7 hand-written snippet for embedding-space
-        points and concept-map leaves: one ``<circle r={r}>`` in the family
-        fill, plus an optional 12/CAPTION label offset to the upper-right.
-        The point itself sits on the ``boxes`` layer (it's a visual
-        artifact, not an obstacle) and the label on ``labels`` (drawn on
-        top, immune to being buried under later color blocks).
-
-        Returns the centre ``Point`` so callers can chain ``d.arrow()``
-        to it. Use ``r=8`` for milestone dots, ``r=3`` for dense scatter.
-
-        Not registered as a collision obstacle — ``r`` ≤ 8 is far below the
-        validator's 30px floor and arrows are expected to point AT the
-        point (leader lines), not flow around it.
-        """
-        fam = FAMILIES[family]
-        self._layers["boxes"].append(
-            f'  <circle cx="{snap(x)}" cy="{snap(y)}" r="{r}" '
-            f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
-        )
-        if label:
-            self._layers["labels"].append(
-                f'  <text x="{snap(x + r + 8)}" y="{snap(y - 4)}" font-size="12" '
-                f'fill="{CAPTION}">{_esc(label)}</text>'
-            )
-        self._track_extent(x - r, y - r, x + r, y + r)
-        if label:
-            tw = text_width(label, 12)
-            self._track_extent(x + r + 8, y - 4 - 6, x + r + 8 + tw, y - 4 + 6)
-        return (x, y)
-
     def state_dot(self, x: float, y: float, kind: str = "initial") -> Point:
         """UML initial (filled) or final (double circle) pseudo-state."""
         if kind == "initial":
@@ -864,8 +809,8 @@ class Diagram:
         attrs = attrs or []
         methods = methods or []
         name_h = 30 + (10 if stereotype else 0)
-        attr_h = len(attrs) * 18 + 8 if attrs else 0
-        meth_h = len(methods) * 18 + 8 if methods else 0
+        attr_h = max(len(attrs), 1) * 18 + 8
+        meth_h = max(len(methods), 1) * 18 + 8
         h = name_h + attr_h + meth_h
         if w is None:
             cand = [box_width(name), 160]
@@ -878,18 +823,14 @@ class Diagram:
             f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
-        has_attrs = bool(attrs)
-        has_methods = bool(methods)
-        if has_attrs or has_methods:
-            self._layers["boxes"].append(
-                f'  <line x1="{snap(x)}" y1="{snap(y + name_h)}" x2="{snap(x + w)}" '
-                f'y2="{snap(y + name_h)}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
-            )
-        if has_attrs and has_methods:
-            self._layers["boxes"].append(
-                f'  <line x1="{snap(x)}" y1="{snap(y + name_h + attr_h)}" x2="{snap(x + w)}" '
-                f'y2="{snap(y + name_h + attr_h)}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
-            )
+        self._layers["boxes"].append(
+            f'  <line x1="{snap(x)}" y1="{snap(y + name_h)}" x2="{snap(x + w)}" '
+            f'y2="{snap(y + name_h)}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
+        )
+        self._layers["boxes"].append(
+            f'  <line x1="{snap(x)}" y1="{snap(y + name_h + attr_h)}" x2="{snap(x + w)}" '
+            f'y2="{snap(y + name_h + attr_h)}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
+        )
         italic = ' font-style="italic"' if abstract else ''
         cx = x + w / 2
         if stereotype:
@@ -1059,7 +1000,6 @@ class Diagram:
                           abs(b[0] - a[0]) + 8, abs(b[1] - a[1]) + 8)
         if label:
             self._place_label(a, b, label, plate)
-        self._track_extent(a[0], a[1], b[0], b[1])
 
     def lpath(self, points: list[Point], color: str | None = None,
               label: str | None = None, plate: bool = False,
@@ -1089,38 +1029,11 @@ class Diagram:
         self._note_extent(min(xs) - 4, min(ys) - 4,
                           max(xs) - min(xs) + 8, max(ys) - min(ys) + 8)
         if label:
+            # Place the label on the longest segment — the most readable spot,
+            # not whichever index happens to sit at the middle.
             segs = [(points[i], points[i + 1]) for i in range(len(points) - 1)]
             longest = max(segs, key=lambda s: abs(s[1][0] - s[0][0]) + abs(s[1][1] - s[0][1]))
             self._place_label(longest[0], longest[1], label, plate)
-
-    def _warn_unrouteable(self, a: Point, b: Point) -> None:
-        """Print a one-line warning naming the segment and the obstacles hit."""
-        hit = [obs for obs in self._obstacles
-               if self._segment_intersects_rect(a, b, obs)]
-        names = [f"[{obs.x:g},{obs.y:g}-{obs.x + obs.w:g},{obs.y + obs.h:g}]"
-                 for obs in hit[:2]]
-        more = "..." if len(hit) > 2 else ""
-        print(
-            f"svgkit: arrow ({a[0]:g},{a[1]:g})→({b[0]:g},{b[1]:g}) "
-            f"can't avoid {', '.join(names)}{more}; emitting straight line. "
-            f"Re-layout or pass route='straight' to suppress this warning."
-        )
-
-    def lpath(self, points: list[Point], color: str | None = None,
-              label: str | None = None, plate: bool = False,
-              dashed: bool = False) -> None:
-        """An orthogonal multi-segment route; only the arriving end carries the marker.
-
-        User-driven geometry — ``lpath()`` does NOT consult the obstacle
-        registry (the agent already specified the route). Use this when you
-        want full manual control over the path; use ``arrow()`` for automatic
-        obstacle avoidance.
-        """
-        if len(points) < 2:
-            raise ValueError("lpath needs at least two points")
-        self._emit_arrow_path(points, color=color, label=label, plate=plate, dashed=dashed)
-        for p, q in zip(points[:-1], points[1:]):
-            self._track_extent(p[0], p[1], q[0], q[1])
 
     def curve(self, a: Point, b: Point, color: str | None = None,
               label: str | None = None, marker: bool = True,
@@ -1150,7 +1063,6 @@ class Diagram:
                           max(xs) - min(xs) + 8, max(ys) - min(ys) + 8)
         if label:
             self._place_label(a, b, label, plate=False)
-        self._track_extent(a[0], a[1], b[0], b[1])
 
     def connect(self, src: Box, dst: Box, color: str | None = None,
                 label: str | None = None, plate: bool = False,
@@ -1351,18 +1263,6 @@ class Diagram:
                            color=color, label=lab, dashed=dashed)
 
     def _place_label(self, a: Point, b: Point, label: str, plate: bool) -> None:
-        # Warn if the label is wider than the carrying segment — a residual
-        # defect mode the d25cf57 fix only patched partially. Warn-only;
-        # never mutate the label (the agent may have intentional verbosity).
-        seg_len = math.hypot(b[0] - a[0], b[1] - a[1])
-        label_w = text_width(label, 12)
-        if label_w > seg_len - 4 and seg_len > 0:
-            print(
-                f"svgkit: arrow label '{label}' is ~{label_w:.0f}px wide on a "
-                f"~{seg_len:.0f}px segment — it will overlap the arrow. "
-                f"Use a shorter label, give the arrow more room, or wrap with "
-                f"a plate=True background rect."
-            )
         mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
         vertical = abs(b[0] - a[0]) < abs(b[1] - a[1])
         lw = text_width(label, 12)
@@ -1403,8 +1303,6 @@ class Diagram:
                     f'rx="14" fill="none" stroke="rgba(31,30,29,0.3)" '
                     f'stroke-width="0.5" stroke-dasharray="4 3"/>')
         self._layers["containers"].append(rect)
-        # Track container extent even though arrows pass through (passive).
-        self._track_extent(x, y, x + w, y + h)
         if label:
             self._layers["containers"].append(
                 f'  <text x="{snap(x + 20)}" y="{snap(y + 26)}" dominant-baseline="central" '
@@ -1423,7 +1321,7 @@ class Diagram:
 
         For regions that *mean* something — "EACH TURN", "AGENTIC LOOP",
         "RETRY ×3". Visually a container() variant, but the label is uppercased,
-        weight 500, and tracked out (letter-spacing 2) so it reads as a scope
+        weight 600, and tracked out (letter-spacing 2) so it reads as a scope
         badge rather than a group title. Still dashed, still a non-obstacle, so
         arrows cross it freely. Returns a Box for anchoring inner content.
         """
@@ -1432,8 +1330,6 @@ class Diagram:
             f'rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" '
             f'stroke-dasharray="6 4"/>'
         )
-        # Scope extent matters for auto-fit height but not for obstacle avoidance.
-        self._track_extent(x, y, x + w, y + h)
         self._layers["containers"].append(
             f'  <text x="{snap(x + 22)}" y="{snap(y + 26)}" dominant-baseline="central" '
             f'font-size="14" font-weight="500" letter-spacing="2" '
@@ -1478,7 +1374,7 @@ class Diagram:
 
     def legend(self, items: list[tuple[str, str]], x: float = 40,
                y: float | None = None, gap: float = 24) -> None:
-        """Record legend items; ``render()`` emits them after auto-fit.
+        """A horizontal swatch+label row. ``items`` = [(family, label), ...].
 
         Wraps to a new line (24px down) if the next item would pass the right
         margin (40px from the edge); the first item on a row never triggers a
@@ -1550,58 +1446,12 @@ class Diagram:
 
     # -- escape hatch ------------------------------------------------------ #
 
-    def label(self, x: float, y: float, text: str,
-               size: int = 12, color: str = CAPTION,
-               anchor: str = "start", weight: int = 400) -> None:
-        """A standalone text label (not inside a box, not on an arrow).
-
-        Use for timeline tick labels, diagram sub-headings, footnotes, and any
-        annotation that lives outside the box/arrow/legend vocabulary.
-        ``color`` accepts a hex string or a family name; ``anchor`` is SVG's
-        ``text-anchor`` (start / middle / end).
-        """
-        if color in FAMILIES:
-            color = FAMILIES[color]["title"]
-        self._layers["labels"].append(
-            f'  <text x="{snap(x)}" y="{snap(y)}" text-anchor="{anchor}" '
-            f'dominant-baseline="central" font-size="{size}" font-weight="{weight}" '
-            f'fill="{color}">{_esc(text)}</text>'
-        )
-        # Approximate text extent via text_width; ascender/descender tolerance.
-        tw = text_width(text, size)
-        th = size * 1.2
-        if anchor == "middle":
-            self._track_extent(x - tw / 2, y - th / 2, x + tw / 2, y + th / 2)
-        elif anchor == "end":
-            self._track_extent(x - tw, y - th / 2, x, y + th / 2)
-        else:
-            self._track_extent(x, y - th / 2, x + tw, y + th / 2)
-
-    def raw(self, svg: str, layer: str) -> None:
+    def raw(self, svg: str, layer: str = "boxes") -> None:
         """Drop hand-written SVG onto ``layer`` (one of the z-order layers).
 
         Use for scatter plots, patch grids, vector bars — anything outside the
         box/arrow/container/legend vocabulary.
-
-        ``layer`` is **required**: the silent ``layer="boxes"`` default used
-        to bury ``<text>`` under later color blocks because ``box_text``
-        (rendered above ``boxes``) was the right layer for text. The
-        guiding error below names each layer's role so the mistake can't
-        recur.
         """
-        if layer is None:
-            raise ValueError(
-                "raw() requires an explicit layer argument. The seven layers "
-                "(back → front in the SVG paint order) are:\n"
-                "  'containers' — backdrop art (rects, paths drawn BEHIND everything)\n"
-                "  'arrows'     — line/path connectors\n"
-                "  'plates'     — opaque background rectangles for arrow labels\n"
-                "  'boxes'      — solid colored shapes (boxes, ellipses, cylinders)\n"
-                "  'box_text'   — text inside a box (renders above boxes)\n"
-                "  'labels'     — standalone text labels (NOT inside a box)\n"
-                "  'legend'     — swatch+text legend rows\n"
-                "Text goes on 'box_text' or 'labels', never 'boxes'."
-            )
         if layer not in self._layers:
             raise ValueError(f"unknown layer {layer!r}; choose from {_LAYERS}")
         self._layers[layer].append(svg)

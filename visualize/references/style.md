@@ -21,7 +21,7 @@ Each conceptual category gets exactly one family. A family is a 5-tuple: **FILL*
 | **Amber** | highlight, special module, callout | `#FAEEDA` | `#854F0B` | `#633806` | `#854F0B` | `#EF9F27` |
 
 - Canvas background: `#FFFFFF` (full-canvas rect). The cream boxes read as intentional on it. Transparent is allowed only if the user asks.
-- Alt neutral fills `#F1EFE8` (second tier) and `#DAD8CF` (muted / completed-state) are fine outside the main family system.
+- Alt neutral fill `#F1EFE8` is fine for a second tier of muted boxes.
 - **Colors ARE box fills.** (Old rule "accents on arrows only" is retired.)
 - Box `stroke-width` is a hairline: **0.5** (0.75 acceptable in print). Lines are 1.5.
 

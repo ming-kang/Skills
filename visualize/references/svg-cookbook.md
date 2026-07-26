@@ -70,7 +70,6 @@ That is the **entire** diagram. Prefer `pipeline` (or `row`/`col` + `chain`/`con
 | `.cylinder(x, y, title, sub=None, family="green", w=None, h=54)` → `Box` | datastore cylinder |
 | `.lifeline(x, label, y0, y1, family="neutral")` → `Lifeline` | sequence actor box + dashed vertical lifeline |
 | `.state_dot(x, y, kind="initial"\|"final")` → `Point` | UML initial / final pseudo-state |
-| `.point(x, y, label=None, family="neutral", r=5)` → `Point` | small filled circle marker (with optional label) for scatter / concept-map dots. Not a collision obstacle |
 | `.entity(x, y, name, attrs, family="neutral")` → `Box` | ER entity with header band + attribute lines |
 | `.class_box(x, y, name, attrs=None, methods=None, family="neutral", abstract=False, stereotype=None)` → `Box` | UML three-compartment class box (min width 160; abstract name italic; `<<interface>>` stereotype when given) |
 | `.step(x, y, n, title, sub=None, family="neutral")` → `Box` | numbered step card (circled badge + title + sub) — recipe / ladder |
@@ -94,14 +93,12 @@ That is the **entire** diagram. Prefer `pipeline` (or `row`/`col` + `chain`/`con
 
 > **Compositing patterns** (zone splits, step ladders, verdict rails, titled panels, scope frames, right-gutter loop-backs, side-rails, two-line payload labels, stateful cell strips) live in `references/layout-patterns.md` — reach for it whenever the request is more than a flat box/arrow graph. `.step`, `.panel`, `.scope`, and `.zone` above are the one-liner forms of the most common ones.
 
-**Use `.raw()` for the artistic 20%** — scatter points, patch grids, vector bars (snippets §5–§8 below). svgkit handles boxes/arrows/containers/legend; you hand-draw the custom shapes onto the right layer. The `layer` argument is **required** — picking the wrong one is the easiest way to bury text under a color block:
+**Use `.raw()` for the artistic 20%** — scatter points, patch grids, vector bars (snippets §5–§8 below). svgkit handles boxes/arrows/containers/legend; you hand-draw the custom shapes onto the right layer:
 
 ```python
 d.raw('<circle cx="450" cy="140" r="5" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>', layer="boxes")
-d.raw('<text x="460" y="135" font-size="12" fill="#3D3D3A">king</text>', layer="box_text")  # box_text, NOT boxes
+d.raw('<text x="460" y="135" font-size="12" fill="#3D3D3A">king</text>', layer="box_text")
 ```
-
-Layer roles (back → front in the SVG paint order): `containers` — backdrop art · `arrows` — line/path connectors · `plates` — opaque backgrounds for arrow labels · `boxes` — solid shapes · `box_text` — text inside a box · `labels` — standalone text (NOT in a box) · `legend` — swatch+text rows. Text always lives on `box_text` or `labels`.
 
 A committed, validator-clean parity sample produced by `svgkit` lives at `assets/samples/svgkit-rag.svg`.
 
@@ -266,15 +263,7 @@ Rows of varying width + opacity depict a numeric vector.
 
 ## 7. Scatter points + leader line
 
-For concept / embedding-space diagrams (put inside a dashed container). Use `d.point()` for the marker (circle + optional label) and `d.arrow()` for the leader:
-
-```python
-p = d.point(450, 140, "king", family="green", r=5)
-d.arrow((420, 290), p, color="green")   # leader from origin to the point
-```
-
-The hand-written form (still valid for shapes svgkit doesn't cover):
-
+For concept / embedding-space diagrams (put inside a dashed container).
 ```xml
 <!-- direction line from origin to a point -->
 <line x1="420" y1="290" x2="450" y2="140" stroke="#1D9E75" stroke-width="1.5"
