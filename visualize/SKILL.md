@@ -3,9 +3,9 @@ name: visualize
 description: >
   Generate clean, self-contained SVG technical diagrams in one house style
   (architecture, data-flow, flowchart, sequence, ER, class, state, network,
-  comparison, mind-map, timeline/Gantt, agent/memory diagrams). Use whenever
-  the user asks to draw, diagram, visualize, sketch a system, or export an
-  SVG figure — even if they do not say "visualize".
+  comparison, mind-map, timeline/Gantt, swimlane, org-tree, agent/memory
+  diagrams). Use whenever the user asks to draw, diagram, visualize, sketch
+  a system, or export an SVG figure — even if they do not say "visualize".
 disable-model-invocation: true
 ---
 

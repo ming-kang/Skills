@@ -174,15 +174,15 @@ def network() -> None:
 
 def sequence() -> None:
     d = Diagram(
-        900, 480,
+        900, 500,
         title="OAuth2 authorization code flow",
         desc="The client redirects the user to the auth server, exchanges the "
              "code for a token, then calls the resource server.",
     )
-    user = d.lifeline(80, "User", 40, 420, family="green")
-    client = d.lifeline(280, "Client", 40, 420)
-    auth = d.lifeline(500, "Auth server", 40, 420, family="purple")
-    res = d.lifeline(720, "Resource", 40, 420, family="amber")
+    user = d.lifeline(80, "User", 40, 440, family="green")
+    client = d.lifeline(280, "Client", 40, 440)
+    auth = d.lifeline(500, "Auth server", 40, 440, family="purple")
+    res = d.lifeline(720, "Resource", 40, 440, family="amber")
     # messages on lifelines
     d.arrow((user.x, 130), (auth.x, 130), color="purple", label="authorize")
     d.arrow((auth.x, 180), (user.x, 180), dashed=True, label="login + consent")
@@ -568,6 +568,100 @@ def sample_agent_loop() -> None:
     print("sample-agent-loop", d.width, d.height)
 
 
+def use_case() -> None:
+    d = Diagram(
+        760, 480,
+        title="E-commerce use cases",
+        desc="Customer and Admin actors interact with five system use cases. "
+             "Place order includes Process payment; Apply discount extends "
+             "Place order. Relationships use the single open-chevron marker; "
+             "<<include>> / <<extend>> are dashed with labels and routed "
+             "around the ellipse obstacles.",
+    )
+    d.container(150, 60, 480, 380, label="E-commerce System", sub="online store")
+    cust = d.actor(80, 200, "Customer")
+    admin = d.actor(680, 200, "Admin", family="purple")
+    browse = d.usecase(200, 110, "Browse products")
+    place = d.usecase(200, 220, "Place order", family="green")
+    pay = d.usecase(420, 220, "Process payment")
+    manage = d.usecase(420, 110, "Manage inventory")
+    disc = d.usecase(420, 330, "Apply discount", family="amber")
+    # Actor associations route through the row gutters around the ellipses.
+    d.lpath([cust.right, (150, cust.cy), (150, browse.cy), browse.left])
+    d.lpath([cust.right, (150, cust.cy), (150, place.cy), place.left])
+    d.lpath([admin.left, (640, admin.cy), (640, manage.cy), manage.right])
+    d.lpath([admin.left, (640, admin.cy), (640, disc.cy), disc.right])
+    d.arrow(place.right, pay.left, dashed=True, label="<<include>>")
+    d.lpath([disc.top, (disc.cx, 300), (place.cx, 300), place.bottom],
+            dashed=True, label="<<extend>>")
+    d.legend([
+        ("neutral", "Customer / use case"),
+        ("purple", "Admin"),
+        ("green", "primary use case"),
+        ("amber", "optional extension"),
+    ])
+    d.save(str(G / "use-case.svg"))
+    print("use-case", d.width, d.height)
+
+
+def swimlane() -> None:
+    d = Diagram(
+        900, 470,
+        title="Order fulfillment swimlanes",
+        desc="A purchase flows across three role lanes — Customer, Store, "
+             "Warehouse — with the handoffs crossing lane boundaries and a "
+             "terracotta out-of-stock return path.",
+    )
+    lanes = [("Customer", 60), ("Store", 190), ("Warehouse", 320)]
+    for label, y in lanes:
+        d.container(40, y, 820, 110, label=label)
+    order = d.node(180, 88, "Place order", "cart checkout", family="green")
+    payc = d.node(180, 218, "Confirm payment", "charge card")
+    pick = d.node(430, 348, "Pick items", "from shelf")
+    pack = d.node(640, 348, "Pack + ship", "carrier handoff", family="green")
+    notify = d.node(640, 88, "Track shipment", "email + status", family="green")
+    oos = d.node(430, 218, "Out of stock", "refund path", family="terracotta")
+    d.connect(order, payc, color="green", label="pay")
+    d.connect(payc, pick, label="pick list")
+    d.connect(pick, pack, color="green")
+    d.connect(pack, notify, color="green", label="tracking")
+    d.connect(pick, oos, color="terracotta", label="missing")
+    d.connect(oos, order, color="terracotta", dashed=True, label="refund")
+    d.legend([
+        ("green", "happy path"),
+        ("neutral", "internal step"),
+        ("terracotta", "out of stock"),
+    ])
+    d.save(str(G / "swimlane.svg"))
+    print("swimlane", d.width, d.height)
+
+
+def tree() -> None:
+    d = Diagram(
+        860, 420,
+        title="Platform team org chart",
+        desc="A three-level hierarchy: a CTO over two group leads, each over "
+             "two teams, drawn with vertical fanout buses.",
+    )
+    cto = d.node(370, 40, "CTO", "platform org", family="amber")
+    infra = d.node(180, 160, "Infra lead", "group of 2", family="green")
+    prod = d.node(560, 160, "Product lead", "group of 2", family="purple")
+    core = d.node(60, 290, "Core systems", "5 engineers", family="green", opacity=0.55)
+    sre = d.node(300, 290, "SRE", "4 engineers", family="green", opacity=0.55)
+    web = d.node(460, 290, "Web app", "6 engineers", family="purple", opacity=0.55)
+    mobile = d.node(660, 290, "Mobile", "4 engineers", family="purple", opacity=0.55)
+    d.fanout(cto, [infra, prod])
+    d.fanout(infra, [core, sre], color="green")
+    d.fanout(prod, [web, mobile], color="purple")
+    d.legend([
+        ("amber", "leadership"),
+        ("green", "infra group"),
+        ("purple", "product group"),
+    ])
+    d.save(str(G / "tree.svg"))
+    print("tree", d.width, d.height)
+
+
 def main() -> None:
     mind_map()
     architecture()
@@ -583,6 +677,9 @@ def main() -> None:
     class_diagram()
     state_machine()
     decision_ladder()
+    use_case()
+    swimlane()
+    tree()
     sample_comparison()
     hero()
     sample_agent_loop()

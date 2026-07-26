@@ -12,7 +12,7 @@
   <rect x="0" y="0" width="720" height="560" fill="#FFFFFF"/>
   <line x1="360" y1="96" x2="360" y2="140" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <path d="M360 196 L360 218 L320 218 L320 240" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="380" y1="290" x2="540" y2="288" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="380" y1="289" x2="540" y2="289" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <path d="M600 260 L600 212 L460 212 L460 168 L420 168" fill="none" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <path d="M320 340 L320 380 L360 380 L360 420" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <rect x="300" y="40" width="120" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>

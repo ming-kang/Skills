@@ -1064,9 +1064,18 @@ class Diagram:
     def lpath(self, points: list[Point], color: str | None = None,
               label: str | None = None, plate: bool = False,
               dashed: bool = False, bidirectional: bool = False) -> None:
-        """An orthogonal multi-segment route; the arriving end carries the marker."""
+        """An orthogonal multi-segment route; the arriving end carries the marker.
+
+        Consecutive duplicate points are dropped — a zero-length final segment
+        would otherwise leave the arriving chevron pointing sideways.
+        """
+        deduped: list[Point] = []
+        for p in points:
+            if not deduped or abs(p[0] - deduped[-1][0]) > 0.5 or abs(p[1] - deduped[-1][1]) > 0.5:
+                deduped.append(p)
+        points = deduped
         if len(points) < 2:
-            raise ValueError("lpath needs at least two points")
+            raise ValueError("lpath needs at least two distinct points")
         stroke = _resolve_line(color)
         d = "M" + " L".join(f"{snap(px)} {snap(py)}" for px, py in points)
         start = f' marker-start="{self._marker_for(color)}"' if bidirectional else ""
@@ -1178,8 +1187,22 @@ class Diagram:
         if route == "straight" or (route == "auto" and (aligned_h or aligned_v)):
             if abs(dx) >= abs(dy):
                 a, b = (src.right, dst.left) if dx >= 0 else (src.left, dst.right)
+                if aligned_h and abs(a[1] - b[1]) > 0.5:
+                    # Nearly-aligned rows: snap to a shared y so the connector
+                    # is perfectly horizontal instead of subtly slanted.
+                    lo = max(src.y, dst.y) + 6
+                    hi = min(src.y + src.h, dst.y + dst.h) - 6
+                    if lo <= hi:
+                        ymid = min(max((a[1] + b[1]) / 2, lo), hi)
+                        a, b = (a[0], ymid), (b[0], ymid)
             else:
                 a, b = (src.bottom, dst.top) if dy >= 0 else (src.top, dst.bottom)
+                if aligned_v and abs(a[0] - b[0]) > 0.5:
+                    lo = max(src.x, dst.x) + 6
+                    hi = min(src.x + src.w, dst.x + dst.w) - 6
+                    if lo <= hi:
+                        xmid = min(max((a[0] + b[0]) / 2, lo), hi)
+                        a, b = (xmid, a[1]), (xmid, b[1])
             self.arrow(a, b, color=color, label=label, plate=plate,
                        dashed=dashed, bidirectional=bidirectional)
             return
@@ -1279,7 +1302,18 @@ class Diagram:
             # Horizontal fan (children to the right or left).
             going_right = dx >= 0
             stem = parent.right if going_right else parent.left
-            bus_x = (parent.x + parent.w + gutter) if going_right else (parent.x - gutter)
+            if going_right:
+                bus_x = parent.x + parent.w + gutter
+                # Keep the bus clear of the nearest child edge so the arriving
+                # horizontal run is never zero-length (degenerate chevron).
+                nearest = min(c.x for c in children)
+                if bus_x > nearest - 8:
+                    bus_x = (parent.x + parent.w + nearest) / 2
+            else:
+                bus_x = parent.x - gutter
+                nearest = max(c.x + c.w for c in children)
+                if bus_x < nearest + 8:
+                    bus_x = (parent.x + nearest) / 2
             # Stem to the bus has no marker — only arriving branches do.
             self._layers["arrows"].append(
                 f'  <line x1="{snap(stem[0])}" y1="{snap(stem[1])}" '
@@ -1295,7 +1329,16 @@ class Diagram:
             # Vertical fan (children below or above).
             going_down = below or (not above and dy >= 0)
             stem = parent.bottom if going_down else parent.top
-            bus_y = (parent.y + parent.h + gutter) if going_down else (parent.y - gutter)
+            if going_down:
+                bus_y = parent.y + parent.h + gutter
+                nearest = min(c.y for c in children)
+                if bus_y > nearest - 8:
+                    bus_y = (parent.y + parent.h + nearest) / 2
+            else:
+                bus_y = parent.y - gutter
+                nearest = max(c.y + c.h for c in children)
+                if bus_y < nearest + 8:
+                    bus_y = (parent.y + nearest) / 2
             self._layers["arrows"].append(
                 f'  <line x1="{snap(stem[0])}" y1="{snap(stem[1])}" '
                 f'x2="{snap(parent.cx)}" y2="{snap(bus_y)}" '

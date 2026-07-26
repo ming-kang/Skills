@@ -59,6 +59,8 @@ python3 visualize/scripts/validate_svg.py -q diagram.svg
 | Comparison | Feature matrices and capability comparisons |
 | Mind map | Central concept with curved branches |
 | Timeline / Gantt | Phases, milestones, and duration bars |
+| Swimlane | Cross-functional flows with role lanes and handoffs |
+| Tree / org chart | Hierarchies, taxonomies, reporting lines |
 
 Every supported type has an owned reference diagram under `assets/gallery/<type>.svg`. See [`references/diagram-gallery.md`](../visualize/references/diagram-gallery.md) for the full index.
 
@@ -104,6 +106,12 @@ visualize/
 └── assets/
     ├── gallery/                     # Reference diagrams by type
     └── samples/                     # Showcase examples
+```
+
+Run the regression tests with:
+
+```bash
+python3 visualize/scripts/test_visualize.py
 ```
 
 ## License

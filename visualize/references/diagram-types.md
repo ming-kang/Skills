@@ -36,6 +36,26 @@ Sequential decision/process steps.
 - **Numbered recipe / pipeline**: use `.step()` cards (circled badge + title) so order reads without an arrow on every link (`references/layout-patterns.md` §2).
 - **Allow/deny ladder**: a chain of checks bracketed by a green "Execute" rail and a terracotta "Blocked" rail — green arrows up = pass, terracotta down = fail (§3). A long feedback return routes up the right gutter (§6).
 
+## Swimlane / Cross-functional Flow
+
+A process crossing role or system boundaries — who does what, and where handoffs happen.
+
+- Lanes are horizontal dashed `container()` bands (label top-left), stacked with ~20px between them; one lane per role/team/system
+- Place each step in the lane of the role that performs it; the **cross-lane arrows are the story** — label them with the handoff artifact ("pick list", "tracking")
+- Failure/return paths in Terracotta, dashed when they are compensating actions (refund)
+- 3–5 lanes read well; more than 5 → split the diagram
+- Lanes are dashed containers, so arrows cross them freely (not collision obstacles). See `assets/gallery/swimlane.svg`.
+
+## Tree / Hierarchy (org chart, taxonomy, sitemap)
+
+Strict parent→child structure with no cross-links (otherwise it is a graph — use Architecture).
+
+- One `fanout(parent, children)` per level — the shared bus + L-branches read as one generation
+- Center parents over their subtree; keep sibling gaps equal (`row` spacing)
+- Color by **branch** (one family per subtree) or by **level**; sibling leaves use tint-within-family (`opacity=0.9/0.55/0.4`) instead of new colors
+- 3 levels × ~4 children per node is the readable ceiling on one canvas; deeper → split by subtree
+- See `assets/gallery/tree.svg`.
+
 ## Agent Architecture Diagram
 
 Shows how an AI agent reasons, uses tools, and manages memory.

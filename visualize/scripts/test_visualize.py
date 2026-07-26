@@ -115,6 +115,23 @@ class SvgkitTests(unittest.TestCase):
             root = ET.parse(path).getroot()
             self.assertEqual(root.tag.rsplit("}", 1)[-1], "svg")
 
+    def test_lpath_drops_zero_length_final_segment(self) -> None:
+        d = Diagram(400, 200, title="Route", desc="Duplicate points are removed.")
+        d.lpath([(40, 40), (200, 40), (200, 40)])
+        self.assertIn('d="M40 40 L200 40"', d._layers["arrows"][-1])
+        with self.assertRaises(ValueError):
+            d.lpath([(40, 40), (40, 40)])
+
+    def test_fanout_bus_clamps_before_child_edge(self) -> None:
+        d = Diagram(600, 400, title="Fanout", desc="Bus stays clear of children.")
+        parent = d.node(40, 150, "Hub", w=140)
+        # Children start only 24px right of the parent — default gutter would
+        # land the bus on their left edge.
+        kids = d.col([{"title": "A", "w": 120}, {"title": "B", "w": 120}], x=204, y=60)
+        d.fanout(parent, kids)
+        for line in d._layers["arrows"]:
+            self.assertNotIn("L204 ", line.split('d="')[-1])
+
     def test_custom_color_is_validated(self) -> None:
         d = Diagram(200, 100, title="Color", desc="Unsafe colors are rejected.")
         with self.assertRaises(ValueError):
@@ -186,7 +203,7 @@ class ValidatorTests(unittest.TestCase):
     def test_all_owned_assets_pass_without_warnings(self) -> None:
         paths = sorted((ROOT / "assets" / "gallery").glob("*.svg"))
         paths += sorted((ROOT / "assets" / "samples").glob("*.svg"))
-        self.assertGreaterEqual(len(paths), 20)
+        self.assertGreaterEqual(len(paths), 22)
         failures: list[str] = []
         for path in paths:
             code, validator = validate(path)
