@@ -41,7 +41,7 @@ This is an explicit pass, not a vibe. After placing everything, walk the diagram
 - **Label vs arrow** — every arrow label is shorter than its arrow segment and does not overhang into a neighbouring box (shorten the wording or widen the gap).
 - **Legend vs node** — the legend row clears every node; if the bottom row of nodes runs into it, grow the canvas ~40px or move the legend to an empty corner.
 
-The validator (`scripts/validate_svg.py`) automates the box/arrow check: it treats solid rects ≥70×30 as **obstacles** and ignores dashed containers, `fill="none"` rects, cells <70 wide or <30 tall, and panels >70% of the viewBox — so you can freely route arrows across a dashed group or behind a tiny swatch. Run it; fix anything it flags before declaring done.
+The validator (`scripts/validate_svg.py`) automates the box/arrow and box/box checks: solid shapes ≥70×30 (rects, ellipses, polygons, filled paths like cylinders) are **obstacles**; dashed containers, `fill="none"` shapes, cells <70 wide or <30 tall, and panels >70% of the viewBox are ignored — so you can freely route arrows across a dashed group or behind a tiny swatch. Straight segments are checked exactly (diagonals included); bezier curves are exempt so an arcing branch never false-positives. It also fails on text overflowing its box, missing `<title>`/`<desc>`, gradients/filters, and warns on overlapping solid nodes. Run it; fix anything it flags before declaring done.
 
 ## 5. Z-order (SVG render order; top of file = back)
 

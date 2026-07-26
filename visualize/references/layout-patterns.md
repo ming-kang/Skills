@@ -86,7 +86,7 @@ d.scope(60, 110, 640, 170, "agentic loop")
 
 ## §6. Right-gutter loop-back
 
-When a feedback edge has to return from a late node to an early one, route it up the **right margin** rather than across the diagram. The long vertical leg lives in empty space the boxes already leave as padding, so it never collides.
+When a feedback edge has to return from a late node to an early one, route it up the **right margin** rather than across the diagram. The long vertical leg lives in empty space the boxes already leave as padding, so it never collides. (A loop from a box back to **itself** is simpler still: `d.connect(b, b)` / `d.self_loop(b)` draws the compact right-gutter loop for you.)
 
 ```python
 # from the bottom-right step's right edge, up the gutter, back into step 1
@@ -106,11 +106,8 @@ for i, (lbl, y) in enumerate([("Notification", 200), ("ConfigChange", 260)]):
     d.raw(f'<rect x="20" y="{y}" width="120" height="42" rx="8" fill="#F5F4ED" '
           f'stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>',
           layer="boxes")
-    # dashed connector into the main spine
-    d.lpath([(140, y + 21), (200, y + 21)], color="neutral")  # use stroke-dasharray via raw if needed
+    d.arrow((140, y + 21), (200, y + 21), dashed=True)  # dashed connector into the spine
 ```
-
-(For a fully dashed connector, emit the `<line>` via `.raw()` with `stroke-dasharray="4 3"` — `svgkit.arrow` is solid by design.)
 
 ## §8. Two-line arrow label (label + payload)
 

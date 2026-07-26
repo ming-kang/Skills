@@ -37,7 +37,7 @@ Gallery SVGs are the ground truth for the look — adapt them; do not re-derive 
 
 1. **Classify** — type + entities/relationships. Prefer the **fast path** (`pipeline`) when it fits.
 2. **Layout plan** — viewBox width ~680–760 typical; 40px margins; 56px two-line boxes; ≥56px vertical gaps. Prefer `pipeline` / `row` / `col` over hand-picked x/y. Non-trivial graphs: `connect` / `fanout` so edges land on box sides.
-3. **Color by meaning** — Neutral cream = plumbing; **Green** = primary/happy path/retrieval; **Purple** = alternate/parallel; **Terracotta** = warning/failure; **Amber** = highlight. **Default to fewer families** — one accent + Neutral often beats three. Sibling stages: same family with `opacity=0.9/0.55/0.4`.
+3. **Color by meaning** — Neutral cream = plumbing; **Green** = primary/happy path/retrieval; **Purple** = alternate/parallel; **Terracotta** = warning/failure; **Amber** = highlight. **Default to fewer families** — one accent + Neutral often beats three. Sibling stages: same family with `opacity=0.9/0.55/0.4` (emitted as `fill-opacity`, strokes stay crisp).
 4. **Build with `svgkit`** (Python 3 stdlib only) — sizes boxes from text (CJK ≈ 2× Latin), owns marker/z-order/`</svg>`, auto-grows canvas on `save()`. Hand-write XML only if Python is unavailable.
 5. **Save** — default working directory or the path the user gave; semantic kebab-case name. Tell the user the path.
 6. **Validate** — `python3 scripts/validate_svg.py -q <file>`. Fix anything it flags before declaring done.
@@ -104,9 +104,10 @@ from svgkit import Diagram
 | Helper | When |
 |---|---|
 | **`pipeline(specs, labels=…, auto_legend=…)`** | **Default for linear ≤5-node flows** — row + chain in one call |
-| `row` / `col` / `grid` | Equal-gap layouts without connectors, or multi-row grids |
+| `row` / `col` / `grid` | Equal-gap layouts; mixed-size nodes center-align automatically (`align="start"` opts out) |
 | `chain(boxes, labels=…)` | Connect consecutive boxes already placed |
-| `connect(a, b, …)` | Any pair — picks edges; diagonals → orthogonal L-path |
+| `connect(a, b, …)` | Any pair — picks edges; diagonals → orthogonal L-path; `connect(b, b)` = self-loop |
+| `self_loop(box, …)` | Retry / reasoning loop back into the same box (right-gutter route) |
 | `fanout(parent, children, …)` | One-to-many branch with a shared bus |
 | `auto_legend()` / `legend([...])` | 2+ families — auto uses house glosses; explicit for custom text |
 | `heading(text)` | Optional 15–16px canvas title above content |

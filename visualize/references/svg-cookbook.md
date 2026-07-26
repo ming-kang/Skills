@@ -49,15 +49,16 @@ That is the **entire** diagram. Prefer `pipeline` (or `row`/`col` + `chain`/`con
 | `text_width(s, size=14)` | px width estimate (Latin×8 / CJK×15 at 14px) — the boring math |
 | `resolve_scripts_dir()` / `ensure_on_path()` | locate this skill's `scripts/` from cwd and put it on `sys.path` |
 | `Diagram(w, h, title, desc)` | skeleton + marker + white bg + title/desc + auto z-order |
-| `.node(x, y, title, sub=None, family="neutral", w=None, lines=None, opacity=None)` → `Box` | a box; auto-sizes width if `w` omitted; `lines` adds extra 12/SUB rows; `opacity` tints siblings within one family |
+| `.node(x, y, title, sub=None, family="neutral", w=None, lines=None, opacity=None)` → `Box` | a box; auto-sizes width if `w` omitted; `lines` adds extra 12/SUB rows; `opacity` tints siblings within one family (emitted as `fill-opacity` so the hairline stroke stays crisp) |
 | `.right_of(box, gap=60)` | X coordinate `gap` px to the right of `box` (for the next node) |
 | `.below(box, gap=60)` | Y coordinate `gap` px below `box` (vertical twin of `right_of`) |
-| `.row([{...}, …], x=40, y=40, gap=56)` → `[Box]` | lay nodes left→right on one baseline with equal gaps |
-| `.col([{...}, …], x=40, y=40, gap=60)` → `[Box]` | lay nodes top→bottom in a column with equal gaps |
-| `.grid([[{...}], …], x=40, y=40, gap_x=56, gap_y=60)` → `[[Box]]` | 2-D grid of node specs (rows of rows) |
-| `.pipeline([{...}, …], labels=None, legend=None, auto_legend=False, …)` → `[Box]` | **fast path** — `row` + `chain` (+ optional legend) in one call |
+| `.row([{...}, …], x=40, y=40, gap=56, align="center")` → `[Box]` | lay nodes left→right, equal gaps; mixed-height nodes are **center-aligned** (pass `align="start"` to top-align) |
+| `.col([{...}, …], x=40, y=40, gap=60, align="center")` → `[Box]` | lay nodes top→bottom, equal gaps; mixed-width nodes are **center-aligned** (pass `align="start"` to left-align) |
+| `.grid([[{...}], …], x=40, y=40, gap_x=56, gap_y=60, row_align="center")` → `[[Box]]` | 2-D grid of node specs (rows of rows) |
+| `.pipeline([{...}, …], labels=None, align="center", legend=None, auto_legend=False, …)` → `[Box]` | **fast path** — `row` + `chain` (+ optional legend) in one call |
 | `.chain(boxes, color=None, labels=None, …)` | connect consecutive boxes via `connect` |
-| `.connect(src, dst, color=None, label=None, route="auto", dashed=False, bidirectional=False)` | **preferred** box-to-box edge: picks mid-side anchors; diagonals → orthogonal L-path |
+| `.connect(src, dst, color=None, label=None, route="auto", dashed=False, bidirectional=False)` | **preferred** box-to-box edge: picks mid-side anchors; diagonals → orthogonal L-path; `connect(b, b)` draws a right-gutter self-loop; overlapping boxes raise a clear error |
+| `.self_loop(box, color=None, label=None, gutter=32)` | compact right-gutter loop from a box back to itself (retry / reasoning loops) |
 | `.fanout(parent, children, color=None, labels=None, gutter=24)` | one-to-many orthogonal branch with a shared bus |
 | `.heading(text, x=40, y=36, size=16)` | optional 15–16px canvas title above content |
 | `.auto_legend(labels=None)` → `bool` | legend from non-neutral families on tracked boxes (when 2+ families) |
@@ -76,13 +77,13 @@ That is the **entire** diagram. Prefer `pipeline` (or `row`/`col` + `chain`/`con
 | `.bar(x, y, w, label, family="neutral", h=28)` → `Box` | Gantt / timeline bar; rounded rect with centred inside label. h=28 < 30 so it is NOT a collision obstacle. Width is the time span, not the label |
 | `.panel(x, y, w, h, title, subtitle=None, family="neutral")` → `Box` | white card with a colored header band (the "Step 1 / Result" window) |
 | `.arrow(a, b, color=None, label=None, plate=False, dashed=False, bidirectional=False)` | straight point-to-point connector (prefer `connect` when both ends are boxes) |
-| `.lpath([p1, p2, …], color=None, label=None, dashed=False)` | orthogonal L-route around obstacles |
+| `.lpath([p1, p2, …], color=None, label=None, dashed=False, bidirectional=False)` | orthogonal L-route around obstacles; `bidirectional=True` puts the chevron on both ends |
 | `.curve(a, b, color=None, label=None, marker=True, dashed=False)` | cubic bezier branch (mind-map / concept-map) |
 | `.container(x, y, w, h, label=None, sub=None, solid=False)` | dashed group (rx14) or solid panel (rx20) |
 | `.scope(x, y, w, h, label, sub=None)` → `Box` | dashed loop/scope frame with an uppercase tracked badge (`EACH TURN`…) |
 | `.zone(divider_x, y_top, y_bottom, left_label, right_label, left_cx, right_cx)` | vertical dashed trust-boundary divider + two column headers |
 | `.legend([(family, label), …])` | swatch+label row just below tracked content (then `save`/`fit` grows canvas) |
-| `.save(path, fit=True)` | write SVG; default `fit=True` auto-grows the viewBox |
+| `.save(path, fit=True)` | write SVG (parent dirs auto-created); default `fit=True` grows the viewBox on **all four sides** to clear content |
 | `.raw(svg, layer=…)` | **escape hatch** — hand-written SVG on a chosen z-layer |
 
 **Quality defaults:** use `pipeline` / `connect` (or `chain`/`fanout`) instead of guessing edge midpoints; call `save()` so `fit()` prevents viewBox clipping; pass `dashed=True` for async/dependency/«implements» lines (no more hand-written dashed paths for ordinary edges). Use `auto_legend=True` on `pipeline` (or `auto_legend()`) when two or more families appear and you do not need custom gloss text.
@@ -256,10 +257,10 @@ Alternating pattern (e.g. interleaved layers). Cells are <70px wide so the valid
 
 Rows of varying width + opacity depict a numeric vector.
 ```xml
-<rect x="490" y="100" width="22" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.9"/>
-<rect x="490" y="115" width="36" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.55"/>
-<rect x="490" y="130" width="16" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.4"/>
-<rect x="490" y="145" width="40" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.8"/>
+<rect x="490" y="100" width="22" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.9"/>
+<rect x="490" y="115" width="36" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.55"/>
+<rect x="490" y="130" width="16" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.4"/>
+<rect x="490" y="145" width="40" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.8"/>
 <text x="510" y="175" text-anchor="middle" font-size="12" fill="#3D3D3A">vector (1152-d)</text>
 ```
 
@@ -309,8 +310,8 @@ Decorative tints, 45×45 cells, hairline stroke. (Highlight one cell with a 2px 
 
 ## Collision-safe checklist (matches `scripts/validate_svg.py`)
 
-- Solid boxes ≥70×30 are obstacles. **Never** run a straight `<line>`/`<path>` segment through one — anchor at the edge or route an L-path around it.
-- These are *not* obstacles: dashed rects, `fill="none"` rects, cells <70 wide or <30 tall, and panels larger than 70% of the viewBox.
+- Solid shapes ≥70×30 are obstacles — rects, ellipses, polygons, and filled paths (cylinders). **Never** run a straight `<line>`/`<path>` segment through one (diagonals are caught too) — anchor at the edge or route an L-path around it. Bezier curves are exempt.
+- These are *not* obstacles: dashed rects, `fill="none"` shapes, cells <70 wide or <30 tall, and panels larger than 70% of the viewBox.
 - Every `marker-end="url(#arrow)"` must reference the `<marker id="arrow">`.
 - Keep filtered/edge elements ≥ a few px inside the viewBox (we use no filters, so this is automatic).
 

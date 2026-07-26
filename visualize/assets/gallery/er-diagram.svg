@@ -9,7 +9,7 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="800" height="420" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="800" height="420" fill="#FFFFFF"/>
   <path d="M120 150 L120 185 L270 185 L270 220" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <path d="M270 220 L270 185 L400 185 L400 150" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <path d="M400 150 L400 185 L530 185 L530 220" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1096 436" width="1096" height="436" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1096 420" width="1096" height="420" role="img">
   <title>Agent memory architecture</title>
   <desc>Input is processed by a memory manager that writes to a vector store and a graph store; retrieval and ranking assemble context for the model.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
@@ -9,7 +9,7 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="1096" height="436" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="1096" height="420" fill="#FFFFFF"/>
   <line x1="160" y1="196" x2="220" y2="196" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line x1="364" y1="196" x2="388" y2="196" stroke="#73726C" stroke-width="1.5" stroke-linecap="round"/>
   <path d="M388 196 L388 106 L460 106" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>

@@ -30,13 +30,13 @@ Each conceptual category gets exactly one family. A family is a 5-tuple: **FILL*
 The five families are a *vocabulary*, not a quota — using all of them in one diagram is usually a mistake. Two rules, learned from studying editorial research diagrams (editorial workflow figures):
 
 - **Default to fewer families.** One accent family + Neutral cream is almost always stronger than two or three. Reach for a second family only when there is a *meaning* contrast to mark (primary vs. alternate path, success vs. failure), never just to color-code unrelated boxes. A diagram that reads "one system" beats one that reads "five sticky notes".
-- **Tint-within-family for siblings.** When items are peers (pipeline stages, lane rows, a series of steps), distinguish them by varying the family FILL **opacity** (0.9 → 0.55 → 0.4) rather than switching families. Opacity is applied as a `opacity="…"` attribute on the `<rect>`; combine with the family STROKE so edges stay crisp. This is a common editorial-workflow trick — one periwinkle family in three tints carries a whole multi-stage flow.
+- **Tint-within-family for siblings.** When items are peers (pipeline stages, lane rows, a series of steps), distinguish them by varying the family FILL opacity (0.9 → 0.55 → 0.4) rather than switching families. Use `fill-opacity="…"` — not element-level `opacity` — so the hairline family STROKE stays crisp while only the tint fades. This is a common editorial-workflow trick — one periwinkle family in three tints carries a whole multi-stage flow.
 
 ```xml
-<!-- three sibling stages, one green family, opacity does the differentiation -->
-<rect x="40"  y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.9"/>
-<rect x="240" y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.55"/>
-<rect x="440" y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.4"/>
+<!-- three sibling stages, one green family, fill-opacity does the differentiation -->
+<rect x="40"  y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.9"/>
+<rect x="240" y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.55"/>
+<rect x="440" y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.4"/>
 ```
 
 With `svgkit`: `d.node(x, y, "Stage 1", family="green", opacity=0.9)` (and 0.55 / 0.4 for siblings).

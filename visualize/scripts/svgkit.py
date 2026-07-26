@@ -44,6 +44,7 @@ Path bootstrap (any cwd)
 from __future__ import annotations
 
 import math
+import re
 import sys
 import unicodedata
 from dataclasses import dataclass
@@ -148,12 +149,17 @@ def snap(n: float) -> str:
 
 
 def _resolve_line(color: str | None) -> str:
-    """Accept a family name, a hex/rgb string, or None (neutral)."""
+    """Accept a family name or a safe CSS hex/rgb/rgba color."""
     if color is None:
         return NEUTRAL_LINE
     if color in FAMILIES:
         return FAMILIES[color]["line"]
-    return color
+    value = color.strip()
+    if re.fullmatch(r"#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?", value):
+        return value
+    if re.fullmatch(r"rgba?\(\s*[\d.]+(?:\s*,\s*[\d.]+){2}(?:\s*,\s*[\d.]+)?\s*\)", value):
+        return value
+    raise ValueError("color must be a family name or a hex/rgb/rgba CSS color")
 
 
 def _family(name: str) -> dict[str, str]:
@@ -281,8 +287,12 @@ class Diagram:
         # from a primitive is tracked so the canvas can auto-grow and arrows can
         # pick edge anchors without the caller doing the math.
         self._boxes: list[Box] = []
-        self._content_max_x: float = 0.0
-        self._content_max_y: float = 0.0
+        self._content_min_x: float = math.inf
+        self._content_min_y: float = math.inf
+        self._content_max_x: float = -math.inf
+        self._content_max_y: float = -math.inf
+        self._viewbox_x: float = 0.0
+        self._viewbox_y: float = 0.0
         self._has_legend: bool = False
 
     # -- geometry registry ------------------------------------------------- #
@@ -290,14 +300,20 @@ class Diagram:
     def _track(self, box: Box) -> Box:
         """Register a solid shape for fit() and return it unchanged."""
         self._boxes.append(box)
-        self._content_max_x = max(self._content_max_x, box.x + box.w)
-        self._content_max_y = max(self._content_max_y, box.y + box.h)
+        self._note_extent(box.x, box.y, box.w, box.h)
         return box
 
     def _note_extent(self, x: float, y: float, w: float = 0, h: float = 0) -> None:
-        """Bump content bounds for non-Box art (containers, zones, raw extents)."""
-        self._content_max_x = max(self._content_max_x, x + w)
-        self._content_max_y = max(self._content_max_y, y + h)
+        """Expand content bounds for non-Box art (containers, arrows, labels)."""
+        vals = (x, y, w, h)
+        if not all(math.isfinite(v) for v in vals):
+            raise ValueError("diagram coordinates and sizes must be finite")
+        x0, x1 = sorted((x, x + w))
+        y0, y1 = sorted((y, y + h))
+        self._content_min_x = min(self._content_min_x, x0)
+        self._content_min_y = min(self._content_min_y, y0)
+        self._content_max_x = max(self._content_max_x, x1)
+        self._content_max_y = max(self._content_max_y, y1)
 
     # -- layout helpers ---------------------------------------------------- #
 
@@ -311,23 +327,42 @@ class Diagram:
         """Y coordinate ``gap`` px below ``box`` (the vertical twin of ``right_of``)."""
         return box.y + box.h + gap
 
+    @staticmethod
+    def _spec_size(spec: dict) -> tuple[float, float]:
+        """Predict a ``node()`` spec's size without rendering it.
+
+        ``row`` and ``col`` use this to center mixed-height / mixed-width nodes
+        while preserving a constant edge-to-edge gap. Keeping the same sizing
+        formula as ``node()`` prevents subtle connector zig-zags.
+        """
+        title = str(spec.get("title", ""))
+        sub = spec.get("sub")
+        lines = spec.get("lines")
+        w = spec.get("w")
+        h = spec.get("h")
+        if w is None:
+            if lines is not None:
+                widths = [box_width(title)]
+                widths.extend(box_width(str(line), sizes=(12,)) for line in lines)
+                w = max(widths)
+            else:
+                w = box_width(title, sub)
+        if h is None:
+            h = 22 + 18 * (1 + len(lines)) if lines is not None else (56 if sub else 40)
+        return float(w), float(h)
+
     def row(self, specs: list[dict], x: float = 40, y: float = 40,
             gap: float = 56, align: str = "center") -> list[Box]:
-        """Lay ``specs`` left→right with equal ``gap`` between each.
+        """Lay node specs left→right with a constant edge-to-edge ``gap``.
 
-        Each spec is a kwargs dict for ``node()`` (without ``x``/``y``). Returns
-        the boxes so you can anchor arrows off their edges. The gap is constant
-        so connectors between neighbours are all the same length.
-
-        ``align`` controls vertical placement:
-
-        * ``"center"`` (default) — all boxes share a common midline. Mixed-
-          height rows (40px single-line next to 56px two-line boxes) come
-          out visually balanced.
-        * ``"top"`` — every box's top edge sits on ``y`` (the old baseline
-          behaviour). Use when the rows are already uniform-height, e.g.
-          a numbered step ladder.
+        ``align="center"`` (default) aligns vertical centers even when node
+        heights differ; ``"start"`` top-aligns them. Returns the boxes for
+        edge-anchored connectors.
         """
+        if align not in {"center", "start"}:
+            raise ValueError("row align must be 'center' or 'start'")
+        sizes = [self._spec_size(spec) for spec in specs]
+        max_h = max((h for _, h in sizes), default=0.0)
         boxes: list[Box] = []
         if align == "center":
             heights = [self._spec_height(s) for s in specs]
@@ -338,29 +373,24 @@ class Diagram:
         else:
             raise ValueError(f"row() align must be 'center' or 'top', got {align!r}")
         cur_x = x
-        for spec, cur_y in zip(specs, ys):
-            b = self.node(cur_x, cur_y, **spec)
+        for spec, (_, h) in zip(specs, sizes):
+            node_y = y + (max_h - h) / 2 if align == "center" else y
+            b = self.node(cur_x, node_y, **spec)
             boxes.append(b)
             cur_x = self.right_of(b, gap)
         return boxes
 
     def col(self, specs: list[dict], x: float = 40, y: float = 40,
             gap: float = 60, align: str = "center") -> list[Box]:
-        """Lay ``specs`` top→bottom in a column with equal ``gap`` between each.
+        """Lay node specs top→bottom with a constant edge-to-edge ``gap``.
 
-        Vertical twin of ``row``. Each box's vertical placement is computed
-        from ``y`` and the previous box's bottom edge (``gap`` apart).
-
-        ``align`` controls horizontal placement:
-
-        * ``"center"`` (default) — every box shares a common horizontal
-          centre line at ``x + max_w/2``. Boxes of different widths sit
-          centred in the column instead of all flush-left, so the column
-          reads as a coherent block.
-        * ``"left"`` — every box's left edge sits on ``x`` (the old
-          flush-left behaviour). Use for list-style columns where the
-          left edge IS the visual anchor.
+        ``align="center"`` (default) aligns horizontal centers even when node
+        widths differ; ``"start"`` left-aligns them.
         """
+        if align not in {"center", "start"}:
+            raise ValueError("col align must be 'center' or 'start'")
+        sizes = [self._spec_size(spec) for spec in specs]
+        max_w = max((w for w, _ in sizes), default=0.0)
         boxes: list[Box] = []
         if align == "center":
             widths = [self._spec_width(s) for s in specs]
@@ -371,8 +401,9 @@ class Diagram:
         else:
             raise ValueError(f"col() align must be 'center' or 'left', got {align!r}")
         cur_y = y
-        for spec, cur_x in zip(specs, xs):
-            b = self.node(cur_x, cur_y, **spec)
+        for spec, (w, _) in zip(specs, sizes):
+            node_x = x + (max_w - w) / 2 if align == "center" else x
+            b = self.node(node_x, cur_y, **spec)
             boxes.append(b)
             cur_y = self.below(b, gap)
         return boxes
@@ -391,8 +422,8 @@ class Diagram:
             self.connect(boxes[i], boxes[i + 1], color=color, label=lab, **kw)
 
     def pipeline(self, specs: list[dict], *, x: float = 40, y: float = 80,
-                 gap: float = 56, labels: list[str | None] | None = None,
-                 color: str | None = None,
+                 gap: float = 56, align: str = "center",
+                 labels: list[str | None] | None = None, color: str | None = None,
                  legend: list[tuple[str, str]] | None = None,
                  auto_legend: bool = False, **chain_kw) -> list[Box]:
         """Fast-path linear diagram: ``row`` + ``chain`` (+ optional legend).
@@ -404,7 +435,7 @@ class Diagram:
         builds a legend from non-neutral families used on the boxes (see
         ``auto_legend()``). Explicit ``legend`` wins if both are given.
         """
-        boxes = self.row(specs, x=x, y=y, gap=gap)
+        boxes = self.row(specs, x=x, y=y, gap=gap, align=align)
         self.chain(boxes, color=color, labels=labels, **chain_kw)
         if legend is not None:
             self.legend(legend)
@@ -413,7 +444,8 @@ class Diagram:
         return boxes
 
     def grid(self, rows: list[list[dict]], *, x: float = 40, y: float = 40,
-             gap_x: float = 56, gap_y: float = 60) -> list[list[Box]]:
+             gap_x: float = 56, gap_y: float = 60,
+             row_align: str = "center") -> list[list[Box]]:
         """Lay a 2-D grid of ``node`` specs; each inner list is one horizontal row.
 
         Rows are left-aligned at ``x``; columns are *not* equal-width — each cell
@@ -423,7 +455,7 @@ class Diagram:
         result: list[list[Box]] = []
         cur_y = y
         for specs in rows:
-            row_boxes = self.row(specs, x=x, y=cur_y, gap=gap_x)
+            row_boxes = self.row(specs, x=x, y=cur_y, gap=gap_x, align=row_align)
             result.append(row_boxes)
             if row_boxes:
                 cur_y = max(self.below(b, gap_y) for b in row_boxes)
@@ -454,16 +486,25 @@ class Diagram:
         Prevents the #2 failure mode after text-overflow: boxes clipped by a
         too-small viewBox. Returns ``self`` for chaining (``d.fit().save(...)``).
 
-        ``legend_room`` defaults to 36 when a legend was drawn, else 0 — enough
-        for a single legend row below the lowest node.
+        ``legend_room`` is only for deliberate extra whitespace. Legends track
+        their own bounds, so the default is zero; adding another implicit row
+        here used to leave a conspicuous 76px empty footer.
         """
+        if not math.isfinite(margin) or margin < 0:
+            raise ValueError("fit margin must be finite and non-negative")
         if legend_room is None:
-            legend_room = 36.0 if self._has_legend else 0.0
-        need_w = self._content_max_x + margin
-        need_h = self._content_max_y + margin + legend_room
-        # Also account for legend items placed near the bottom of the current height.
-        self.width = max(self.width, need_w)
-        self.height = max(self.height, need_h)
+            legend_room = 0.0
+        if not math.isfinite(legend_room) or legend_room < 0:
+            raise ValueError("legend_room must be finite and non-negative")
+        if self._content_max_x == -math.inf:
+            return self
+        left = min(self._viewbox_x, self._content_min_x - margin)
+        top = min(self._viewbox_y, self._content_min_y - margin)
+        right = max(self._viewbox_x + self.width, self._content_max_x + margin)
+        bottom = max(self._viewbox_y + self.height,
+                     self._content_max_y + margin + legend_room)
+        self._viewbox_x, self._viewbox_y = left, top
+        self.width, self.height = right - left, bottom - top
         return self
 
     def _marker_for(self, color: str | None) -> str:
@@ -479,10 +520,14 @@ class Diagram:
         return ' stroke-dasharray="4 3"' if dashed else ""
 
     @staticmethod
-    def _opacity_attr(opacity: float | None) -> str:
+    def _fill_opacity_attr(opacity: float | None) -> str:
         if opacity is None:
             return ""
-        return f' opacity="{opacity:g}"'
+        if not 0 <= opacity <= 1:
+            raise ValueError("opacity must be between 0 and 1")
+        # Fade only the fill. A group-level `opacity` also fades the hairline
+        # stroke, defeating the crisp tint-within-family treatment.
+        return f' fill-opacity="{opacity:g}"'
 
     # -- nodes ------------------------------------------------------------- #
 
@@ -516,7 +561,7 @@ class Diagram:
             if h is None:
                 h = 56 if sub else 40
         cx = x + w / 2
-        op = self._opacity_attr(opacity)
+        op = self._fill_opacity_attr(opacity)
         self._layers["boxes"].append(
             f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"{op}/>'
@@ -1010,26 +1055,30 @@ class Diagram:
             f'{self._dash_attr(dashed)}{start} '
             f'marker-end="{self._marker_for(color)}"/>'
         )
+        self._note_extent(min(a[0], b[0]) - 4, min(a[1], b[1]) - 4,
+                          abs(b[0] - a[0]) + 8, abs(b[1] - a[1]) + 8)
         if label:
             self._place_label(a, b, label, plate)
         self._track_extent(a[0], a[1], b[0], b[1])
 
     def lpath(self, points: list[Point], color: str | None = None,
               label: str | None = None, plate: bool = False,
-              dashed: bool = False) -> None:
-        """An orthogonal multi-segment route; only the arriving end carries the marker."""
+              dashed: bool = False, bidirectional: bool = False) -> None:
+        """An orthogonal multi-segment route; the arriving end carries the marker."""
         if len(points) < 2:
             raise ValueError("lpath needs at least two points")
         stroke = _resolve_line(color)
         d = "M" + " L".join(f"{snap(px)} {snap(py)}" for px, py in points)
-        attrs = f'fill="none" stroke="{stroke}" stroke-width="1.5" stroke-linecap="round"'
-        if dashed:
-            attrs += ' stroke-dasharray="4 3"'
+        start = f' marker-start="{self._marker_for(color)}"' if bidirectional else ""
         self._layers["arrows"].append(
             f'  <path d="{d}" fill="none" stroke="{stroke}" stroke-width="1.5" '
-            f'stroke-linecap="round"{self._dash_attr(dashed)} '
+            f'stroke-linecap="round"{self._dash_attr(dashed)}{start} '
             f'marker-end="{self._marker_for(color)}"/>'
         )
+        xs = [p[0] for p in points]
+        ys = [p[1] for p in points]
+        self._note_extent(min(xs) - 4, min(ys) - 4,
+                          max(xs) - min(xs) + 8, max(ys) - min(ys) + 8)
         if label:
             segs = [(points[i], points[i + 1]) for i in range(len(points) - 1)]
             longest = max(segs, key=lambda s: abs(s[1][0] - s[0][0]) + abs(s[1][1] - s[0][1]))
@@ -1086,6 +1135,10 @@ class Diagram:
             f'  <path d="{d}" fill="none" stroke="{stroke}" stroke-width="1.5" '
             f'stroke-linecap="round"{self._dash_attr(dashed)}{end}/>'
         )
+        xs = [a[0], b[0], c1[0], c2[0]]
+        ys = [a[1], b[1], c1[1], c2[1]]
+        self._note_extent(min(xs) - 4, min(ys) - 4,
+                          max(xs) - min(xs) + 8, max(ys) - min(ys) + 8)
         if label:
             self._place_label(a, b, label, plate=False)
         self._track_extent(a[0], a[1], b[0], b[1])
@@ -1106,6 +1159,17 @@ class Diagram:
           * ``"straight"`` — always a single segment between the facing edges.
           * ``"ortho"`` — always an L/Z orthogonal path (even when aligned).
         """
+        if src is dst:
+            self.self_loop(src, color=color, label=label, plate=plate,
+                           dashed=dashed, bidirectional=bidirectional)
+            return
+        overlap_x = min(src.x + src.w, dst.x + dst.w) - max(src.x, dst.x)
+        overlap_y = min(src.y + src.h, dst.y + dst.h) - max(src.y, dst.y)
+        if overlap_x > 0 and overlap_y > 0:
+            raise ValueError("connect() boxes overlap; reposition them or route from explicit points")
+
+        if route not in {"auto", "straight", "ortho"}:
+            raise ValueError("connect route must be 'auto', 'straight', or 'ortho'")
         dx = dst.cx - src.cx
         dy = dst.cy - src.cy
         aligned_h = abs(dy) <= 12
@@ -1140,10 +1204,12 @@ class Diagram:
             if src.x < mid_x < src.x + src.w or dst.x < mid_x < dst.x + dst.w:
                 gutter = max(src.x + src.w, dst.x + dst.w) + 28
                 self.lpath([a, (gutter, exit_y), (gutter, enter_y), b],
-                           color=color, label=label, plate=plate, dashed=dashed)
+                           color=color, label=label, plate=plate, dashed=dashed,
+                           bidirectional=bidirectional)
             else:
                 self.lpath([a, (mid_x, exit_y), (mid_x, enter_y), b],
-                           color=color, label=label, plate=plate, dashed=dashed)
+                           color=color, label=label, plate=plate, dashed=dashed,
+                           bidirectional=bidirectional)
         else:
             # Vertical-first: exit top/bottom, bend at mid-y, enter top/bottom.
             if dy >= 0:
@@ -1157,10 +1223,35 @@ class Diagram:
             if src.y < mid_y < src.y + src.h or dst.y < mid_y < dst.y + dst.h:
                 gutter = max(src.y + src.h, dst.y + dst.h) + 28
                 self.lpath([a, (exit_x, gutter), (enter_x, gutter), b],
-                           color=color, label=label, plate=plate, dashed=dashed)
+                           color=color, label=label, plate=plate, dashed=dashed,
+                           bidirectional=bidirectional)
             else:
                 self.lpath([a, (exit_x, mid_y), (enter_x, mid_y), b],
-                           color=color, label=label, plate=plate, dashed=dashed)
+                           color=color, label=label, plate=plate, dashed=dashed,
+                           bidirectional=bidirectional)
+
+    def self_loop(self, box: Box, color: str | None = None,
+                  label: str | None = None, plate: bool = False,
+                  dashed: bool = False, bidirectional: bool = False,
+                  gutter: float = 32) -> None:
+        """Draw a compact right-gutter loop from a box back to itself.
+
+        This is the safe spelling for retry / reasoning loops. ``connect(b, b)``
+        delegates here instead of drawing a misleading arrow through the box.
+        """
+        if not all(math.isfinite(v) for v in (box.x, box.y, box.w, box.h, gutter)):
+            raise ValueError("self-loop geometry must be finite")
+        if box.w <= 0 or box.h <= 0:
+            raise ValueError("self-loop box must have positive width and height")
+        if gutter < 16:
+            raise ValueError("self-loop gutter must be at least 16")
+        spread = min(10.0, max(1.0, box.h / 5), box.h / 2)
+        a = (box.x + box.w, box.cy + spread)
+        b = (box.x + box.w, box.cy - spread)
+        gx = box.x + box.w + gutter
+        self.lpath([a, (gx, a[1]), (gx, b[1]), b], color=color,
+                   label=label, plate=plate, dashed=dashed,
+                   bidirectional=bidirectional)
 
     def fanout(self, parent: Box, children: list[Box], color: str | None = None,
                labels: list[str | None] | None = None,
@@ -1357,12 +1448,16 @@ class Diagram:
         """
         self._has_legend = True
         if y is None:
-            y = (self._content_max_y + 28) if self._content_max_y > 0 else (self.height - 20)
-        right_limit = self.width - 40
+            has_content = self._content_max_y != -math.inf
+            y = (self._content_max_y + 28) if has_content else (self.height - 20)
+        # Fit may later grow the canvas around already-placed content. Wrap
+        # against that effective width now, not merely the constructor width.
+        content_right = self._content_max_x if self._content_max_x != -math.inf else 0
+        right_limit = max(self._viewbox_x + self.width - 40, content_right)
         cx = x
         row_y = y
         for family, label in items:
-            fam = FAMILIES[family] if family in FAMILIES else FAMILIES["neutral"]
+            fam = _family(family)
             item_w = 18 + text_width(label, 12) + gap
             if cx != x and cx + item_w > right_limit:
                 cx = x
@@ -1471,91 +1566,30 @@ class Diagram:
     # -- output ------------------------------------------------------------ #
 
     def render(self) -> str:
-        """Render the diagram to SVG text.
-
-        Auto-fits the canvas height (growing past the declared height when
-        content + legend need more room) unless ``fixed_size=True``. Width
-        is never auto-changed; a single warning is printed if content
-        spills past the right margin.
-
-        The legend (if any) is laid out last, below the content extent, so
-        the canvas-height growth can absorb it. Explicit ``legend(y=...)``
-        is honored verbatim even when the canvas grew.
-        """
-        # 1. Compute the legend's own footprint (number of rows × row height).
-        legend_h = 0
-        if self._pending_legend is not None:
-            items = self._pending_legend["items"]
-            x = self._pending_legend["x"]
-            gap = self._pending_legend["gap"]
-            right_limit = self.width - 40
-            cx_row, rows = x, 1
-            for _family, label in items:
-                item_w = 18 + text_width(label, 12) + gap
-                if cx_row != x and cx_row + item_w > right_limit:
-                    rows += 1
-                    cx_row = x
-                cx_row += item_w
-            # Each row is 24px tall; legend spans rows*24 with a 12px fudge
-            # (rect sits ±6 around the text baseline).
-            legend_h = rows * 24
-
-        # 2. Decide the final height.
-        content_bottom = self._extent[3] if self._extent is not None else 0
-        margin_bottom = 20
-        # When there's a legend AND no explicit y, leave room for it.
-        if self._pending_legend is not None and self._pending_legend["y"] is None:
-            auto_h = content_bottom + legend_h + margin_bottom
-        else:
-            auto_h = content_bottom + margin_bottom
-        final_h = max(self.height, auto_h) if not self.fixed_size else self.height
-
-        # 3. Width-overflow warning (no auto-widen per SPEC risk).
-        if self._extent is not None and self._extent[2] > self.width - 40:
-            print(
-                f"svgkit: content extends to x={self._extent[2]:g} but canvas "
-                f"width is {self.width:g}; content overflows the right margin. "
-                f"Re-lay-out or widen Diagram()."
-            )
-
-        # 4. Emit the pending legend (now that final_h is known).
-        if self._pending_legend is not None:
-            if self._pending_legend["y"] is None:
-                # Place below content extent, leaving a 20px bottom margin.
-                # Legend baseline = final_h - 20 - legend_h + 12 (puts the
-                # baseline of the FIRST row such that the last row's text
-                # baseline + 6 sits at final_h - 20).
-                legend_y = final_h - margin_bottom - legend_h + 12
-            else:
-                legend_y = self._pending_legend["y"]
-            self._emit_legend(legend_y, items=self._pending_legend["items"],
-                              x=self._pending_legend["x"],
-                              gap=self._pending_legend["gap"])
-
-        # 5. Render.
-        w = snap(self.width)
-        h = snap(final_h)
+        x, y = snap(self._viewbox_x), snap(self._viewbox_y)
+        w, h = snap(self.width), snap(self.height)
         out: list[str] = []
-        out.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" '
+        out.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x} {y} {w} {h}" '
                    f'width="{w}" height="{h}" role="img">')
         out.append(f'  <title>{_esc(self.title)}</title>')
         out.append(f'  <desc>{_esc(self.desc)}</desc>')
         out.append(f'  <style>text {{ font-family: {FONT_STACK}; }}</style>')
         out.append(_MARKER)
-        out.append(f'  <rect width="{w}" height="{h}" fill="{BG}"/>')
+        out.append(f'  <rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{BG}"/>')
         for name in _LAYERS:
             out.extend(self._layers[name])
         out.append('</svg>')
         return "\n".join(out) + "\n"
 
-    def save(self, path: str, *, fit: bool = True) -> str:
-        """Write the SVG. ``fit=True`` (default) grows the canvas to clear content.
+    def save(self, path: str | Path, *, fit: bool = True) -> str:
+        """Write the SVG, creating parent directories when needed.
 
-        Pass ``fit=False`` only when you intentionally fixed the viewBox (gallery
-        stress tests, pixel-exact layouts).
+        ``fit=True`` (default) expands the viewBox on every side to clear content.
+        Pass ``fit=False`` only for an intentionally fixed, pixel-exact viewBox.
         """
         if fit:
             self.fit()
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.write(self.render())
-        return path
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(self.render(), encoding="utf-8")
+        return str(target)
