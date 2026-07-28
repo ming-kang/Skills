@@ -20,7 +20,7 @@ This is not a requirement. The user can skip or reorder skills as needed.
 
 ## Directory Layout
 
-`.biu/` should be git-ignored.
+`.biu/` is local working state and must be git-ignored. Before writing, check `.gitignore` and add `.biu/` if missing.
 
 ```text
 .biu/
