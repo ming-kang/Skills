@@ -3,7 +3,6 @@ title: <short title>
 status: draft | ready
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-owner: <git config user.name, or "" outside git>
 baseline_commit: <sha or "none">
 ---
 

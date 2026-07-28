@@ -49,7 +49,7 @@ One marker only — the open chevron — recolored per line via `context-stroke`
 | Primary / retrieval / read | `#1D9E75` green | solid |
 | Alternate branch | `#7F77DD` purple | solid |
 | Warning / error path | `#C75B38` terracotta | solid |
-| Async / optional / "also" | match the family | dashed (`connect`/`arrow`/`lpath` with `dashed=True`) |
+| Async / optional / "also" | match the family | `stroke-dasharray="4 3"` |
 | Leader / callout (not a real flow) | `#73726C` | `0.5` dashed + small `r=2` anchor dot |
 
 ```xml

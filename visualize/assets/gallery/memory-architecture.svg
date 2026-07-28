@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1096 420" width="1096" height="420" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 400" width="1020" height="400" role="img">
   <title>Agent memory architecture</title>
-  <desc>Input is processed by a memory manager that writes to a vector store and a graph store; retrieval and ranking assemble context for the model.</desc>
+  <desc>Input is processed by a memory manager that writes to a vector store and a graph store; retrieval and ranking then assemble the context for the model.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -9,46 +9,35 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect x="0" y="0" width="1096" height="420" fill="#FFFFFF"/>
-  <line x1="160" y1="196" x2="220" y2="196" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="364" y1="196" x2="388" y2="196" stroke="#73726C" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M388 196 L388 106 L460 106" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M388 196 L388 286 L460 286" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M640 106 L692 106 L692 196" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M640 286 L692 286 L692 196" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="692" y1="196" x2="720" y2="196" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="872" y1="196" x2="920" y2="196" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="688" y="180" width="35" height="16" rx="3" fill="#FFFFFF"/>
-  <rect x="868" y="180" width="56" height="16" rx="3" fill="#FFFFFF"/>
+  <rect width="1020" height="400" fill="#FFFFFF"/>
+  <line x1="160" y1="196" x2="240" y2="196" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path d="M420 196 L460 196 L460 113 L500 114" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path d="M420 196 L460 196 L460 291 L500 292" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path d="M680 114 L705 113 L705 196 L750 196" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path d="M680 292 L705 291 L705 196" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <rect x="40" y="168" width="120" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="220" y="168" width="144" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <path d="M 460 79 A 90 9 0 0 1 640 79 L 640 133 A 90 9 0 0 1 460 133 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <ellipse cx="550" cy="79" rx="90" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <path d="M 460 259 A 90 9 0 0 1 640 259 L 640 313 A 90 9 0 0 1 460 313 Z" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <ellipse cx="550" cy="259" rx="90" ry="9" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <rect x="720" y="168" width="152" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="920" y="168" width="136" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect x="240" y="168" width="180" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <path d="M 500 87 A 90 9 0 0 1 680 87 L 680 141 A 90 9 0 0 1 500 141 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <ellipse cx="590" cy="87" rx="90" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <path d="M 500 265 A 90 9 0 0 1 680 265 L 680 319 A 90 9 0 0 1 500 319 Z" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <ellipse cx="590" cy="265" rx="90" ry="9" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <rect x="750" y="168" width="152" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <text x="100" y="188" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Input</text>
   <text x="100" y="205" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">new message</text>
-  <text x="292" y="188" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Memory manager</text>
-  <text x="292" y="205" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">extract + route</text>
-  <text x="550" y="98" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Vector store</text>
-  <text x="550" y="115" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">embeddings</text>
-  <text x="550" y="278" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Graph store</text>
-  <text x="550" y="295" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">relations</text>
-  <text x="796" y="188" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Retrieve + rank</text>
-  <text x="796" y="205" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">top-k + score</text>
-  <text x="988" y="188" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Model</text>
-  <text x="988" y="205" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B">grounded prompt</text>
-  <text x="190" y="188" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">write</text>
-  <text x="706" y="188" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">read</text>
-  <text x="896" y="188" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">context</text>
-  <rect x="40" y="344" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="58" y="350" dominant-baseline="central" font-size="12" fill="#3D3D3A">vector / write</text>
-  <rect x="178" y="344" width="12" height="12" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="196" y="350" dominant-baseline="central" font-size="12" fill="#3D3D3A">graph</text>
-  <rect x="254" y="344" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <text x="272" y="350" dominant-baseline="central" font-size="12" fill="#3D3D3A">retrieve</text>
-  <rect x="351" y="344" width="12" height="12" rx="3" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <text x="369" y="350" dominant-baseline="central" font-size="12" fill="#3D3D3A">model</text>
+  <text x="330" y="188" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Memory manager</text>
+  <text x="330" y="205" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">extract + route</text>
+  <text x="590" y="106" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Vector store</text>
+  <text x="590" y="123" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">embeddings</text>
+  <text x="590" y="284" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Graph store</text>
+  <text x="590" y="301" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">relations</text>
+  <text x="826" y="188" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Retrieve + rank</text>
+  <text x="826" y="205" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">top-k + score</text>
+  <text x="200" y="188" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">write</text>
+  <text x="713" y="154" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">read</text>
+  <rect x="40" y="366" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="58" y="372" dominant-baseline="central" font-size="12" fill="#3D3D3A">vector / write</text>
+  <rect x="178" y="366" width="12" height="12" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text x="196" y="372" dominant-baseline="central" font-size="12" fill="#3D3D3A">graph</text>
+  <rect x="254" y="366" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <text x="272" y="372" dominant-baseline="central" font-size="12" fill="#3D3D3A">retrieve</text>
 </svg>

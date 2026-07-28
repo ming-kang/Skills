@@ -18,28 +18,15 @@ Draw a Mem0 memory architecture diagram and save it to ~/Desktop/.
 Draw a microservice architecture diagram: Client -> API Gateway -> User Service / Order Service -> PostgreSQL + Redis.
 ```
 
-The agent classifies the diagram type, opens only the references it needs (progressive loading), and writes an SVG in the Visualize house style via the bundled `svgkit` helper. Linear diagrams use a one-call `pipeline()` fast path; domain skeletons live in `references/recipes.md`.
+The agent identifies the diagram type, opens the matching reference from `assets/gallery/<type>.svg`, and writes an SVG in the Visualize house style.
 
 ## What It Produces
 
 Visualize writes SVG by default. The SVG is editable, scalable, and can be opened directly in a browser or embedded in documentation.
 
-When Python 3 is available, the skill uses `svgkit` to:
+When Python 3 is available, the skill uses the included `svgkit` helper to size boxes from their text, anchor arrows on box edges, and keep the SVG structure valid. If Python is not available, the agent can still write the SVG directly.
 
-- Size boxes from their text (Latin and CJK)
-- Build linear diagrams with `pipeline()` (row + chain + optional legend)
-- Anchor arrows on box edges (`connect` / `chain` / `fanout`)
-- Auto-grow the canvas so nodes and legends are not clipped
-- Keep the SVG structure valid (marker, z-order, closing tag)
-- Resolve its own `scripts/` path from the working directory when possible
-
-If Python is not available, the agent can still write the SVG directly.
-
-No dependencies are installed by this skill. Validate with:
-
-```bash
-python3 visualize/scripts/validate_svg.py -q diagram.svg
-```
+No dependencies are installed by this skill.
 
 ## Supported Diagram Types
 
@@ -59,8 +46,6 @@ python3 visualize/scripts/validate_svg.py -q diagram.svg
 | Comparison | Feature matrices and capability comparisons |
 | Mind map | Central concept with curved branches |
 | Timeline / Gantt | Phases, milestones, and duration bars |
-| Swimlane | Cross-functional flows with role lanes and handoffs |
-| Tree / org chart | Hierarchies, taxonomies, reporting lines |
 
 Every supported type has an owned reference diagram under `assets/gallery/<type>.svg`. See [`references/diagram-gallery.md`](../visualize/references/diagram-gallery.md) for the full index.
 
@@ -86,9 +71,8 @@ The exact tokens live in [`references/style.md`](../visualize/references/style.m
 
 ```text
 visualize/
-├── SKILL.md                         # Runtime entry point (progressive loading)
+├── SKILL.md                         # Runtime entry point for the agent
 ├── references/                      # On-demand knowledge files
-│   ├── recipes.md                   # Domain / layout skeletons (fast copy-paste)
 │   ├── style.md                     # Visual tokens and hard style rules
 │   ├── svg-cookbook.md              # svgkit API and SVG snippets
 │   ├── svg-layout-best-practices.md # Layout, routing, and spacing rules
@@ -100,18 +84,11 @@ visualize/
 │   └── icons.md                     # Optional pictorial shape snippets
 ├── scripts/
 │   ├── svgkit.py                    # Default zero-dependency SVG helper
-│   ├── validate_svg.py              # SVG quality validator (-q for one-line summary)
-│   ├── check_palette.py             # Palette drift check (style ↔ svgkit ↔ validator)
-│   └── _regen_gallery.py            # Regenerate gallery/sample reference SVGs
+│   ├── validate_svg.py              # SVG quality validator
+│   └── check_palette.py             # Palette drift check (style ↔ svgkit ↔ validator)
 └── assets/
     ├── gallery/                     # Reference diagrams by type
     └── samples/                     # Showcase examples
-```
-
-Run the regression tests with:
-
-```bash
-python3 visualize/scripts/test_visualize.py
 ```
 
 ## License

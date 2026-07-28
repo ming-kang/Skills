@@ -1,8 +1,7 @@
 ---
 id: TASK-<short-name>
 title: <Title>
-status: ready | in_progress | blocked | completed
-owner: <empty until claimed>
+status: ready | in_progress | completed
 depends_on: []
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
@@ -10,15 +9,7 @@ updated: YYYY-MM-DD
 
 # TASK-<short-name>: <Title>
 
-When executing this task, first check `owner`: if it names someone else, the task is already claimed — pick another. To claim it, set `owner` to your developer name (`git config user.name`), set `status` to `in_progress`, and update `updated` to today. When done, set `status` to `completed` and refresh `updated`.
-
-**Stop before you spiral.** If the same step fails twice, or you hit a constraint conflict this task cannot resolve, do not keep trying variations. Set `status: blocked`, fill `## Blocked` below (what you tried, why it failed, what would unblock it — a decision, missing information, or a technical solution), and surface it to the user. On unblocking, note the resolution there, restore `status: in_progress`, and continue from where you stopped.
-
-**One task at a time.** When this task reaches `completed`, stop and report — do not roll into the next task in the same breath. The user decides what runs next (or dispatches several non-conflicting tasks in parallel).
-
-**Reflection checks.** Pause and surface to the user — do not silently continue — when you catch yourself: appending to an already-long file, adding a 4th parameter to a function, copy-pasting a code block, or writing an `if (special case)` patch branch.
-
-Then: a small fix the user approves goes into this task and its `## Implementation Decisions`; anything beyond this task's boundary goes into `## Notes` as a follow-up — do not expand scope.
+When executing this task, set frontmatter `status` to `in_progress` and update `updated` to today. When done, set `status` to `completed` and refresh `updated`.
 
 ## Objective
 
@@ -68,15 +59,6 @@ List the AC IDs from SPEC that this task contributes to.
 -->
 
 - AC1
-
-## Blocked
-
-<!--
-Filled only when status is (or was) blocked. Keep entries; they are part of the record.
--->
-
-- YYYY-MM-DD blocked: <what was attempted, why it failed, what would unblock it>
-- YYYY-MM-DD unblocked: <the resolution>
 
 ## Implementation Decisions
 

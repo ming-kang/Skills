@@ -2,7 +2,7 @@
 
 Single-element primitives (boxes, arrows, containers) live in `svg-cookbook.md`; per-type layout rules in `diagram-types.md`; routing in `svg-layout-best-practices.md`. **This file is the catalogue of multi-element *compositing patterns*** — the recurring ways those primitives are combined to express something a bare box/arrow can't. Each is shown in the house warm tokens.
 
-Reach for these when the request is one of: a trust-boundary split, a numbered recipe / pipeline, an allow-vs-deny decision, a titled result panel, a repeating scope, a long feedback return, out-of-band side events, a two-line payload label, or a stateful cell strip. If `python3` is available, the `svgkit` helper implements the bolded ones as one-liners (`.step`, `.panel`, `.scope`, `.zone`). For ordinary edges between boxes prefer `.connect` / `.chain` / `.fanout` over hand-picked anchors.
+Reach for these when the request is one of: a trust-boundary split, a numbered recipe / pipeline, an allow-vs-deny decision, a titled result panel, a repeating scope, a long feedback return, out-of-band side events, a two-line payload label, or a stateful cell strip. If `python3` is available, the `svgkit` helper implements the bolded ones as one-liners (`.step`, `.panel`, `.scope`, `.zone`).
 
 > Style tokens, the marker, the type scale, and the flat rule all still apply — a pattern never justifies a new color, a filled triangle, or a shadow.
 
@@ -86,7 +86,7 @@ d.scope(60, 110, 640, 170, "agentic loop")
 
 ## §6. Right-gutter loop-back
 
-When a feedback edge has to return from a late node to an early one, route it up the **right margin** rather than across the diagram. The long vertical leg lives in empty space the boxes already leave as padding, so it never collides. (A loop from a box back to **itself** is simpler still: `d.connect(b, b)` / `d.self_loop(b)` draws the compact right-gutter loop for you.)
+When a feedback edge has to return from a late node to an early one, route it up the **right margin** rather than across the diagram. The long vertical leg lives in empty space the boxes already leave as padding, so it never collides.
 
 ```python
 # from the bottom-right step's right edge, up the gutter, back into step 1
@@ -106,8 +106,11 @@ for i, (lbl, y) in enumerate([("Notification", 200), ("ConfigChange", 260)]):
     d.raw(f'<rect x="20" y="{y}" width="120" height="42" rx="8" fill="#F5F4ED" '
           f'stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>',
           layer="boxes")
-    d.arrow((140, y + 21), (200, y + 21), dashed=True)  # dashed connector into the spine
+    # dashed connector into the main spine
+    d.lpath([(140, y + 21), (200, y + 21)], color="neutral")  # use stroke-dasharray via raw if needed
 ```
+
+(For a fully dashed connector, emit the `<line>` via `.raw()` with `stroke-dasharray="4 3"` — `svgkit.arrow` is solid by design.)
 
 ## §8. Two-line arrow label (label + payload)
 
