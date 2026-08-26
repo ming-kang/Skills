@@ -68,10 +68,7 @@ Current geometry limits are deliberate and visible: an element under an XML `tra
 
 ## 6. The flat rule
 
-- **No** drop shadows, gradients, `<filter>`s, or blur. Ever.
-- Hairline box strokes (`0.5`), 1.5px round-cap lines, open-chevron heads.
-- Warm palette only (`references/style.md`) — no cold gray/blue Tailwind values.
-- Self-contained: inline font in `<style>`, no `@import`, no remote `url()/href/src`.
+The flat rule and self-contained constraints → `references/style.md` §Hard rules. Summary: no shadows, no gradients, no filters, no remote assets; warm palette only; hairline box strokes (`0.5`), 1.5px round-cap lines, open-chevron heads.
 
 ## Pre-export checklist
 

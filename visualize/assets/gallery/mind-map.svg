@@ -10,22 +10,22 @@
     </marker>
   </defs>
   <rect width="760" height="470" fill="#FFFFFF"/>
-  <path d="M 385 228 C 380 228 380 70 375 70" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M 385 228 C 525 228 525 140 665 140" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M 385 228 C 525 228 525 320 665 320" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M 385 228 C 290 228 290 320 195 320" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M 385 228 C 275 228 275 140 165 140" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
-  <rect x="310" y="200" width="150" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <rect x="300" y="50" width="150" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="590" y="120" width="150" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="590" y="300" width="150" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="120" y="300" width="150" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="90" y="120" width="150" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="385" y="220" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">AI agent</text>
-  <text x="385" y="237" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">core loop</text>
-  <text x="375" y="70" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Perception</text>
-  <text x="665" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Memory</text>
-  <text x="665" y="320" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Reasoning</text>
-  <text x="195" y="320" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Action</text>
-  <text x="165" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Learning</text>
+  <path d="M 365 200 C 362 200 362 90 360 90" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 425 228 C 508 228 508 140 590 140" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 425 228 C 508 228 508 320 590 320" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 305 228 C 272 228 272 320 240 320" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 305 228 C 258 228 258 140 210 140" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="305" y="200" width="120" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <rect x="300" y="50" width="120" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="590" y="120" width="120" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="590" y="300" width="120" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect x="120" y="300" width="120" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect x="90" y="120" width="120" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text data-role="node-text" x="365" y="220" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">AI agent</text>
+  <text data-role="node-text" x="365" y="237" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">core loop</text>
+  <text data-role="node-text" x="360" y="70" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Perception</text>
+  <text data-role="node-text" x="650" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Memory</text>
+  <text data-role="node-text" x="650" y="320" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Reasoning</text>
+  <text data-role="node-text" x="180" y="320" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Action</text>
+  <text data-role="node-text" x="150" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Learning</text>
 </svg>

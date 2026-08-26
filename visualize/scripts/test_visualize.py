@@ -630,7 +630,7 @@ class SecondReviewRegressionTests(unittest.TestCase):
             self.assertEqual(result.status, "fail")
 
 
-class ThirdReviewRegressionTests(unittest.TestCase):
+class AdvancedGeometryAndStyleTests(unittest.TestCase):
     def test_concave_polygons_distinguish_overlap_from_empty_cavity(self) -> None:
         u_points = "40,40 240,40 240,240 180,240 180,100 100,100 100,240 40,240"
         with tempfile.TemporaryDirectory() as tmp:
@@ -775,7 +775,7 @@ class ThirdReviewRegressionTests(unittest.TestCase):
         self.assertNotIn("Full containment is fine", cookbook)
 
 
-class FourthReviewRegressionTests(unittest.TestCase):
+class CSSCascadeTests(unittest.TestCase):
     def test_inline_important_visibility_and_alpha_are_normalized(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)
@@ -873,6 +873,56 @@ class ParserAndCompatibilityTests(unittest.TestCase):
         self.assertGreaterEqual(rendered.count('stroke-dasharray="4 3"'), 3)
         self.assertIn('x="420" y="242"', rendered)
         self.assertIn(">curve</text>", rendered)
+
+
+class GeometryModuleTests(unittest.TestCase):
+    """Verify the extracted geometry.py works as a standalone module."""
+
+    def test_geometry_import_standalone(self) -> None:
+        from geometry import (
+            parse_path, path_bounds, Bounds, Point, polygons_intersect,
+            segment_crosses_polygon, rect_outline, ellipse_outline,
+        )
+        # Basic path parsing
+        data = parse_path("M10,10 L100,10 L100,100 Z")
+        self.assertEqual(len(data.segments), 3)
+        # Bounds computation
+        bounds = path_bounds(data)
+        self.assertIsNotNone(bounds)
+        self.assertAlmostEqual(bounds[0], 10.0)
+        self.assertAlmostEqual(bounds[1], 10.0)
+        # Rect outline
+        outline = rect_outline(0, 0, 100, 100)
+        self.assertEqual(len(outline), 4)
+        # Ellipse outline
+        ell = ellipse_outline(50, 50, 30, 20)
+        self.assertEqual(len(ell), 64)
+
+    def test_branch_produces_valid_curve(self) -> None:
+        from svgkit import Diagram
+        d = Diagram(600, 400, title="Branch test", desc="Testing branch method")
+        center = d.node(200, 170, "Center", "hub", family="purple")
+        leaf_right = d.node(400, 60, "Right", family="green")
+        leaf_left = d.node(40, 280, "Left", family="amber")
+        leaf_below = d.node(200, 320, "Below", family="terracotta")
+        # All three branches should work without error
+        d.branch(center, leaf_right, family="green")
+        d.branch(center, leaf_left, family="amber")
+        d.branch(center, leaf_below, family="terracotta")
+        rendered = d.render()
+        # Should have 3 bezier paths (the branches)
+        self.assertEqual(rendered.count("<path d=\"M "), 3)
+        # No markers on branches by default
+        self.assertNotIn('marker-end=', rendered.split("<path")[1])
+
+    def test_branch_with_marker(self) -> None:
+        from svgkit import Diagram
+        d = Diagram(500, 300, title="Marker branch", desc="Branch with arrow")
+        center = d.node(150, 130, "A")
+        target = d.node(350, 130, "B", family="green")
+        d.branch(center, target, family="green", marker=True)
+        rendered = d.render()
+        self.assertIn('marker-end="url(#arrow)"', rendered)
 
 
 if __name__ == "__main__":

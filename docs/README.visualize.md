@@ -49,9 +49,18 @@ python3 visualize/scripts/validate_svg.py -q diagram.svg other.svg
 
 `-q` / `--quiet` emits nothing when every file is clean. It prints only warnings and failures otherwise; warnings alone still exit 0, while any hard failure makes the multi-file command exit 1.
 
-Checks cover UTF-8/XML and viewBox structure; non-empty `<title>`/`<desc>` ordering; self-contained assets (only local `#id` or embedded `data:` targets, with external/relative references and `xml-stylesheet` processing instructions rejected) and valid local references; globally unique IDs and exactly one `marker#arrow`, including effective inline/inherited marker styles; an opaque full-viewBox white rect as the first graphics child; flat styling with no gradients, filters, or shadows; shape-aware box containment/overlap; arrow-through-obstacle collisions; canvas overflow; text fit and free-label collisions; type scale, baselines, palette, and the closing tag.
+Checks cover:
 
-The validator does not silently invent geometry it cannot support. XML/CSS transforms—including individual `translate`, `rotate`, and `scale` properties—skip affected geometry with explicit warnings; a stylesheet transform rule conservatively skips all obstacle/text geometry because selectors are not resolved. `<text>` containing any child/nested run, including a wrapped `<tspan>`, is likewise skipped by text geometry checks. Curved arrows are checked along sampled quadratic/cubic/arc trajectories, not endpoint chords; convex and concave outlines are shape-tested, while ambiguous complex filled-path intersections are warning candidates rather than hard AABB failures. Hidden or fully transparent paint, including zero-alpha `rgba()`/hex colors, does not become an obstacle. `svgkit` emits non-visual `data-role` attributes to distinguish nodes, arrow/legend labels, and intentional panel/container nesting; hand-written SVG can use the same roles.
+- **Structure** — UTF-8/XML well-formedness, `<svg>` root, usable viewBox
+- **Accessibility** — non-empty `<title>` + `<desc>` as first element children
+- **Assets & references** — self-contained (no external/relative URLs, no `xml-stylesheet` PIs); all local `#id` references resolve; IDs are unique
+- **Markers** — exactly one `<marker id="arrow">`; every marker reference targets it
+- **Background & style** — opaque white rect covers the viewBox; no gradients, filters, or shadows
+- **Geometry** — shape overlap/containment; arrow-through-obstacle collisions; canvas overflow
+- **Text** — text fit within boxes; free-label collisions with nodes and each other; type scale (14/12); baselines; warm palette
+- **Closing** — file ends with `</svg>`
+
+Geometry limits are deliberate and visible: transformed elements and `<text>` with nested `<tspan>` runs are skipped with explicit warnings rather than measured at fictitious coordinates. Curved arrows are sampled along real quadratic/cubic/arc trajectories. Hidden or fully transparent paint does not become an obstacle. `svgkit` emits non-visual `data-role` attributes to distinguish intentional structure from accidental overlap; hand-written SVG can use the same roles.
 
 ## Supported Diagram Types
 
@@ -106,7 +115,7 @@ visualize/
 │   ├── diagram-gallery.md           # Gallery index
 │   ├── shape-vocabulary.md          # Color-family-to-meaning mapping
 │   ├── product-colors.md            # Optional brand-color lookup
-│   └── icons.md                     # Optional pictorial shape snippets
+│   └── product-colors-azure.md      # Azure service colors (conditional)
 ├── scripts/
 │   ├── svgkit.py                    # Default zero-dependency SVG helper (self-checks on save)
 │   ├── validate_svg.py              # SVG quality validator

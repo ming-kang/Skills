@@ -51,7 +51,11 @@ def parse_style_families(path: Path) -> dict[str, dict[str, str]]:
     Each data row is ``| **Name** | meaning | FILL | STROKE | TITLE | SUB | LINE |``.
     Header and ``|---|`` separator rows are skipped; the meaning cell is not
     captured (parts[1]) so the five color slots land at parts[2:7].
+
+    Detection is robust: rows are identified either by bold-wrapped family
+    names (``**neutral**``) OR by known family name keywords in the first cell.
     """
+    KNOWN_FAMILIES = {"neutral", "green", "purple", "terracotta", "amber"}
     lines = path.read_text(encoding="utf-8").splitlines()
     start = None
     for i, ln in enumerate(lines):
@@ -78,9 +82,13 @@ def parse_style_families(path: Path) -> dict[str, dict[str, str]]:
         if len(parts) < 7:
             continue
         name_cell = parts[0].strip()
-        if "**" not in name_cell:
-            continue  # column header ("Family") or the |---| rule row
+        # Skip header/separator rows (contain "---" or the header label)
+        if "---" in name_cell or name_cell.lower() in ("family", ""):
+            continue
+        # Extract family name: strip bold markers and match known names
         name = name_cell.replace("**", "").strip().lower()
+        if name not in KNOWN_FAMILIES:
+            continue  # not a data row we recognize
         families[name] = {slot: _norm(v) for slot, v in zip(SLOTS, parts[2:7])}
     if not families:
         sys.exit(f"check_palette: no family rows parsed from {path}")

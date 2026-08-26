@@ -21,7 +21,25 @@ Files live at `assets/gallery/<type>.svg`. Variants use a suffix, e.g. `data-flo
 | Class diagram | `assets/gallery/class-diagram.svg` | Three `class_box()` compartments (interface stereotype, abstract italic, attributes/methods). Inheritance and realization both expressed with the single open-chevron + `extends` / `«implements»` labels — the House-style UML prescription. |
 | Use case | `assets/gallery/use-case.svg` | Two `actor()` figures outside a dashed system boundary, five `usecase()` ellipses inside, with dashed `«include»` / `«extend»` arrows routed through the row gutters around the ellipse obstacles. |
 | Decision ladder | `assets/gallery/decision-ladder.svg` | Verdict-rails *compositing pattern* (`references/layout-patterns.md` §3), not a distinct diagram type — a chain of `.step()` checks between a green "Execute" bar and a terracotta "Blocked" bar; each gate allow-arrows up / deny-arrows down. |
+| Sequence (frames) | `assets/gallery/sequence-frames.svg` | Alt/opt scope frames, activation boxes, three lifelines — extends the basic sequence pattern with UML interaction fragments. |
 
 ## How these were made
 
 All sixteen gallery SVGs (fifteen diagrams plus the `data-flow_mobile.svg` narrow variant) are drawn with the `svgkit` primitives — boxes / arrows / containers / legend, plus the shape helpers (`diamond`, `cylinder`, `lifeline`, `state_dot`, `entity`, `class_box`, `usecase`, `actor`, `step`, `panel`, `bar`), `.curve()` for the mind-map branches, `.scope()`/`.zone()` for frames/dividers, and `.raw()` for the occasional bespoke bit (matrix cells, turn-strip, plumbing rails, verdict rails). They double as worked examples of the helper.
+
+---
+
+## Skeletons — minimal starting points
+
+Copy one as a starting scaffold instead of adapting the full gallery entry. Each skeleton has 2–3 nodes with placeholder labels and passes the validator clean.
+
+Files live at `assets/gallery/skeletons/<type>.svg`.
+
+| Type | File | What it shows |
+|---|---|---|
+| Architecture | `skeletons/architecture.svg` | Client → Service → Database (layered, with cylinder) |
+| Data flow | `skeletons/data-flow.svg` | Three-node linear pipeline with a legend |
+| Flowchart | `skeletons/flowchart.svg` | Start → Process → Diamond with yes/no exits |
+| Sequence | `skeletons/sequence.svg` | Two lifelines, request + response |
+| Comparison | `skeletons/comparison.svg` | 2×2 feature matrix with verdict fills |
+| State machine | `skeletons/state-machine.svg` | Initial dot → one state → final dot |

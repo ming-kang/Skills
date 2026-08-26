@@ -16,10 +16,18 @@ The skill ships its own on-style reference diagrams, one per common type, at `as
 
 Index with a one-line description of each: `references/diagram-gallery.md` — one reference diagram per supported type (fourteen standard types), plus the decision-ladder compositing-pattern example and the `data-flow_mobile.svg` narrow re-layout variant. The full list of supported types with layout rules lives in `references/diagram-types.md`.
 
+## Reading order
+
+- **Core** (always relevant): `references/style.md` → `references/svg-cookbook.md`
+- **Per-task**: `references/diagram-types.md` + `references/layout-patterns.md`
+- **Diagnostic**: `references/svg-layout-best-practices.md`
+- **Design heuristics**: `references/shape-vocabulary.md`
+- **Conditional**: `references/product-colors.md` (only when user names a product); `references/product-colors-azure.md` (Azure services)
+
 ## Workflow
 
 1. **Understand the request** — Identify the diagram type (architecture, data flow, flowchart, agent architecture, memory architecture, sequence, comparison, mind map, ER, state machine, network, class, use case, timeline/gantt; full per-type rules in `references/diagram-types.md`) and the entities / relationships.
-2. **Plan the layout** — Pick a viewBox (width ~680–760 is typical), 40px margins, 56px two-line boxes, ≥56px vertical gaps. For anything non-trivial (≥6 nodes or multi-layer) read `references/svg-layout-best-practices.md`. If the request is a trust-boundary split, a numbered recipe, an allow/deny decision chain, a repeating scope, or any structure a flat graph hides, read `references/layout-patterns.md` and use its `svgkit` one-liners (`.step/.panel/.scope/.zone`). If the user wants a **mobile / narrow** version, re-lay-out per `references/layout-patterns.md` §10 (a separate `<name>_mobile.svg`).
+2. **Plan the layout** — Pick a viewBox (width ~680–760 is typical), 40px margins, 56px two-line boxes, ≥56px vertical gaps. For a minimal scaffold, start from `assets/gallery/skeletons/<type>.svg` instead of the full gallery entry. For anything non-trivial (≥6 nodes or multi-layer) read `references/svg-layout-best-practices.md`. If the request is a trust-boundary split, a numbered recipe, an allow/deny decision chain, a repeating scope, or any structure a flat graph hides, read `references/layout-patterns.md` and use its `svgkit` one-liners (`.step/.panel/.scope/.zone`). If the user wants a **mobile / narrow** version, re-lay-out per `references/layout-patterns.md` §10 (a separate `<name>_mobile.svg`).
 3. **Assign color families by meaning** — Neutral cream for plumbing; **Green** for the primary / happy path / retrieval; **Purple** for an alternate or parallel branch; **Terracotta** for warnings / limitations / failure; **Amber** for a highlighted special module. Exact tokens: `references/style.md`. **Default to fewer families** — one accent + Neutral often beats three; see the Restraint subsection in `references/style.md` and the tint-within-family technique before reaching for a second family. Per-type guidance: `references/diagram-types.md`. Shape choices: `references/shape-vocabulary.md`. Product icons (optional): `references/product-colors.md`.
 4. **Write the SVG** — If `python3` is available, build it with the **`svgkit` helper** (`references/svg-cookbook.md` §0): you write the layout and it computes box widths from the text, anchors arrows on edges, and guarantees the marker / z-order / closing tag. Otherwise assemble the skeleton and snippets from the cookbook by hand (Python list method, one `lines.append(...)` per line so the file cannot be truncated mid-tag).
 5. **Save SVG** — Default to the working directory, or the path the user gave (`--output /path/` or `输出到 /path/`). Semantic kebab-case filename.

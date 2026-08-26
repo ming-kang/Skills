@@ -59,6 +59,7 @@ That is the **entire** diagram. The equivalent by hand is ~30 lines of `<rect>`/
 | `.arrow(a, b, color=None, label=None, plate=False, dashed=False, both=False, label_offset=8)` | straight edge-to-edge connector (only the arrival carries the marker). `dashed` = async / optional / UML realization; `both` = bidirectional (`marker-start` too); `label_offset` is signed — flip the sign to move the label to the other side of the line |
 | `.lpath([p1, p2, …], color=None, label=None, plate=False, dashed=False, both=False, label_offset=8)` | orthogonal L-route around obstacles; the label rides the longest segment |
 | `.curve(a, b, color=None, label=None, marker=True, dashed=False, label_offset=8)` | cubic bezier branch (mind-map / concept-map); signed `label_offset` chooses the label side |
+| `.branch(center, target, family="neutral", label=None, marker=False, label_offset=8)` | cubic bezier from center box to target box (mind-map); auto-picks edge anchors and control points from angle — no manual Bézier math needed |
 | `.container(x, y, w, h, label=None, sub=None, solid=False)` | dashed group (rx14) or solid panel (rx20) |
 | `.scope(x, y, w, h, label, sub=None)` → `Box` | dashed loop/scope frame with an uppercase tracked badge (`EACH TURN`…) |
 | `.zone(divider_x, y_top, y_bottom, left_label, right_label, left_cx, right_cx)` | vertical dashed trust-boundary divider + two column headers |
@@ -288,14 +289,55 @@ Decorative tints, 45×45 cells, hairline stroke. (Highlight one cell with a 2px 
 
 ---
 
-## Collision-safe checklist (matches `scripts/validate_svg.py`)
+## Collision-safe checklist
 
-- Solid boxes ≥70×30 are obstacles. **Never** run a straight `<line>`/`<path>` segment through one — anchor at the edge or route an L-path around it. Filled `<path>` shapes count too (that's how a `cylinder()` body is seen).
-- These are *not* obstacles: dashed rects, shapes with no visible fill/stroke, cells <70 wide or <30 tall, very broad backdrops (>70% of a viewBox dimension), and explicit `data-role="panel"` / `data-role="container"` routing exceptions.
-- No two ordinary solid boxes may overlap or contain one another. Full containment is valid only when the outer shape is explicitly marked `data-role="panel"` or `data-role="container"`.
-- A label that sits outside a box must not land on one. An arrow label wider than the gap it rides is the usual cause: shorten it, widen the gap, or flip it with `label_offset=-8`.
-- Every `marker-end="url(#arrow)"` must reference the `<marker id="arrow">`.
-- Keep filtered/edge elements ≥ a few px inside the viewBox (we use no filters, so this is automatic).
+Full collision rules and validation contract → `svg-layout-best-practices.md` §4. Key points:
+
+- Solid boxes ≥70×30 are obstacles — never route a straight segment through one; anchor at the edge or use an L-path.
+- Explicit `data-role="panel"` / `data-role="container"` exempts a shape from overlap/collision enforcement.
+- A free label must not land on a box; shorten it, widen the gap, or flip with `label_offset=-8`.
+
+---
+
+## 10. Raw shape fallbacks (no svgkit)
+
+When `svgkit` is unavailable, use these raw XML snippets for shapes that need more than a `<rect>`. Self-contained SVG rule: **never** use `@import url()` for icon fonts — always use inline `<path>`, `<circle>`, `<rect>`, `<text>`. Embed font-family in `<style>` using system fonts only.
+
+### Database / Vector Store (cylinder)
+
+Prefer `d.cylinder(x, y, title, sub, family)`. Raw fallback:
+
+```xml
+<ellipse cx="cx" cy="top" rx="w/2" ry="w/6" fill="fill" stroke="stroke" stroke-width="0.5"/>
+<rect x="cx-w/2" y="top" width="w" height="h" fill="fill" stroke="none"/>
+<line x1="cx-w/2" y1="top" x2="cx-w/2" y2="top+h" stroke="stroke" stroke-width="0.5"/>
+<line x1="cx+w/2" y1="top" x2="cx+w/2" y2="top+h" stroke="stroke" stroke-width="0.5"/>
+<ellipse cx="cx" cy="top+h" rx="w/2" ry="w/6" fill="fill" stroke="stroke" stroke-width="0.5"/>
+```
+
+### Decision diamond (flowcharts)
+
+Prefer `d.diamond(x, y, title, family)`. Raw fallback:
+
+```xml
+<polygon points="cx,cy-hh  cx+hw,cy  cx,cy+hh  cx-hw,cy"
+         fill="fill" stroke="stroke" stroke-width="0.5"/>
+<text x="cx" y="cy" text-anchor="middle" dominant-baseline="central"
+      fill="text" font-size="14" font-weight="500">Condition?</text>
+```
+
+### User / human actor (sequence + use-case diagrams)
+
+Prefer `d.actor(cx, y, label, family)`. Raw fallback:
+
+```xml
+<circle cx="cx" cy="cy-18" r="10" fill="fill" stroke="stroke" stroke-width="0.5"/>
+<path d="M cx-14,cy+16 Q cx-14,cy-4 cx,cy-4 Q cx+14,cy-4 cx+14,cy+16"
+      fill="fill" stroke="stroke" stroke-width="0.5"/>
+<text x="cx" y="cy+30" text-anchor="middle" fill="text" font-size="14">User</text>
+```
+
+---
 
 ## Generating with the Python list method (fallback)
 

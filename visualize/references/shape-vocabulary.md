@@ -6,15 +6,15 @@ The core idea: **meaning is carried by COLOR FAMILY, not by ornament.** Boxes ar
 
 ## Color families = semantic roles
 
-Pick a family by what a node *means*, and stay consistent across the diagram.
+Pick a family by what a node *means*, and stay consistent across the diagram. Full color tokens (hex values, text/sub colors) → `references/style.md` §Color families.
 
-| Role in the diagram | Family | Box fill / stroke |
-|---|---|---|
-| Default node, plumbing, "just a step" | **Neutral** | `#F5F4ED` / `rgba(31,30,29,0.3)` |
-| Primary / happy path, success, retrieval, "the good way" | **Green** | `#E1F5EE` / `#0F6E56` |
-| Alternate path, parallel branch, secondary option | **Purple** | `#EEEDFE` / `#534AB7` |
-| Warning, limitation, failure, bottleneck, "the problem" | **Terracotta** | `#FAECE7` / `#993C1D` |
-| Highlight, special module, the thing to look at | **Amber** | `#FAEEDA` / `#854F0B` |
+| Role in the diagram | Family |
+|---|---|
+| Default node, plumbing, "just a step" | **Neutral** |
+| Primary / happy path, success, retrieval | **Green** |
+| Alternate path, parallel branch | **Purple** |
+| Warning, limitation, failure, bottleneck | **Terracotta** |
+| Highlight, special module | **Amber** |
 
 Use 2–4 families per diagram, no more — beyond that it reads as noise. When 2+ families appear, add a legend. Full text/sub colors per family: `references/style.md`.
 
@@ -37,7 +37,7 @@ A small, honest set. Render every one flat with a hairline `0.5` stroke — no g
 
 > Retired: "LLM = double-bordered rect", "Agent = hexagon with gradient", icon badges, folded-corner docs, browser chrome. In this style an LLM, an agent and a tool are all rounded rects; you read them by their **label** and **family** (e.g. agent core Neutral, tools Amber, final answer Green).
 
-Raw fallback snippets for diamond / cylinder / actor (each with the `svgkit` helper it prefers): see `references/icons.md`.
+Raw fallback snippets for diamond / cylinder / actor (each with the `svgkit` helper it prefers): see `references/svg-cookbook.md` §10.
 
 ## Arrows & their meaning
 

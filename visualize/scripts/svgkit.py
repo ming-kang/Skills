@@ -861,6 +861,35 @@ class Diagram:
         if label:
             self._place_label(a, b, label, plate=False, offset=label_offset)
 
+    def branch(self, center: "Box", target: "Box",
+               family: str = "neutral", label: str | None = None,
+               marker: bool = False, label_offset: float = 8) -> None:
+        """Cubic bezier from ``center`` box to ``target`` box for mind-maps.
+
+        Automatically picks anchor points (edge midpoints) and computes control
+        points based on the angle between the two boxes. The branch leaves the
+        center box edge perpendicular and arrives at the target box edge flat.
+        Pass ``marker=False`` (default) for undirected concept branches.
+        """
+        import math
+        # Determine which edge to leave from / arrive at
+        dx = target.cx - center.cx
+        dy = target.cy - center.cy
+        angle = math.atan2(dy, dx)  # radians, 0 = right
+
+        # Pick edges: if mostly horizontal, use left/right; if mostly vertical, use top/bottom
+        if abs(dx) > abs(dy):
+            a = center.right if dx > 0 else center.left
+            b = target.left if dx > 0 else target.right
+        else:
+            a = center.bottom if dy > 0 else center.top
+            b = target.top if dy > 0 else target.bottom
+
+        # Use the family's LINE color
+        color = family
+        self.curve(a, b, color=color, label=label, marker=marker,
+                   label_offset=label_offset)
+
     def _place_label(self, a: Point, b: Point, label: str, plate: bool,
                      offset: float = 8) -> None:
         """Put ``label`` beside the segment ``a -> b``.
