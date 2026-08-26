@@ -4,9 +4,10 @@ An extremely strict maintainability review skill focused on structural simplific
 
 ## When to Use
 
-- Before merging a PR that touches core modules.
-- When you want a harsh, structural audit — not just a correctness check.
-- When a codebase area feels like it's accumulating incidental complexity.
+- Before merging a branch that touches core modules.
+- After a commit that feels like it added incidental complexity.
+- On uncommitted changes when you want a structural sanity check.
+- When a codebase area feels like it's accumulating debt.
 
 ## What It Does
 
@@ -23,7 +24,7 @@ The skill runs a structured review workflow:
 | # | Dimension | Core Question |
 |---|-----------|---------------|
 | 1 | Structural Simplification | Is there a "code judo" move that deletes whole categories of complexity? |
-| 2 | File Size & Decomposition | Does the PR push a file past 1000 lines without strong justification? |
+| 2 | File Size & Decomposition | Does the change push a file past 1000 lines without strong justification? |
 | 3 | Branching & Spaghetti Growth | Are new conditionals bolted onto unrelated flows? |
 | 4 | Abstraction Quality | Is every abstraction earning its keep, or just adding indirection? |
 | 5 | Type & Boundary Cleanliness | Are casts, optionality, or ad-hoc shapes obscuring real invariants? |

@@ -12,8 +12,8 @@ The guiding instinct: there is almost always a "code judo" move — a restructur
 
 ## Workflow
 
-1. **Identify scope.** Determine the diff to review (current branch vs main, or user-specified files/PRs).
-2. **Read changed files in full.** Note pre-change line counts, module boundaries, and existing abstractions.
+1. **Identify scope.** Determine what to review — a diff against main, a specific commit, uncommitted changes, or user-specified files.
+2. **Read changed files in full.** Note line counts, module boundaries, and existing abstractions.
 3. **Apply review dimensions** (below) to each meaningful change unit.
 4. **Produce structured findings** grouped by severity — structural regressions first, cosmetic nits last.
 5. **State approval or blocking feedback** against the approval bar.
@@ -43,10 +43,10 @@ Each dimension lists its rule, the signals that indicate a violation, and prefer
 
 ### 2. File Size & Decomposition
 
-**Rule:** Do not let a PR push a file past 1000 lines, or meaningfully grow an already-large file, without a very strong reason. Treat this as a presumptive blocker.
+**Rule:** Do not let a change push a file past 1000 lines, or meaningfully grow an already-large file, without a very strong reason. Treat this as a presumptive blocker.
 
 **Signals:**
-- A file crossing 1000 lines due to the PR.
+- A file crossing 1000 lines due to the change.
 - A file already above 1000 lines receiving significant additions.
 - New code that could clearly live in its own focused module.
 
