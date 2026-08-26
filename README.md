@@ -28,6 +28,12 @@ Visualize generates clean technical diagrams as self-contained SVG — architect
 
 → [docs/README.visualize.md](docs/README.visualize.md)
 
+### Code Quality Review
+
+An extremely strict maintainability review — focused on structural simplification, abstraction quality, file size discipline, and spaghetti-condition prevention.
+
+→ [docs/README.code-quality-review.md](docs/README.code-quality-review.md)
+
 ## License
 
 [MIT](LICENSE)
