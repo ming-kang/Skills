@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Code Quality Review
 
-A strict, structural code-quality review skill. The goal is not to verify correctness — it is to push for the simplest, most maintainable implementation that preserves behavior.
+Perform a deep code quality audit of the current branch's changes. Rethink how to structure and implement the changes to meaningfully improve code quality without impacting behavior. Work to improve abstractions, modularity, reduce spaghetti code, improve succinctness and legibility. Be ambitious — if there is a clear path to improving the implementation that involves restructuring some of the codebase, go for it. Be extremely thorough and rigorous. Measure twice, cut once.
 
 The guiding instinct: there is almost always a "code judo" move — a restructuring that uses the existing architecture more effectively and makes a change dramatically simpler, smaller, and more elegant. Do not stop at "this could be a bit cleaner." Actively search for the move that deletes whole categories of complexity.
 
