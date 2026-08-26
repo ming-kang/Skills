@@ -28,6 +28,26 @@ When Python 3 is available, the skill uses the included `svgkit` helper to size 
 
 No dependencies are installed by this skill.
 
+## Checked, Not Eyeballed
+
+Layout mistakes are the usual way a generated diagram goes wrong: text clipping its box, an arrow cutting through a node, two boxes overlapping, an arrow label spilling into the box next to it. Visualize treats those as testable rather than a matter of taste.
+
+`svgkit` validates every file it writes, in the same command that writes it, and reports what it finds:
+
+```text
+[svgkit] diagram.svg: self-check found 1 error(s)
+  [FAIL] Checking box overlap
+         - rect [40,60,160,116] overlaps rect [120,80,240,136] by 40x36px
+```
+
+The same validator runs standalone over any SVG, including several at once:
+
+```bash
+python3 visualize/scripts/validate_svg.py -q diagram.svg other.svg
+```
+
+It checks XML well-formedness, self-containment (no remote fonts or assets), marker references, box overlap, arrow-through-box collisions, canvas overflow, text fit, label collisions, the locked type scale, palette warmth, and the closing tag.
+
 ## Supported Diagram Types
 
 | Type | Use it for |
@@ -83,7 +103,7 @@ visualize/
 │   ├── product-colors.md            # Optional brand-color lookup
 │   └── icons.md                     # Optional pictorial shape snippets
 ├── scripts/
-│   ├── svgkit.py                    # Default zero-dependency SVG helper
+│   ├── svgkit.py                    # Default zero-dependency SVG helper (self-checks on save)
 │   ├── validate_svg.py              # SVG quality validator
 │   └── check_palette.py             # Palette drift check (style ↔ svgkit ↔ validator)
 └── assets/

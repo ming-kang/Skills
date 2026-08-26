@@ -33,7 +33,7 @@ Hand-written form:
       font-size="14" font-weight="500" fill="#141413">Server</text>
 ```
 
-A **double-headed** connector (e.g. a bind mount) is the same divider with a line that carries both `marker-start` and `marker-end` — used sparingly, only for genuinely bidirectional flows.
+A **double-headed** connector (e.g. a bind mount) is the same divider with `d.arrow(..., both=True)`, which adds `marker-start` alongside `marker-end` — used sparingly, only for genuinely bidirectional flows.
 
 ## §2. Numbered step ladder — `svgkit: .step()`
 
@@ -102,15 +102,14 @@ Reserve ~24px of right margin (so `W - 24` is clear) and keep the canvas 40px wi
 A vertical column of **dashed** boxes beside the main spine, joined to it by short **dashed** arrows. For things that happen alongside the main flow without blocking it: async notifications, config changes, observers, telemetry. The dashing is the signal that they're not on the critical path.
 
 ```python
-for i, (lbl, y) in enumerate([("Notification", 200), ("ConfigChange", 260)]):
+for lbl, y in [("Notification", 200), ("ConfigChange", 260)]:
     d.raw(f'<rect x="20" y="{y}" width="120" height="42" rx="8" fill="#F5F4ED" '
           f'stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>',
           layer="boxes")
-    # dashed connector into the main spine
-    d.lpath([(140, y + 21), (200, y + 21)], color="neutral")  # use stroke-dasharray via raw if needed
+    d.arrow((140, y + 21), (200, y + 21), dashed=True)   # dashed connector into the spine
 ```
 
-(For a fully dashed connector, emit the `<line>` via `.raw()` with `stroke-dasharray="4 3"` — `svgkit.arrow` is solid by design.)
+The dashed *box* still needs `.raw()` (a dashed node is a side-rail idiom, not a house-style node), but the dashed *connector* is `dashed=True` on `.arrow()` / `.lpath()`.
 
 ## §8. Two-line arrow label (label + payload)
 

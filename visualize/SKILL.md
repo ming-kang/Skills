@@ -23,7 +23,7 @@ Index with a one-line description of each: `references/diagram-gallery.md` — o
 3. **Assign color families by meaning** — Neutral cream for plumbing; **Green** for the primary / happy path / retrieval; **Purple** for an alternate or parallel branch; **Terracotta** for warnings / limitations / failure; **Amber** for a highlighted special module. Exact tokens: `references/style.md`. **Default to fewer families** — one accent + Neutral often beats three; see the Restraint subsection in `references/style.md` and the tint-within-family technique before reaching for a second family. Per-type guidance: `references/diagram-types.md`. Shape choices: `references/shape-vocabulary.md`. Product icons (optional): `references/product-colors.md`.
 4. **Write the SVG** — If `python3` is available, build it with the **`svgkit` helper** (`references/svg-cookbook.md` §0): you write the layout and it computes box widths from the text, anchors arrows on edges, and guarantees the marker / z-order / closing tag. Otherwise assemble the skeleton and snippets from the cookbook by hand (Python list method, one `lines.append(...)` per line so the file cannot be truncated mid-tag).
 5. **Save SVG** — Default to the working directory, or the path the user gave (`--output /path/` or `输出到 /path/`). Semantic kebab-case filename.
-6. **Self-check pass before declaring done** — trace every arrow against every box (reroute straight hits as L-bends), confirm no label overlaps, confirm no text clips its box. Run `python3 scripts/validate_svg.py <file>` if available.
+6. **Self-check — it's code, not a vibe.** `d.save()` runs the validator itself and prints anything it finds to stderr; read that output and fix it before declaring done. Hand-written SVG gets the same pass explicitly: `python3 scripts/validate_svg.py <file>…` (takes several files at once; `-q` prints only the ones with problems). What each finding means and how to fix it: `references/svg-layout-best-practices.md` §4.
 
 > A worked example shipped with the skill: `assets/samples/hero.svg` (a RAG pipeline) — open it to see every token in context.
 
@@ -38,7 +38,7 @@ What makes the output look right. **Exact tokens (every hex value, the marker XM
 - **Size every box from its text — compute, don't guess.** Text overflow is the #1 failure; the width is measured from the label (CJK ≈ 2× Latin — critical for Chinese), not eyeballed. Exact formula in `references/style.md`; `svgkit.node()` and the validator's text-fit check both apply it.
 - **Locked type scale.** Two sizes only — 14 (titles, weight 500) and 12 (rest); one optional 15–16 heading. Labels in sentence case (or natural Chinese).
 - **Warm palette, colors as fills.** Five families (Neutral / Green / Purple / Terracotta / Amber) used as box fills for meaning. Values: `references/style.md`.
-- **One arrow marker** — the open chevron that recolors per line via `context-stroke`; lines 1.5px, round caps, colored with a family LINE color.
+- **One arrow marker** — the open chevron that recolors per line via `context-stroke`; lines 1.5px, round caps, colored with a family LINE color. Encode meaning with **color** and, sparingly, **dashing** (`dashed=True` for async / optional edges and the whole UML realization family — `«implements»`, `«include»`, `«extend»`, `uses`) — never by swapping the head shape or thickening the line.
 - **White background**, flat — no shadows, gradients, filters, or blur.
 - **Self-contained** — font inline in `<style>`, no `@import`, no remote `url()/href/src`. `<title>`+`<desc>` first. Always end with `</svg>`.
 - **Clean presentation attributes** (`fill="…"`), not a duplicated `style="…"`.
@@ -61,6 +61,8 @@ EOF
 ```
 
 Use `d.raw(svg, layer=...)` for custom art (scatter points, patch grids, vector bars) that falls outside the box/arrow/container/legend vocabulary.
+
+`d.save()` validates the file it just wrote and prints findings to stderr — treat that output as part of the build, not an optional extra.
 
 **Fallback — the Python list method** (no `python3`, or full manual control). Append one line per element so the file cannot be truncated mid-tag:
 
@@ -92,7 +94,7 @@ EOF
 - Spacing: ≥40–75px between nodes horizontally, ≥56–60px vertically (connector lives in the gap), 40px margin. Snap coordinates to integers.
 - Arrows anchor on box **edges**, never centers; orthogonal L-paths for branches and crossings; only the arriving segment carries the marker.
 - Text: title 14/500, sub 12/400, captions 12. Centered text uses `text-anchor="middle" dominant-baseline="central"`.
-- Arrow labels: ≤3 words; midpoint offset 6–15px; add a `#FFFFFF` background plate only if it would overlap a line or box.
+- Arrow labels: ≤3 words; midpoint offset 6–15px; add a `#FFFFFF` background plate only if it would overlap a line or box. A label must be shorter than the arrow it rides — if the validator reports it running into a neighbouring node, shorten the wording, widen the gap, or flip it to the other side of the line (`label_offset=-8`).
 
 Full routing, spacing, and the validation checklist: `references/svg-layout-best-practices.md`.
 

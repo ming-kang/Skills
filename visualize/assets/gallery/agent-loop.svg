@@ -123,7 +123,7 @@
   <text x="1050" y="612" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">observe</text>
   <text x="829" y="676" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">result</text>
   <text x="536" y="676" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">pass</text>
-  <text x="548" y="352" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">not done</text>
+  <text x="532" y="352" text-anchor="end" dominant-baseline="central" font-size="12" fill="#3D3D3A">not done</text>
   <text x="40" y="912" dominant-baseline="central" font-size="12" fill="#3D3D3A">One turn shown. The terracotta edge re-enters the model with each new observation until the verifier passes; the response is then finalized and the turn counter advances.</text>
   <rect x="40" y="844" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <text x="58" y="850" dominant-baseline="central" font-size="12" fill="#3D3D3A">primary / success</text>

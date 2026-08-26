@@ -154,7 +154,8 @@ Define **one** marker. The open chevron recolors itself to match each line via `
 ```
 
 - Connect to box **edges**, never centers; never route a straight arrow through another box (use an L-shaped `path`).
-- Arrow labels: `≤3 words`, 12–14px, at the segment midpoint offset 6–15px. Add a tiny `#FFFFFF` background rect only if the label would overlap a line or box.
+- Meaning rides **color** and, sparingly, **dashing** (`stroke-dasharray="4 3"` for async / optional / UML realization) — never a different head shape, never a thicker line. The same marker serves `marker-start` for a genuinely bidirectional connector.
+- Arrow labels: `≤3 words`, 12–14px, at the segment midpoint offset 6–15px. Add a tiny `#FFFFFF` background rect only if the label would overlap a line or box. Offset to whichever side is empty — a label must never overhang into a neighbouring box.
 
 ---
 

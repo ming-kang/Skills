@@ -147,6 +147,38 @@ class Bounds:
     def height(self) -> float:
         return self.bottom - self.top
 
+    def contains(self, other: "Bounds", tolerance: float = 1.0) -> bool:
+        return (
+            self.left - tolerance <= other.left
+            and self.right + tolerance >= other.right
+            and self.top - tolerance <= other.top
+            and self.bottom + tolerance >= other.bottom
+        )
+
+
+def overlap_area(a: Bounds, b: Bounds) -> tuple[float, float]:
+    """Signed overlap of two boxes as ``(x_overlap, y_overlap)``; <=0 means clear."""
+    return (
+        min(a.right, b.right) - max(a.left, b.left),
+        min(a.bottom, b.bottom) - max(a.top, b.top),
+    )
+
+
+@dataclass
+class TextRun:
+    """A measured ``<text>`` element: its label, its estimated ink box, its host.
+
+    ``host`` is the smallest solid box the text sits inside (None for free-standing
+    labels — arrow labels, captions, legend rows, container titles). The two live
+    in different checks: text inside a box must *fit* it, text outside a box must
+    not *collide* with one.
+    """
+
+    label: str
+    size: float
+    bounds: Bounds
+    host: Bounds | None
+
 
 class Validator:
     def __init__(self, svg_path: Path, no_color: bool = False) -> None:
@@ -157,37 +189,63 @@ class Validator:
         self.failures = 0
         self.warnings = 0
         self.viewbox: tuple[float, float, float, float] | None = None
+        self._obstacles: list[Bounds] | None = None
+        self._labels: list[TextRun] | None = None
 
-    def run(self) -> int:
-        print(f"Validating SVG: {self.svg_path}")
-        print("----------------------------------------")
+    def collect(self) -> list[CheckResult]:
+        """Run every check and return the results without printing.
 
-        for result in self.check_file_and_xml():
-            self.report(result)
-            if result.status == "fail":
-                print("----------------------------------------")
-                print(color("Validation failed (XML parse error)", "red", not self.no_color))
-                return 1
+        ``run()`` is the CLI face of this; ``svgkit.Diagram.save()`` calls
+        ``collect()`` so a generated diagram is checked in the same command that
+        writes it. A parse failure short-circuits — the geometry checks all need
+        a tree.
+        """
+        results = self.check_file_and_xml()
+        if any(r.status == "fail" for r in results):
+            return results
 
         checks = [
             self.check_svg_root,
             self.check_viewbox,
             self.check_renderer_compatibility,
             self.check_references,
+            self.check_box_overlap,
             self.check_arrow_collisions,
             self.check_box_viewbox_overflow,
             self.check_text_overflow,
+            self.check_label_vs_box,
+            self.check_label_vs_label,
             self.check_type_scale,
             self.check_text_baseline,
             self.check_palette,
             self.check_filter_boundaries,
             self.check_closing_tag,
         ]
+        results.extend(check() for check in checks)
+        return results
 
-        for check in checks:
-            self.report(check())
+    def run(self, quiet: bool = False) -> int:
+        results = self.collect()
 
+        if quiet:
+            problems = [r for r in results if r.status != "pass"]
+            if not problems:
+                print(f"{self.svg_path.name}: {color('OK', 'green', not self.no_color)}")
+                return 0
+            print(f"Validating SVG: {self.svg_path}")
+            for result in problems:
+                self.report(result)
+            if self.failures:
+                print(color(f"Validation failed ({self.failures} error(s))", "red", not self.no_color))
+                return 1
+            return 0
+
+        print(f"Validating SVG: {self.svg_path}")
         print("----------------------------------------")
+        for result in results:
+            self.report(result)
+        print("----------------------------------------")
+
         if self.failures == 0:
             suffix = f" ({self.warnings} warning(s))" if self.warnings else ""
             print(f"Validation complete{suffix}")
@@ -338,6 +396,8 @@ class Validator:
 
     def collect_obstacles(self) -> list[Bounds]:
         assert self.root is not None
+        if self._obstacles is not None:
+            return self._obstacles
         obstacles: list[Bounds] = []
         for element, ancestors in iter_with_ancestors(self.root):
             if any(a in {"defs", "marker", "clipPath", "filter"} for a in ancestors):
@@ -346,6 +406,7 @@ class Validator:
             if bounds is None or self.is_non_obstacle(element, bounds):
                 continue
             obstacles.append(bounds)
+        self._obstacles = obstacles
         return obstacles
 
     def shape_bounds(self, element: ET.Element) -> Bounds | None:
@@ -374,6 +435,22 @@ class Validator:
             xs = [p[0] for p in points]
             ys = [p[1] for p in points]
             return Bounds(min(xs), min(ys), max(xs), max(ys), "polygon")
+        if tag == "path":
+            # A filled path is a shape (the cylinder body, a bespoke .raw() card);
+            # a stroked path with a marker is an arrow. Without this, cylinders are
+            # invisible to the collision check — their body is a <path> and their
+            # cap ellipse is under the 30px obstacle floor.
+            if self.is_arrow(element):
+                return None
+            fill = (element.get("fill") or "none").strip().lower()
+            if fill in {"none", "transparent"}:
+                return None
+            points = parse_path_points(element.get("d"))
+            if len(points) < 3:
+                return None
+            xs = [p[0] for p in points]
+            ys = [p[1] for p in points]
+            return Bounds(min(xs), min(ys), max(xs), max(ys), "path")
         return None
 
     def is_non_obstacle(self, element: ET.Element, bounds: Bounds) -> bool:
@@ -457,17 +534,23 @@ class Validator:
 
         return False
 
-    def check_text_overflow(self) -> CheckResult:
-        """Flag <text> that is wider than the box it sits in — the #1 failure."""
+    def collect_labels(self) -> list[TextRun]:
+        """Measure every ``<text>`` once: ink box + the solid box hosting it.
+
+        Shared by the three text checks so the estimate (and the host lookup)
+        cannot drift between them.
+        """
         assert self.root is not None
+        if self._labels is not None:
+            return self._labels
         obstacles = self.collect_obstacles()
-        issues: list[str] = []
+        runs: list[TextRun] = []
         for element, ancestors in iter_with_ancestors(self.root):
             if any(a in {"defs", "marker", "clipPath", "filter"} for a in ancestors):
                 continue
             if local_name(element.tag) != "text":
                 continue
-            label = (element.text or "").strip()
+            label = "".join(element.itertext()).strip()
             if not label:
                 continue
             x = parse_float(element.get("x"))
@@ -481,18 +564,59 @@ class Validator:
                 lo, hi = x - est, x
             else:
                 lo, hi = x, x + est
+            # dominant-baseline="central" is the house default, so the ink box is
+            # roughly centred on y. Half the em height is a close enough band.
+            half = size * 0.5
+            bounds = Bounds(lo, y - half, hi, y + half, "text")
             # Smallest box whose vertical band contains the text baseline.
             host = None
             for b in obstacles:
                 if b.left <= x <= b.right and b.top - 2 <= y <= b.bottom + 2:
                     if host is None or b.width * b.height < host.width * host.height:
                         host = b
+            runs.append(TextRun(label, size, bounds, host))
+        self._labels = runs
+        return runs
+
+    def check_box_overlap(self) -> CheckResult:
+        """Two solid boxes overlapping — item 1 of the self-check pass.
+
+        Nesting is intentional (a ``panel()`` holds nodes, a solid section holds
+        rows), so full containment is skipped; only *partial* overlap is the
+        mistake this catches.
+        """
+        boxes = self.collect_obstacles()
+        issues: list[str] = []
+        for i, a in enumerate(boxes):
+            for b in boxes[i + 1:]:
+                if a.contains(b) or b.contains(a):
+                    continue
+                ox, oy = overlap_area(a, b)
+                if ox > 1.0 and oy > 1.0:
+                    issues.append(
+                        f"{a.element} {format_bounds(a)} overlaps {b.element} "
+                        f"{format_bounds(b)} by {ox:g}x{oy:g}px"
+                    )
+            if len(issues) >= 8:
+                break
+        if issues:
+            return CheckResult(
+                "Checking box overlap", "fail", details=issues[:8],
+                fix="Move the boxes apart: >=40-75px horizontally, >=56px vertically (the connector lives in the gap). See references/svg-layout-best-practices.md §1.",
+            )
+        return CheckResult("Checking box overlap", "pass", f"{len(boxes)} box(es)")
+
+    def check_text_overflow(self) -> CheckResult:
+        """Flag <text> that is wider than the box it sits in — the #1 failure."""
+        issues: list[str] = []
+        for run in self.collect_labels():
+            host = run.host
             if host is None:
                 continue
             pad = 6.0
-            if lo < host.left + pad - 1 or hi > host.right - pad + 1:
+            if run.bounds.left < host.left + pad - 1 or run.bounds.right > host.right - pad + 1:
                 issues.append(
-                    f'"{label}" (~{est:.0f}px @ {size:g}) overflows box '
+                    f'"{run.label}" (~{run.bounds.width:.0f}px @ {run.size:g}) overflows box '
                     f"{format_bounds(host)} (width {host.width:g})"
                 )
             if len(issues) >= 8:
@@ -500,6 +624,57 @@ class Validator:
         if issues:
             return CheckResult("Checking text fit", "warn", details=issues, fix="Size boxes from the text: boxWidth = max(line widths) + 32, line ~= latin*8 + cjk*15 at 14px. svgkit.node() does this automatically.")
         return CheckResult("Checking text fit", "pass")
+
+    def check_label_vs_box(self) -> CheckResult:
+        """Free-standing labels landing on a solid box — items 5 and 6.
+
+        Catches the two anti-patterns the layout guide calls out by name: an
+        arrow label wider than the gap it rides, overhanging into a neighbouring
+        node; and a legend row swimming into the bottom row of nodes. Warn-only,
+        because the width estimate deliberately errs wide.
+        """
+        obstacles = self.collect_obstacles()
+        issues: list[str] = []
+        for run in self.collect_labels():
+            if run.host is not None:
+                continue  # inside a box — check_text_overflow owns this one
+            for box in obstacles:
+                ox, oy = overlap_area(run.bounds, box)
+                if ox > 2.0 and oy > 2.0:
+                    issues.append(
+                        f'"{run.label}" (~{run.bounds.width:.0f}px @ {run.size:g}) overlaps '
+                        f"{box.element} {format_bounds(box)} by {ox:g}x{oy:g}px"
+                    )
+                    break
+            if len(issues) >= 8:
+                break
+        if issues:
+            return CheckResult(
+                "Checking label vs box", "warn", details=issues,
+                fix="Shorten the label (`top-k chunks` -> `top-k`), widen the gap so the arrow carries it, or move the legend to its own row (grow the canvas ~40px). See references/svg-layout-best-practices.md §3.",
+            )
+        return CheckResult("Checking label vs box", "pass")
+
+    def check_label_vs_label(self) -> CheckResult:
+        """Two free-standing labels overlapping each other — item 4."""
+        runs = [r for r in self.collect_labels() if r.host is None]
+        issues: list[str] = []
+        for i, a in enumerate(runs):
+            for b in runs[i + 1:]:
+                ox, oy = overlap_area(a.bounds, b.bounds)
+                if ox > 2.0 and oy > 2.0:
+                    issues.append(
+                        f'"{a.label}" {format_bounds(a.bounds)} overlaps "{b.label}" '
+                        f"{format_bounds(b.bounds)} by {ox:g}x{oy:g}px"
+                    )
+            if len(issues) >= 8:
+                break
+        if issues:
+            return CheckResult(
+                "Checking label vs label", "warn", details=issues[:8],
+                fix="Nudge the perpendicular offset (6-15px) or stagger neighbouring arrow labels by ~20px. See references/svg-layout-best-practices.md §3.",
+            )
+        return CheckResult("Checking label vs label", "pass")
 
     def check_box_viewbox_overflow(self) -> CheckResult:
         """Flag box/diamond/circle whose bounds spill past the viewBox.
@@ -792,12 +967,19 @@ def parse_path_points(d: str | None) -> list[tuple[float, float]]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate a generated SVG diagram.")
-    parser.add_argument("svg_file", type=Path, help="SVG file to validate")
+    parser = argparse.ArgumentParser(description="Validate generated SVG diagrams.")
+    parser.add_argument("svg_file", type=Path, nargs="+", help="SVG file(s) to validate")
     parser.add_argument("--no-color", action="store_true", help="disable ANSI colors")
+    parser.add_argument("-q", "--quiet", action="store_true",
+                        help="print only files with problems (one OK line each otherwise)")
     args = parser.parse_args()
 
-    return Validator(args.svg_file, no_color=args.no_color).run()
+    worst = 0
+    for index, path in enumerate(args.svg_file):
+        if not args.quiet and index:
+            print()
+        worst = max(worst, Validator(path, no_color=args.no_color).run(quiet=args.quiet))
+    return worst
 
 
 if __name__ == "__main__":

@@ -56,16 +56,19 @@ That is the **entire** diagram. The equivalent by hand is ~30 lines of `<rect>`/
 | `.step(x, y, n, title, sub=None, family="neutral")` → `Box` | numbered step card (circled badge + title + sub) — recipe / ladder |
 | `.bar(x, y, w, label, family="neutral", h=28)` → `Box` | Gantt / timeline bar; rounded rect with centred inside label. h=28 < 30 so it is NOT a collision obstacle. Width is the time span, not the label |
 | `.panel(x, y, w, h, title, subtitle=None, family="neutral")` → `Box` | white card with a colored header band (the "Step 1 / Result" window) |
-| `.arrow(a, b, color=None, label=None, plate=False)` | straight edge-to-edge connector (only the arrival carries the marker) |
-| `.lpath([p1, p2, …], color=None, label=None)` | orthogonal L-route around obstacles |
-| `.curve(a, b, color=None, label=None)` | cubic bezier branch (mind-map / concept-map) |
+| `.arrow(a, b, color=None, label=None, plate=False, dashed=False, both=False, label_offset=8)` | straight edge-to-edge connector (only the arrival carries the marker). `dashed` = async / optional / UML realization; `both` = bidirectional (`marker-start` too); `label_offset` is signed — flip the sign to move the label to the other side of the line |
+| `.lpath([p1, p2, …], color=None, label=None, dashed=False, both=False, label_offset=8)` | orthogonal L-route around obstacles; the label rides the longest segment |
+| `.curve(a, b, color=None, label=None, marker=True, dashed=False)` | cubic bezier branch (mind-map / concept-map) |
 | `.container(x, y, w, h, label=None, sub=None, solid=False)` | dashed group (rx14) or solid panel (rx20) |
 | `.scope(x, y, w, h, label, sub=None)` → `Box` | dashed loop/scope frame with an uppercase tracked badge (`EACH TURN`…) |
 | `.zone(divider_x, y_top, y_bottom, left_label, right_label, left_cx, right_cx)` | vertical dashed trust-boundary divider + two column headers |
 | `.legend([(family, label), …])` | swatch+label row near the bottom |
+| `.save(path, check=True)` | writes the file, then runs `validate_svg` over it and prints findings to stderr |
 | `.raw(svg, layer=…)` | **escape hatch** — hand-written SVG on a chosen z-layer |
 
 `family` is one of `neutral / green / purple / terracotta / amber`. `color` takes a family name **or** a raw hex. Layers for `.raw()`: `containers, arrows, plates, boxes, box_text, labels, legend`.
+
+**`.save()` checks its own work.** It writes the file and then runs `scripts/validate_svg.py` over it, printing findings to stderr — arrow-through-box, box overlap, text that doesn't fit, a label overhanging into a neighbouring node, canvas overflow, off-scale type, cold colors. The file is written either way, so you can open it and look. Pass `check=False` to opt out. This is why generating with `svgkit` is not just fewer tokens than hand-written XML: the verification pass comes with it.
 
 > **Compositing patterns** (zone splits, step ladders, verdict rails, titled panels, scope frames, right-gutter loop-backs, side-rails, two-line payload labels, stateful cell strips) live in `references/layout-patterns.md` — reach for it whenever the request is more than a flat box/arrow graph. `.step`, `.panel`, `.scope`, and `.zone` above are the one-liner forms of the most common ones.
 
@@ -201,7 +204,17 @@ Containers are *not* collision obstacles, so arrows may pass through them freely
 <!-- feedback / loop (route around boxes with an L-path) -->
 <path d="M460 416 L600 416 L600 160 L460 160" fill="none" stroke="#7F77DD"
       stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+<!-- dashed: async / optional edge, and every UML realization («implements», «include», «extend», uses) -->
+<line x1="380" y1="190" x2="380" y2="132" stroke="#73726C" stroke-width="1.5"
+      stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+
+<!-- bidirectional (a bind mount, a sync channel) — both ends carry the chevron; use sparingly -->
+<line x1="160" y1="90" x2="240" y2="90" stroke="#73726C" stroke-width="1.5"
+      stroke-linecap="round" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
 ```
+
+`svgkit`: `dashed=True` and `both=True` on `.arrow()` / `.lpath()`. Meaning is carried by color and dashing — **never** by a different arrowhead shape or a thicker line.
 
 ### Arrow label
 ```xml
@@ -275,8 +288,10 @@ Decorative tints, 45×45 cells, hairline stroke. (Highlight one cell with a 2px 
 
 ## Collision-safe checklist (matches `scripts/validate_svg.py`)
 
-- Solid boxes ≥70×30 are obstacles. **Never** run a straight `<line>`/`<path>` segment through one — anchor at the edge or route an L-path around it.
+- Solid boxes ≥70×30 are obstacles. **Never** run a straight `<line>`/`<path>` segment through one — anchor at the edge or route an L-path around it. Filled `<path>` shapes count too (that's how a `cylinder()` body is seen).
 - These are *not* obstacles: dashed rects, `fill="none"` rects, cells <70 wide or <30 tall, and panels larger than 70% of the viewBox.
+- No two solid boxes may **partially** overlap. Full containment is fine — a `panel()` legitimately holds nodes.
+- A label that sits outside a box must not land on one. An arrow label wider than the gap it rides is the usual cause: shorten it, widen the gap, or flip it with `label_offset=-8`.
 - Every `marker-end="url(#arrow)"` must reference the `<marker id="arrow">`.
 - Keep filtered/edge elements ≥ a few px inside the viewBox (we use no filters, so this is automatic).
 

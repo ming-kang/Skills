@@ -25,20 +25,25 @@ Layout and routing rules for the one house style. Tokens (colors, fonts, the ope
 - Short (**≤3 words**), 12–14px, family TITLE/SUB color.
 - Place at the segment midpoint, offset 6–15px perpendicular to the line.
 - Add a `#FFFFFF` background plate **only** if the offset still overlaps a line or box (padding ~4px×2px). Most labels need no plate.
-- **A label must be shorter than the arrow it rides.** The gap between neighbouring boxes is often only ~40px, but a few words of text easily exceed that — a centered label wider than its arrow spills into the boxes on both ends. When the natural wording is too long, either shorten it (`top-k chunks` → `top-k`) or widen the gap so the arrow is long enough to carry it. Never let a label overhang into an adjacent box.
+- **A label must be shorter than the arrow it rides.** The gap between neighbouring boxes is often only ~40px, but a few words of text easily exceed that — a centered label wider than its arrow spills into the boxes on both ends. When the natural wording is too long, either shorten it (`top-k chunks` → `top-k`), widen the gap so the arrow is long enough to carry it, or flip the label to the emptier side of the line (`svgkit`: negate `label_offset`). Never let a label overhang into an adjacent box. The `label vs box` check enforces this.
+- **`label_offset` is signed.** On a vertical segment positive puts the label to the right of the line, negative to the left; on a horizontal segment positive is above, negative below. A right-gutter loop-back or a return edge running down a left-hand gutter usually wants the negative side.
 
-## 4. Self-check pass (run it before finalizing)
+## 4. Self-check pass (automated — read the output, don't eyeball it)
 
-This is an explicit pass, not a vibe. After placing everything, walk the diagram:
+This is an explicit pass, and it is **code**. `svgkit`'s `d.save()` runs it on the file it just wrote; for hand-written SVG run `python3 scripts/validate_svg.py <file>…` (several files at once; `-q` prints only the ones with problems). Each item below names the check that enforces it and what to do about a finding.
 
-- **Box vs box** — no two solid boxes overlap (keep an 8px margin).
-- **Arrow vs box** — trace each arrow's path against every placed box; if a straight segment would cut through one, reroute it as an orthogonal L-bend around the box. Anchor endpoints on edges.
-- **Text vs box** — every label fits its box (you sized the box from the text in §1, so this should hold) and no caption sits on a box edge.
-- **Label vs label** — no two arrow labels overlap; nudge offsets or stagger by 20px.
-- **Label vs arrow** — every arrow label is shorter than its arrow segment and does not overhang into a neighbouring box (shorten the wording or widen the gap).
-- **Legend vs node** — the legend row clears every node; if the bottom row of nodes runs into it, grow the canvas ~40px or move the legend to an empty corner.
+| Item | Check | Verdict | Fix |
+|---|---|---|---|
+| **Box vs box** — no two solid boxes partially overlap | `box overlap` | fail | Move them apart (≥40–75px horizontal, ≥56px vertical). Full containment is exempt — a `panel()` holding nodes is intentional. |
+| **Arrow vs box** — no segment cuts through a box | `arrow collisions` | fail | Reroute as an orthogonal L-bend around the box; anchor endpoints on edges. Filled `<path>` shapes (a `cylinder()` body) count as obstacles. |
+| **Box vs canvas** — nothing spills the viewBox | `box bounds vs viewBox` | fail | Grow `Diagram(w, h)` or move the element in. |
+| **Text vs its box** — every label fits the box it sits in | `text fit` | warn | Size the box from the text (§1). `svgkit.node()` does it for you. |
+| **Label vs box** — a label outside a box doesn't land on one | `label vs box` | warn | Shorten the wording, widen the gap so the arrow carries it, or flip the label to the other side with `label_offset=-8`. Also catches a legend row swimming into the bottom row of nodes. |
+| **Label vs label** — no two free labels overlap | `label vs label` | warn | Nudge the perpendicular offset (6–15px) or stagger neighbours by ~20px. |
 
-The validator (`scripts/validate_svg.py`) automates the box/arrow check: it treats solid rects ≥70×30 as **obstacles** and ignores dashed containers, `fill="none"` rects, cells <70 wide or <30 tall, and panels >70% of the viewBox — so you can freely route arrows across a dashed group or behind a tiny swatch. Run it; fix anything it flags before declaring done.
+Warnings are warnings because the width estimate deliberately errs wide — but treat them as real until you've looked at the file. Errors are never acceptable.
+
+Obstacle rules the geometry checks share: solid rects/circles/ellipses/polygons and **filled paths** ≥70×30 are obstacles; dashed containers, `fill="none"` rects, cells <70 wide or <30 tall, and panels >70% of the viewBox are not — so arrows may freely cross a dashed group or a tiny swatch.
 
 ## 5. Z-order (SVG render order; top of file = back)
 
@@ -62,19 +67,27 @@ The validator (`scripts/validate_svg.py`) automates the box/arrow check: it trea
 
 ## Pre-export checklist
 
+Everything below the rule is enforced by `scripts/validate_svg.py` (and therefore by `d.save()`); the items above it are judgement calls only you can make.
+
+- [ ] Labels ≤3 words; sentence case; plates only where needed.
+- [ ] Box fills/strokes/text use the family tokens; arrows use family LINE colors.
+- [ ] Meaning carried by color and (sparingly) dashing — not by arrowhead shape or line thickness.
+- [ ] Legend present when 2+ families or 2+ arrow meanings appear.
+- [ ] Canvas is tall enough that the legend gets its own row.
+
+---
+
 - [ ] `<title>` + `<desc>` are the first children.
 - [ ] Every box width was computed from its text (CJK ≈ 2× Latin); nothing clips.
-- [ ] Only two font sizes (14 / 12); labels in sentence case.
+- [ ] Only two font sizes (14 / 12), plus at most one 15–16 heading.
 - [ ] Exactly one `<marker id="arrow">` in `<defs>`; every `marker-end` references it.
-- [ ] White background rect; nothing relies on a page background.
-- [ ] Box fills/strokes/text use the family tokens; arrows use family LINE colors.
+- [ ] No solid boxes partially overlap; nothing spills the viewBox.
 - [ ] No arrow crosses a box interior; endpoints sit on edges.
-- [ ] Labels ≤3 words; plates only where needed.
-- [ ] Every arrow label is shorter than its arrow — no overhang into a neighbouring box.
-- [ ] Legend clears all nodes — canvas is tall enough for a legend row at the bottom.
-- [ ] Legend present when 2+ families or 2+ arrow meanings appear.
-- [ ] Flat: no shadow/gradient/filter; strokes 0.5 (boxes) / 1.5 (lines).
-- [ ] Ends with `</svg>`. Passes `python3 scripts/validate_svg.py`.
+- [ ] No label lands on a box or on another label.
+- [ ] White background rect; warm palette only; no shadow/gradient/filter.
+- [ ] Ends with `</svg>`.
+
+Run it: `python3 scripts/validate_svg.py <file>…` — or just let `d.save()` do it.
 
 ## Common anti-patterns
 
@@ -87,5 +100,6 @@ The validator (`scripts/validate_svg.py`) automates the box/arrow check: it trea
 | Thick arrow to mean "important" | Keep 1.5px; signal importance with color |
 | Label overlaps a node | Increase offset; add a `#FFFFFF` plate as a last resort |
 | Arrow connects to a corner | Move to an edge midpoint |
-| Arrow label wider than its arrow, overhanging into a box | Shorten the label, or widen the gap so the arrow carries it |
+| Arrow label wider than its arrow, overhanging into a box | Shorten the label, widen the gap, or negate `label_offset` to flip it to the emptier side |
 | Legend overlaps a bottom-row node | Grow the canvas ~40px for a legend row, or move the legend to an empty corner |
+| Dashed vs solid faked with a second marker shape | One chevron only; `dashed=True` carries "async / optional / realization" |

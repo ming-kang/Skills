@@ -81,6 +81,10 @@ _MARKER = (
 # Layer order = SVG paint order (top of file paints first / sits at the back).
 _LAYERS = ("containers", "arrows", "plates", "boxes", "box_text", "labels", "legend")
 
+# Dash pattern for async / optional / UML-realization edges (style.md: 4 3 for
+# ordinary dashing, 6 4 is reserved for scope and zone region boundaries).
+_DASH = ' stroke-dasharray="4 3"'
+
 Point = tuple[float, float]
 
 
@@ -243,6 +247,10 @@ class Diagram:
         open chevron recolors itself to match each arrow's stroke.
         """
         return "url(#arrow)"
+
+    def _marker_start_for(self, both: bool, color: str | None) -> str:
+        """``marker-start`` fragment for a bidirectional connector (or "")."""
+        return f' marker-start="{self._marker_for(color)}"' if both else ""
 
     # -- nodes ------------------------------------------------------------- #
 
@@ -700,19 +708,33 @@ class Diagram:
     # -- arrows ------------------------------------------------------------ #
 
     def arrow(self, a: Point, b: Point, color: str | None = None,
-              label: str | None = None, plate: bool = False) -> None:
-        """A straight connector ``a -> b``. ``color`` is a family name or hex."""
+              label: str | None = None, plate: bool = False,
+              dashed: bool = False, both: bool = False,
+              label_offset: float = 8) -> None:
+        """A straight connector ``a -> b``. ``color`` is a family name or hex.
+
+        ``dashed=True`` marks an async / optional / non-blocking edge and the UML
+        realization family (``<<implements>>``, ``<<include>>``, ``<<extend>>``,
+        ``uses``) — the house style distinguishes those by line style + label, never
+        by swapping the arrowhead. ``both=True`` adds ``marker-start`` for a
+        genuinely bidirectional flow (a bind mount, a sync channel); use sparingly.
+        ``label_offset`` sign flips which side of the line the label sits on.
+        """
         stroke = _resolve_line(color)
         self._layers["arrows"].append(
             f'  <line x1="{snap(a[0])}" y1="{snap(a[1])}" x2="{snap(b[0])}" y2="{snap(b[1])}" '
-            f'stroke="{stroke}" stroke-width="1.5" stroke-linecap="round" '
+            f'stroke="{stroke}" stroke-width="1.5" stroke-linecap="round"'
+            f'{_DASH if dashed else ""}'
+            f'{self._marker_start_for(both, color)} '
             f'marker-end="{self._marker_for(color)}"/>'
         )
         if label:
-            self._place_label(a, b, label, plate)
+            self._place_label(a, b, label, plate, label_offset)
 
     def lpath(self, points: list[Point], color: str | None = None,
-              label: str | None = None, plate: bool = False) -> None:
+              label: str | None = None, plate: bool = False,
+              dashed: bool = False, both: bool = False,
+              label_offset: float = 8) -> None:
         """An orthogonal multi-segment route; only the arriving end carries the marker."""
         if len(points) < 2:
             raise ValueError("lpath needs at least two points")
@@ -720,24 +742,29 @@ class Diagram:
         d = "M" + " L".join(f"{snap(px)} {snap(py)}" for px, py in points)
         self._layers["arrows"].append(
             f'  <path d="{d}" fill="none" stroke="{stroke}" stroke-width="1.5" '
-            f'stroke-linecap="round" marker-end="{self._marker_for(color)}"/>'
+            f'stroke-linecap="round"'
+            f'{_DASH if dashed else ""}'
+            f'{self._marker_start_for(both, color)} '
+            f'marker-end="{self._marker_for(color)}"/>'
         )
         if label:
             # Place the label on the longest segment — the most readable spot,
             # not whichever index happens to sit at the middle.
             segs = [(points[i], points[i + 1]) for i in range(len(points) - 1)]
             longest = max(segs, key=lambda s: abs(s[1][0] - s[0][0]) + abs(s[1][1] - s[0][1]))
-            self._place_label(longest[0], longest[1], label, plate)
+            self._place_label(longest[0], longest[1], label, plate, label_offset)
 
     def curve(self, a: Point, b: Point, color: str | None = None,
-              label: str | None = None, marker: bool = True) -> None:
+              label: str | None = None, marker: bool = True,
+              dashed: bool = False, label_offset: float = 8) -> None:
         """A cubic bezier from ``a`` to ``b`` — mind-map / concept-map branches.
 
         Control points push the curve out horizontally from each end (half the
         horizontal run), so a branch leaving the right of a central node starts
         flat and arrives flat. Vertical branches look best when ``a`` sits above
         or beside ``b``; for a pure vertical drop prefer ``arrow``. Pass
-        ``marker=False`` for undirected concept-map branches (no chevron).
+        ``marker=False`` for undirected concept-map branches (no chevron), and
+        ``dashed=True`` for an async / optional branch.
         """
         stroke = _resolve_line(color)
         dx = (b[0] - a[0]) * 0.5
@@ -748,23 +775,42 @@ class Diagram:
         end = f' marker-end="{self._marker_for(color)}"' if marker else ""
         self._layers["arrows"].append(
             f'  <path d="{d}" fill="none" stroke="{stroke}" stroke-width="1.5" '
-            f'stroke-linecap="round"{end}/>'
+            f'stroke-linecap="round"{_DASH if dashed else ""}{end}/>'
         )
         if label:
-            self._place_label(a, b, label, plate=False)
+            self._place_label(a, b, label, plate=False, offset=label_offset)
 
-    def _place_label(self, a: Point, b: Point, label: str, plate: bool) -> None:
+    def _place_label(self, a: Point, b: Point, label: str, plate: bool,
+                     offset: float = 8) -> None:
+        """Put ``label`` beside the segment ``a -> b``.
+
+        ``offset`` is signed: on a vertical segment positive sits to the right of
+        the line (``text-anchor="start"``) and negative to the left
+        (``text-anchor="end"``); on a horizontal segment positive sits above the
+        line and negative below. Flipping the sign is the fix when the validator's
+        label-vs-box check reports the label running into a neighbouring node.
+        """
         mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
         vertical = abs(b[0] - a[0]) < abs(b[1] - a[1])
         if vertical:
-            tx, ty, anchor = mx + 8, my, "start"
+            tx = mx + offset
+            ty = my
+            anchor = "start" if offset >= 0 else "end"
         else:
-            tx, ty, anchor = mx, my - 8, "middle"
+            tx = mx
+            ty = my - offset if offset >= 0 else my + abs(offset)
+            anchor = "middle"
         if plate:
             w = text_width(label, 12) + 8
+            if anchor == "middle":
+                px = tx - w / 2
+            elif anchor == "end":
+                px = tx - w
+            else:
+                px = tx
             self._layers["plates"].append(
-                f'  <rect x="{snap(tx - (w / 2 if anchor == "middle" else 0))}" '
-                f'y="{snap(ty - 8)}" width="{snap(w)}" height="16" rx="3" fill="{BG}"/>'
+                f'  <rect x="{snap(px)}" y="{snap(ty - 8)}" width="{snap(w)}" '
+                f'height="16" rx="3" fill="{BG}"/>'
             )
         self._layers["labels"].append(
             f'  <text x="{snap(tx)}" y="{snap(ty)}" text-anchor="{anchor}" '
@@ -911,7 +957,55 @@ class Diagram:
         out.append('</svg>')
         return "\n".join(out) + "\n"
 
-    def save(self, path: str) -> str:
+    def save(self, path: str, check: bool = True) -> str:
+        """Write the SVG, then validate it in the same breath.
+
+        The layout guide's self-check pass (arrow-through-box, text fit, label
+        overhang, box overlap, canvas overflow, palette, type scale) is code, not
+        a vibe — so it runs here rather than relying on anyone remembering a
+        second command. Problems print to stderr; the file is still written so
+        you can look at it. Pass ``check=False`` to skip (and then run
+        ``python3 scripts/validate_svg.py <file>`` yourself).
+        """
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(self.render())
+        if check:
+            self._selfcheck(path)
         return path
+
+    @staticmethod
+    def _selfcheck(path: str) -> None:
+        """Run validate_svg over ``path`` and print a one-line-per-problem summary.
+
+        Imported lazily: validate_svg imports ``text_width`` from this module, so
+        a module-level import would be circular. Missing/broken validator is not
+        fatal — the diagram is already on disk.
+        """
+        import sys
+        from pathlib import Path
+
+        here = str(Path(__file__).resolve().parent)
+        if here not in sys.path:
+            sys.path.append(here)   # so `import svgkit` alone is enough
+        try:
+            from validate_svg import Validator  # type: ignore
+        except Exception:
+            return
+        try:
+            results = Validator(Path(path), no_color=True).collect()
+        except Exception as exc:  # pragma: no cover - defensive
+            print(f"[svgkit] self-check skipped ({exc})", file=sys.stderr)
+            return
+        problems = [r for r in results if r.status != "pass"]
+        if not problems:
+            print(f"[svgkit] {path}: self-check passed", file=sys.stderr)
+            return
+        fails = sum(1 for r in problems if r.status == "fail")
+        head = f"{fails} error(s)" if fails else f"{len(problems)} warning(s)"
+        print(f"[svgkit] {path}: self-check found {head}", file=sys.stderr)
+        for result in problems:
+            mark = "FAIL" if result.status == "fail" else "warn"
+            suffix = f" ({result.message})" if result.message else ""
+            print(f"  [{mark}] {result.name}{suffix}", file=sys.stderr)
+            for detail in (result.details or [])[:4]:
+                print(f"         - {detail}", file=sys.stderr)

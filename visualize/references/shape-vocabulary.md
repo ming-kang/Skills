@@ -28,7 +28,7 @@ A small, honest set. Render every one flat with a hairline `0.5` stroke — no g
 | Group / layer / boundary | **Dashed container** | `rx="14"`, `fill="none"`, `stroke-dasharray="4 3"`, label top-left. |
 | Region / section panel | **Solid panel** | `rx="20"`, `fill="#F5F4ED"`. |
 | Decision | **Diamond** | Flowcharts only; family stroke, two labeled exits. |
-| Datastore / vector store / DB | **Cylinder** *or* a labelled rounded rect | A labelled rect is often cleaner; use a cylinder when the "storage" read matters. |
+| Datastore / vector store / DB | **Cylinder** *or* a labelled rounded rect | A labelled rect is often cleaner; use a cylinder when the "storage" read matters. Note: a cylinder body IS a collision obstacle — route arrows to its edges. |
 | Point / item / actor | **Circle** | `r=5` scatter point (family fill+stroke); larger for an actor. |
 | Sequence / alternating pattern | **Striped strip** | Row of small `14×18 rx3` rects alternating two LINE colors. |
 | Vector / embedding | **Bars** | Stack of `rx3` rects, varying width + opacity, one family. |
@@ -41,7 +41,7 @@ Raw fallback snippets for diamond / cylinder / actor (each with the `svgkit` hel
 
 ## Arrows & their meaning
 
-One marker only — the open chevron — recolored per line via `context-stroke` (definition in `references/style.md`). All lines are `1.5` wide with round caps; encode meaning with **color** and, sparingly, **dashing** — never thickness.
+One marker only — the open chevron — recolored per line via `context-stroke` (definition in `references/style.md`). All lines are `1.5` wide with round caps; encode meaning with **color** and, sparingly, **dashing** — never thickness, never a different head shape. UML's whole relationship vocabulary (`extends`, `«implements»`, `«include»`, `«extend»`, `uses`, aggregation) is expressed as solid-vs-dashed plus a text label.
 
 | Meaning | Line color | Style |
 |---|---|---|
@@ -49,7 +49,7 @@ One marker only — the open chevron — recolored per line via `context-stroke`
 | Primary / retrieval / read | `#1D9E75` green | solid |
 | Alternate branch | `#7F77DD` purple | solid |
 | Warning / error path | `#C75B38` terracotta | solid |
-| Async / optional / "also" | match the family | `stroke-dasharray="4 3"` |
+| Async / optional / "also" | match the family | `stroke-dasharray="4 3"` (`svgkit`: `dashed=True`) |
 | Leader / callout (not a real flow) | `#73726C` | `0.5` dashed + small `r=2` anchor dot |
 
 ```xml
