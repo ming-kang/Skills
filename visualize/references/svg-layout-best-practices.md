@@ -30,20 +30,28 @@ Layout and routing rules for the one house style. Tokens (colors, fonts, the ope
 
 ## 4. Self-check pass (automated — read the output, don't eyeball it)
 
-This is an explicit pass, and it is **code**. `svgkit`'s `d.save()` runs it on the file it just wrote; for hand-written SVG run `python3 scripts/validate_svg.py <file>…` (several files at once; `-q` prints only the ones with problems). Each item below names the check that enforces it and what to do about a finding.
+This is an explicit pass, and it is **code**. `d.save()` writes the SVG first and validates that exact file. Warnings print to stderr but remain non-fatal; any hard failure prints all details/fixes and raises `svgkit.ValidationError`, whose `.results` contains the complete structured result list. The failed artifact remains on disk. For hand-written SVG run `python3 scripts/validate_svg.py <file>…`; it accepts several files, exits 1 if any has a hard failure, and exits 0 for clean or warnings-only input. `-q` is completely silent when every file is clean and prints only warnings/failures otherwise.
 
-| Item | Check | Verdict | Fix |
+| Contract | Check | Verdict | Fix |
 |---|---|---|---|
-| **Box vs box** — no two solid boxes partially overlap | `box overlap` | fail | Move them apart (≥40–75px horizontal, ≥56px vertical). Full containment is exempt — a `panel()` holding nodes is intentional. |
-| **Arrow vs box** — no segment cuts through a box | `arrow collisions` | fail | Reroute as an orthogonal L-bend around the box; anchor endpoints on edges. Filled `<path>` shapes (a `cylinder()` body) count as obstacles. |
-| **Box vs canvas** — nothing spills the viewBox | `box bounds vs viewBox` | fail | Grow `Diagram(w, h)` or move the element in. |
-| **Text vs its box** — every label fits the box it sits in | `text fit` | warn | Size the box from the text (§1). `svgkit.node()` does it for you. |
-| **Label vs box** — a label outside a box doesn't land on one | `label vs box` | warn | Shorten the wording, widen the gap so the arrow carries it, or flip the label to the other side with `label_offset=-8`. Also catches a legend row swimming into the bottom row of nodes. |
-| **Label vs label** — no two free labels overlap | `label vs label` | warn | Nudge the perpendicular offset (6–15px) or stagger neighbours by ~20px. |
+| Valid UTF-8/XML, `<svg>` root, usable viewBox | file/XML/root/viewBox | fail | Repair syntax and use `viewBox="min-x min-y width height"`. |
+| Non-empty `<title>` then `<desc>` as the first two element children | accessibility | fail | Move and populate both elements before `<style>`/`<defs>`. |
+| No external or relative assets; only embedded `data:` or local `#id` targets; local URL references resolve; `xml-stylesheet` processing instructions are rejected | renderer-safe assets / URL references | fail | Inline assets/styles and correct every `url(#id)` / fragment reference. |
+| IDs are unique; exactly one `<marker id="arrow">`; every element/inline/inherited marker longhand or shorthand targets it; stylesheet marker rules are rejected because selectors are not resolved | marker contract | fail | Remove duplicate IDs/markers and use `url(#arrow)` directly on the element or an inline/ancestor presentation style. |
+| The first graphics child is an opaque white rect covering the full viewBox | white background | fail | Put the full-size `#FFFFFF` canvas rect immediately after `<defs>`, before diagram content. |
+| No gradients, filters, `fe*`, blur, or shadow CSS | flat style | fail | Remove effects; use flat family fills and hairline strokes. |
+| Ordinary solid shapes do not overlap or contain each other | box overlap | fail; ambiguous complex path is warn | Move nodes apart. Only an outer shape explicitly marked `data-role="panel"` or `data-role="container"` may intentionally contain nodes. |
+| No arrow segment cuts through an obstacle | arrow collisions | fail; ambiguous complex path is warn | Route around nodes with an orthogonal path and anchor endpoints on edges. |
+| Obstacles stay inside the viewBox | box bounds vs viewBox | fail | Grow `Diagram(w, h)` or reposition the shape. |
+| Hosted node text fits; free labels miss nodes and each other | text fit / label vs box / label vs label | warn | Resize, shorten, widen the gap, or change signed `label_offset`. |
+| Geometry was not silently guessed | unsupported text geometry / transforms | warn | Flatten transforms and replace positioned `<tspan>` runs with separate plain `<text>` elements before trusting collision checks. |
+| Type scale, baseline, warm palette, and final `</svg>` follow the contract | type scale / text baseline / warm palette / closing tag | fail or warn as reported | Use 14/12 text, central baselines, family colors, and a complete closing tag. |
 
-Warnings are warnings because the width estimate deliberately errs wide — but treat them as real until you've looked at the file. Errors are never acceptable.
+Shape intersections are outline-aware for convex and concave rect/polygon/path outlines plus sampled circles and ellipses, so overlapping bounding boxes alone do not create a hard failure. Filled paths use parsed `M/L/H/V/C/S/Q/T/A/Z` geometry and curve extrema; arrow collisions sample the real quadratic/cubic/arc trajectory instead of testing a fictional endpoint chord. When a filled path has no reliable single outline, an AABB hit is only a warning candidate. Effective fill and visibility follow SVG defaults, ancestors, presentation attributes, inline style, display/visibility, numeric or percentage alpha, and alpha carried by `rgba()` / 4- or 8-digit hex colors.
 
-Obstacle rules the geometry checks share: solid rects/circles/ellipses/polygons and **filled paths** ≥70×30 are obstacles; dashed containers, `fill="none"` rects, cells <70 wide or <30 tall, and panels >70% of the viewBox are not — so arrows may freely cross a dashed group or a tiny swatch.
+Containment is semantic, not heuristic: only explicit `data-role="panel"` / `data-role="container"` allows an outer shape to hold nodes. `svgkit` emits those roles plus `node-text`, `arrow-label`, `legend-label`, and `container-label` automatically. Add them to hand-written SVG when needed; they do not affect rendering.
+
+Current geometry limits are deliberate and visible: an element under an XML `transform`, CSS `transform`, or individual `translate` / `rotate` / `scale` property (inline or inherited from an ancestor) is skipped by obstacle/text/arrow geometry checks and produces a warning. Because stylesheet selectors are not resolved, any stylesheet rule using those transform properties conservatively skips all obstacle/text geometry with an explicit warning. A `<text>` with any child/nested run (including wrapped or positioned `<tspan>`) is not flattened into a fictional line, so its text geometry is skipped with a warning. Dashed shapes, hidden/fully transparent paint, cells smaller than 70×30, and very broad backdrop shapes (>70% of a viewBox dimension) are not treated as obstacles. Treat every warning as something to inspect even though it does not raise `ValidationError`.
 
 ## 5. Z-order (SVG render order; top of file = back)
 
@@ -67,25 +75,27 @@ Obstacle rules the geometry checks share: solid rects/circles/ellipses/polygons 
 
 ## Pre-export checklist
 
-Everything below the rule is enforced by `scripts/validate_svg.py` (and therefore by `d.save()`); the items above it are judgement calls only you can make.
+The items above the rule remain judgement calls. In particular, the validator does not prove that wording is concise, a legend is semantically sufficient, or every endpoint was chosen at the best edge anchor.
 
 - [ ] Labels ≤3 words; sentence case; plates only where needed.
 - [ ] Box fills/strokes/text use the family tokens; arrows use family LINE colors.
 - [ ] Meaning carried by color and (sparingly) dashing — not by arrowhead shape or line thickness.
 - [ ] Legend present when 2+ families or 2+ arrow meanings appear.
-- [ ] Canvas is tall enough that the legend gets its own row.
+- [ ] Canvas has clear margins and a dedicated legend row; connector endpoints are deliberately anchored on edges.
 
 ---
 
-- [ ] `<title>` + `<desc>` are the first children.
-- [ ] Every box width was computed from its text (CJK ≈ 2× Latin); nothing clips.
-- [ ] Only two font sizes (14 / 12), plus at most one 15–16 heading.
-- [ ] Exactly one `<marker id="arrow">` in `<defs>`; every `marker-end` references it.
-- [ ] No solid boxes partially overlap; nothing spills the viewBox.
-- [ ] No arrow crosses a box interior; endpoints sit on edges.
-- [ ] No label lands on a box or on another label.
-- [ ] White background rect; warm palette only; no shadow/gradient/filter.
-- [ ] Ends with `</svg>`.
+Everything below is enforced by `scripts/validate_svg.py` (and therefore by `d.save()`), with the fail/warn severity shown in §4.
+
+- [ ] Valid XML and viewBox; non-empty `<title>` + `<desc>` are the first two element children.
+- [ ] IDs are unique; exactly one `<marker id="arrow">`; every marker reference targets it and every local URL reference resolves.
+- [ ] No remote assets; a white rect covers the viewBox; no gradient, filter, blur, or shadow.
+- [ ] Ordinary nodes do not overlap/contain one another; only explicit panel/container roles allow intentional nesting.
+- [ ] No arrow crosses a known obstacle; no obstacle spills the viewBox.
+- [ ] Text-fit, label-vs-box, and label-vs-label checks have no unreviewed warnings.
+- [ ] Type scale is 14/12 (plus at most one 15–16 heading); baselines and warm palette have no unreviewed warnings.
+- [ ] No unreviewed warning says transformed or `<tspan>` geometry was skipped.
+- [ ] The file ends with `</svg>`.
 
 Run it: `python3 scripts/validate_svg.py <file>…` — or just let `d.save()` do it.
 

@@ -25,8 +25,8 @@ A small, honest set. Render every one flat with a hairline `0.5` stroke — no g
 | Concept | Shape | How to draw it |
 |---|---|---|
 | Process / step / service / component / **LLM** / **agent** / **tool** | **Rounded rect** | `rx="8"`, family fill. The default for almost everything — distinguish by label + family. |
-| Group / layer / boundary | **Dashed container** | `rx="14"`, `fill="none"`, `stroke-dasharray="4 3"`, label top-left. |
-| Region / section panel | **Solid panel** | `rx="20"`, `fill="#F5F4ED"`. |
+| Group / layer / boundary | **Dashed container** | `rx="14"`, `fill="none"`, `stroke-dasharray="4 3"`, label top-left; use non-visual `data-role="container"` (`svgkit.container()` adds it). |
+| Region / section panel | **Solid panel** | `rx="20"`, `fill="#F5F4ED"`, `data-role="panel"`. The explicit role is what allows intentional node containment without weakening ordinary overlap checks. |
 | Decision | **Diamond** | Flowcharts only; family stroke, two labeled exits. |
 | Datastore / vector store / DB | **Cylinder** *or* a labelled rounded rect | A labelled rect is often cleaner; use a cylinder when the "storage" read matters. Note: a cylinder body IS a collision obstacle — route arrows to its edges. |
 | Point / item / actor | **Circle** | `r=5` scatter point (family fill+stroke); larger for an actor. |

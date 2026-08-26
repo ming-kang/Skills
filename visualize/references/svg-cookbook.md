@@ -57,18 +57,20 @@ That is the **entire** diagram. The equivalent by hand is ~30 lines of `<rect>`/
 | `.bar(x, y, w, label, family="neutral", h=28)` → `Box` | Gantt / timeline bar; rounded rect with centred inside label. h=28 < 30 so it is NOT a collision obstacle. Width is the time span, not the label |
 | `.panel(x, y, w, h, title, subtitle=None, family="neutral")` → `Box` | white card with a colored header band (the "Step 1 / Result" window) |
 | `.arrow(a, b, color=None, label=None, plate=False, dashed=False, both=False, label_offset=8)` | straight edge-to-edge connector (only the arrival carries the marker). `dashed` = async / optional / UML realization; `both` = bidirectional (`marker-start` too); `label_offset` is signed — flip the sign to move the label to the other side of the line |
-| `.lpath([p1, p2, …], color=None, label=None, dashed=False, both=False, label_offset=8)` | orthogonal L-route around obstacles; the label rides the longest segment |
-| `.curve(a, b, color=None, label=None, marker=True, dashed=False)` | cubic bezier branch (mind-map / concept-map) |
+| `.lpath([p1, p2, …], color=None, label=None, plate=False, dashed=False, both=False, label_offset=8)` | orthogonal L-route around obstacles; the label rides the longest segment |
+| `.curve(a, b, color=None, label=None, marker=True, dashed=False, label_offset=8)` | cubic bezier branch (mind-map / concept-map); signed `label_offset` chooses the label side |
 | `.container(x, y, w, h, label=None, sub=None, solid=False)` | dashed group (rx14) or solid panel (rx20) |
 | `.scope(x, y, w, h, label, sub=None)` → `Box` | dashed loop/scope frame with an uppercase tracked badge (`EACH TURN`…) |
 | `.zone(divider_x, y_top, y_bottom, left_label, right_label, left_cx, right_cx)` | vertical dashed trust-boundary divider + two column headers |
 | `.legend([(family, label), …])` | swatch+label row near the bottom |
-| `.save(path, check=True)` | writes the file, then runs `validate_svg` over it and prints findings to stderr |
+| `.save(path, check=True)` | writes the file, then validates it; warnings are non-fatal, while a hard failure raises `ValidationError` after reporting every problem |
 | `.raw(svg, layer=…)` | **escape hatch** — hand-written SVG on a chosen z-layer |
 
 `family` is one of `neutral / green / purple / terracotta / amber`. `color` takes a family name **or** a raw hex. Layers for `.raw()`: `containers, arrows, plates, boxes, box_text, labels, legend`.
 
-**`.save()` checks its own work.** It writes the file and then runs `scripts/validate_svg.py` over it, printing findings to stderr — arrow-through-box, box overlap, text that doesn't fit, a label overhanging into a neighbouring node, canvas overflow, off-scale type, cold colors. The file is written either way, so you can open it and look. Pass `check=False` to opt out. This is why generating with `svgkit` is not just fewer tokens than hand-written XML: the verification pass comes with it.
+`svgkit` adds non-visual `data-role` hints so validation can distinguish intentional structure from accidental overlap: `panel` / `container` on grouping shapes, and `node-text`, `arrow-label`, `legend-label`, or `container-label` on text. These attributes do not change rendering. Add the same roles to hand-written SVG when semantics matter—especially `data-role="panel"` on a solid shape that intentionally contains nodes.
+
+**`.save()` checks its own work.** It always writes the file before loading and running the sibling `scripts/validate_svg.py`. A clean file returns its path; warnings are printed to stderr and still return normally. Any hard failure prints all warning/failure details and fixes, then raises `svgkit.ValidationError`; its `.results` attribute contains the complete structured result list, and the invalid SVG remains available to inspect. Validator load/run failures are also wrapped in `ValidationError` rather than ignored. Pass `check=False` only as an explicit opt-out. This verification pass covers structure, accessibility, the unique marker and references, a full white background, flat/self-contained styling, geometry and labels, type scale, palette, and the closing tag.
 
 > **Compositing patterns** (zone splits, step ladders, verdict rails, titled panels, scope frames, right-gutter loop-backs, side-rails, two-line payload labels, stateful cell strips) live in `references/layout-patterns.md` — reach for it whenever the request is more than a flat box/arrow graph. `.step`, `.panel`, `.scope`, and `.zone` above are the one-liner forms of the most common ones.
 
@@ -163,17 +165,17 @@ Swap the four colors together. Green shown; the others are drop-in.
 
 ```xml
 <!-- Dashed group with a top-left label -->
-<rect x="40" y="40" width="240" height="300" rx="14"
+<rect data-role="container" x="40" y="40" width="240" height="300" rx="14"
       fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
-<text x="60" y="66" font-size="14" font-weight="500" fill="#141413">Knowledge base</text>
-<text x="60" y="84" font-size="12" fill="#3D3D3A">indexed once</text>
+<text data-role="container-label" x="60" y="66" font-size="14" font-weight="500" fill="#141413">Knowledge base</text>
+<text data-role="container-label" x="60" y="84" font-size="12" fill="#3D3D3A">indexed once</text>
 
 <!-- Solid section panel -->
-<rect x="120" y="40" width="440" height="380" rx="20"
+<rect data-role="panel" x="120" y="40" width="440" height="380" rx="20"
       fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-<text x="140" y="66" font-size="14" font-weight="500" fill="#141413">61 transformer layers</text>
+<text data-role="container-label" x="140" y="66" font-size="14" font-weight="500" fill="#141413">61 transformer layers</text>
 ```
-Containers are *not* collision obstacles, so arrows may pass through them freely.
+Only shapes explicitly marked `data-role="container"` / `data-role="panel"` receive container semantics: arrows may cross them and they may intentionally contain nodes. Ordinary solid shapes remain collision obstacles.
 
 ---
 
@@ -289,8 +291,8 @@ Decorative tints, 45×45 cells, hairline stroke. (Highlight one cell with a 2px 
 ## Collision-safe checklist (matches `scripts/validate_svg.py`)
 
 - Solid boxes ≥70×30 are obstacles. **Never** run a straight `<line>`/`<path>` segment through one — anchor at the edge or route an L-path around it. Filled `<path>` shapes count too (that's how a `cylinder()` body is seen).
-- These are *not* obstacles: dashed rects, `fill="none"` rects, cells <70 wide or <30 tall, and panels larger than 70% of the viewBox.
-- No two solid boxes may **partially** overlap. Full containment is fine — a `panel()` legitimately holds nodes.
+- These are *not* obstacles: dashed rects, shapes with no visible fill/stroke, cells <70 wide or <30 tall, very broad backdrops (>70% of a viewBox dimension), and explicit `data-role="panel"` / `data-role="container"` routing exceptions.
+- No two ordinary solid boxes may overlap or contain one another. Full containment is valid only when the outer shape is explicitly marked `data-role="panel"` or `data-role="container"`.
 - A label that sits outside a box must not land on one. An arrow label wider than the gap it rides is the usual cause: shorten it, widen the gap, or flip it with `label_offset=-8`.
 - Every `marker-end="url(#arrow)"` must reference the `<marker id="arrow">`.
 - Keep filtered/edge elements ≥ a few px inside the viewBox (we use no filters, so this is automatic).

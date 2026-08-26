@@ -73,7 +73,7 @@ pnl = d.panel(40, 160, 360, 140, "Result", "cumulative", family="green")
 d.node(60, pnl.y + 46, "total", "0.0034 USD", family="green")
 ```
 
-Hand-written: body rect (white, family stroke) + a 26px header band in the family fill (drawn as a rounded rect + a thin square rect to flatten its bottom) + the title in the band. Band height stays under 30 so the validator still treats the whole panel as a single collision box.
+Hand-written: body rect (white, family stroke) + a 26px header band in the family fill (drawn as a rounded rect + a thin square rect to flatten its bottom) + the title in the band. Mark the body `data-role="panel"` so the validator knows that contained nodes are intentional; ordinary solid-shape containment is an error. Mark the title `data-role="container-label"`. The band stays under 30px so it is not collected as a separate obstacle. `svgkit.panel()` emits both roles automatically.
 
 ## §5. Scope / loop frame — `svgkit: .scope()`
 

@@ -30,14 +30,15 @@ No dependencies are installed by this skill.
 
 ## Checked, Not Eyeballed
 
-Layout mistakes are the usual way a generated diagram goes wrong: text clipping its box, an arrow cutting through a node, two boxes overlapping, an arrow label spilling into the box next to it. Visualize treats those as testable rather than a matter of taste.
+Layout mistakes are the usual way a generated diagram goes wrong: text clipping its box, an arrow cutting through a node, two boxes overlapping, or an arrow label spilling into the box next to it. Visualize treats those as testable rather than a matter of taste.
 
-`svgkit` validates every file it writes, in the same command that writes it, and reports what it finds:
+`svgkit` writes and validates every file in the same `save()` call. A clean file—or one with warnings only—returns normally. A hard validation failure is machine-detectable: after writing the SVG and printing every problem's details and suggested fix, `save()` raises `svgkit.ValidationError`. The exception carries the complete structured results, and the invalid file remains on disk for inspection.
 
 ```text
 [svgkit] diagram.svg: self-check found 1 error(s)
   [FAIL] Checking box overlap
-         - rect [40,60,160,116] overlaps rect [120,80,240,136] by 40x36px
+         - rect [40,60,160,116] overlaps rect [120,80,240,136]
+         Fix: Move overlapping nodes apart; only explicit panels may contain nodes.
 ```
 
 The same validator runs standalone over any SVG, including several at once:
@@ -46,7 +47,11 @@ The same validator runs standalone over any SVG, including several at once:
 python3 visualize/scripts/validate_svg.py -q diagram.svg other.svg
 ```
 
-It checks XML well-formedness, self-containment (no remote fonts or assets), marker references, box overlap, arrow-through-box collisions, canvas overflow, text fit, label collisions, the locked type scale, palette warmth, and the closing tag.
+`-q` / `--quiet` emits nothing when every file is clean. It prints only warnings and failures otherwise; warnings alone still exit 0, while any hard failure makes the multi-file command exit 1.
+
+Checks cover UTF-8/XML and viewBox structure; non-empty `<title>`/`<desc>` ordering; self-contained assets (only local `#id` or embedded `data:` targets, with external/relative references and `xml-stylesheet` processing instructions rejected) and valid local references; globally unique IDs and exactly one `marker#arrow`, including effective inline/inherited marker styles; an opaque full-viewBox white rect as the first graphics child; flat styling with no gradients, filters, or shadows; shape-aware box containment/overlap; arrow-through-obstacle collisions; canvas overflow; text fit and free-label collisions; type scale, baselines, palette, and the closing tag.
+
+The validator does not silently invent geometry it cannot support. XML/CSS transforms—including individual `translate`, `rotate`, and `scale` properties—skip affected geometry with explicit warnings; a stylesheet transform rule conservatively skips all obstacle/text geometry because selectors are not resolved. `<text>` containing any child/nested run, including a wrapped `<tspan>`, is likewise skipped by text geometry checks. Curved arrows are checked along sampled quadratic/cubic/arc trajectories, not endpoint chords; convex and concave outlines are shape-tested, while ambiguous complex filled-path intersections are warning candidates rather than hard AABB failures. Hidden or fully transparent paint, including zero-alpha `rgba()`/hex colors, does not become an obstacle. `svgkit` emits non-visual `data-role` attributes to distinguish nodes, arrow/legend labels, and intentional panel/container nesting; hand-written SVG can use the same roles.
 
 ## Supported Diagram Types
 

@@ -146,7 +146,7 @@ Lifecycle states and transitions of an entity.
   - **Final state**: filled circle (r=8) inside hollow circle (r=12)
   - **Choice**: small hollow diamond, guard labels `[condition]`
 - **Transition**: arrow with `event [guard] / action`
-- **Composite state**: larger rect containing sub-states, with name tab
+- **Composite state**: larger rect containing sub-states, with name tab. For hand-written SVG, mark the outer rect `data-role="panel"` and its title `data-role="container-label"`; otherwise ordinary node containment correctly fails validation.
 - **Fork/join**: thick black bar (synchronization)
 - Layout: initial top-left, final bottom-right, flow top→bottom
 - ViewBox: width ~720, height grows with content

@@ -35,11 +35,75 @@ Quick start
 
 from __future__ import annotations
 
+import hashlib
+import importlib.util
 import math
+import sys
 import unicodedata
 from dataclasses import dataclass
+from pathlib import Path
+from types import ModuleType
+from typing import Any
 
-__all__ = ["FAMILIES", "text_width", "box_width", "snap", "Box", "Lifeline", "Diagram"]
+__all__ = [
+    "FAMILIES", "text_width", "box_width", "snap", "Box", "Lifeline",
+    "ValidationError", "Diagram",
+]
+
+
+class ValidationError(RuntimeError):
+    """A generated SVG failed its mandatory self-check.
+
+    The SVG has already been written when this is raised, so callers can inspect
+    the artifact. ``results`` contains the validator's complete structured result
+    list; warnings remain non-fatal, while any result with ``status == 'fail'``
+    raises this exception.
+    """
+
+    def __init__(self, path: str | Path, results: list[Any] | None = None,
+                 message: str | None = None) -> None:
+        self.path = str(path)
+        self.results = list(results or [])
+        if message is None:
+            failures = sum(getattr(r, "status", None) == "fail" for r in self.results)
+            message = f"SVG validation failed for {self.path} ({failures} error(s))"
+        super().__init__(message)
+
+
+def _validator_module_name(source: Path) -> str:
+    digest = hashlib.sha256(str(source.resolve()).encode("utf-8")).hexdigest()[:16]
+    return f"_visualize_validate_svg_{digest}"
+
+
+def _load_validator_module() -> ModuleType:
+    """Load the sibling validator by absolute path under a private module name.
+
+    A generic ``import validate_svg`` is caller-dependent: an unrelated module
+    with that name can win through ``sys.path`` or ``sys.modules``. Resolving the
+    exact sibling file makes self-check behavior deterministic in scripts,
+    packages, test runners, and embedded callers.
+    """
+
+    source = Path(__file__).resolve().with_name("validate_svg.py")
+    name = _validator_module_name(source)
+    cached = sys.modules.get(name)
+    if cached is not None:
+        cached_file = Path(getattr(cached, "__file__", "")).resolve()
+        if cached_file == source:
+            return cached
+        del sys.modules[name]
+
+    spec = importlib.util.spec_from_file_location(name, source)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot create an import spec for {source}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(name, None)
+        raise
+    return module
 
 
 # --------------------------------------------------------------------------- #
@@ -123,6 +187,23 @@ def box_width(*lines: str | None, sizes: tuple[int, ...] = (14, 12)) -> int:
 
 def _esc(s: str) -> str:
     return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def _ensure_data_role(svg: str, tag: str, role: str) -> str:
+    """Add ``data-role`` to the first ``tag`` in a generated fragment.
+
+    Layers already carry semantic intent (box text, arrow labels, legends), so
+    roles can be attached at render time without affecting visual markup or
+    forcing every primitive to duplicate the same attribute.
+    """
+    needle = f"<{tag} "
+    start = svg.find(needle)
+    if start < 0:
+        return svg
+    end = svg.find(">", start)
+    if end < 0 or "data-role=" in svg[start:end]:
+        return svg
+    return svg[:start] + f'<{tag} data-role="{role}" ' + svg[start + len(needle):]
 
 
 def snap(n: float) -> str:
@@ -681,7 +762,7 @@ class Diagram:
         fam = FAMILIES[family]
         band_h = 26
         self._layers["boxes"].append(
-            f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
+            f'  <rect data-role="panel" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
             f'fill="{BG}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
         self._layers["boxes"].append(
@@ -694,13 +775,13 @@ class Diagram:
         )
         cy = y + band_h / 2
         self._layers["box_text"].append(
-            f'  <text x="{snap(x + 16)}" y="{snap(cy)}" dominant-baseline="central" '
+            f'  <text data-role="container-label" x="{snap(x + 16)}" y="{snap(cy)}" dominant-baseline="central" '
             f'font-size="14" font-weight="500" fill="{fam["title"]}">{_esc(title)}</text>'
         )
         if subtitle:
             tw = text_width(title, 14)
             self._layers["box_text"].append(
-                f'  <text x="{snap(x + 16 + tw + 12)}" y="{snap(cy)}" dominant-baseline="central" '
+                f'  <text data-role="container-label" x="{snap(x + 16 + tw + 12)}" y="{snap(cy)}" dominant-baseline="central" '
                 f'font-size="12" fill="{fam["sub"]}">{_esc(subtitle)}</text>'
             )
         return Box(x, y, w, h, family)
@@ -825,11 +906,11 @@ class Diagram:
                   solid: bool = False) -> None:
         """A grouping box. Dashed (rx=14) by default, or a solid panel (rx=20)."""
         if solid:
-            rect = (f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" '
+            rect = (f'  <rect data-role="panel" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" '
                     f'rx="20" fill="{FAMILIES["neutral"]["fill"]}" '
                     f'stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>')
         else:
-            rect = (f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" '
+            rect = (f'  <rect data-role="container" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" '
                     f'rx="14" fill="none" stroke="rgba(31,30,29,0.3)" '
                     f'stroke-width="0.5" stroke-dasharray="4 3"/>')
         self._layers["containers"].append(rect)
@@ -855,7 +936,7 @@ class Diagram:
         arrows cross it freely. Returns a Box for anchoring inner content.
         """
         self._layers["containers"].append(
-            f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" '
+            f'  <rect data-role="container" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" '
             f'rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" '
             f'stroke-dasharray="6 4"/>'
         )
@@ -888,12 +969,12 @@ class Diagram:
             f'stroke-dasharray="6 4"/>'
         )
         self._layers["labels"].append(
-            f'  <text x="{snap(left_cx)}" y="{snap(y_top)}" text-anchor="middle" '
+            f'  <text data-role="container-label" x="{snap(left_cx)}" y="{snap(y_top)}" text-anchor="middle" '
             f'dominant-baseline="central" font-size="14" font-weight="500" '
             f'fill="{CONTAINER_TITLE}">{_esc(left_label)}</text>'
         )
         self._layers["labels"].append(
-            f'  <text x="{snap(right_cx)}" y="{snap(y_top)}" text-anchor="middle" '
+            f'  <text data-role="container-label" x="{snap(right_cx)}" y="{snap(y_top)}" text-anchor="middle" '
             f'dominant-baseline="central" font-size="14" font-weight="500" '
             f'fill="{CONTAINER_TITLE}">{_esc(right_label)}</text>'
         )
@@ -952,20 +1033,26 @@ class Diagram:
         out.append(f'  <style>text {{ font-family: {FONT_STACK}; }}</style>')
         out.append(_MARKER)
         out.append(f'  <rect width="{w}" height="{h}" fill="{BG}"/>')
+        role_by_layer = {
+            "containers": "container-label",
+            "box_text": "node-text",
+            "labels": "arrow-label",
+            "legend": "legend-label",
+        }
         for name in _LAYERS:
-            out.extend(self._layers[name])
+            role = role_by_layer.get(name)
+            for fragment in self._layers[name]:
+                out.append(_ensure_data_role(fragment, "text", role) if role else fragment)
         out.append('</svg>')
         return "\n".join(out) + "\n"
 
     def save(self, path: str, check: bool = True) -> str:
-        """Write the SVG, then validate it in the same breath.
+        """Write ``path`` and, by default, enforce the validator contract.
 
-        The layout guide's self-check pass (arrow-through-box, text fit, label
-        overhang, box overlap, canvas overflow, palette, type scale) is code, not
-        a vibe — so it runs here rather than relying on anyone remembering a
-        second command. Problems print to stderr; the file is still written so
-        you can look at it. Pass ``check=False`` to skip (and then run
-        ``python3 scripts/validate_svg.py <file>`` yourself).
+        The file is always written first so a failed artifact remains available
+        for inspection. Warnings are printed but remain non-fatal. Any hard
+        validator failure raises :class:`ValidationError` with the complete
+        structured result list. Pass ``check=False`` only as an explicit opt-out.
         """
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(self.render())
@@ -974,38 +1061,37 @@ class Diagram:
         return path
 
     @staticmethod
-    def _selfcheck(path: str) -> None:
-        """Run validate_svg over ``path`` and print a one-line-per-problem summary.
-
-        Imported lazily: validate_svg imports ``text_width`` from this module, so
-        a module-level import would be circular. Missing/broken validator is not
-        fatal — the diagram is already on disk.
-        """
-        import sys
-        from pathlib import Path
-
-        here = str(Path(__file__).resolve().parent)
-        if here not in sys.path:
-            sys.path.append(here)   # so `import svgkit` alone is enough
+    def _selfcheck(path: str) -> list[Any]:
+        """Run this skill's sibling validator and enforce its hard failures."""
         try:
-            from validate_svg import Validator  # type: ignore
-        except Exception:
-            return
-        try:
-            results = Validator(Path(path), no_color=True).collect()
-        except Exception as exc:  # pragma: no cover - defensive
-            print(f"[svgkit] self-check skipped ({exc})", file=sys.stderr)
-            return
-        problems = [r for r in results if r.status != "pass"]
+            validator_module = _load_validator_module()
+            validator_type = getattr(validator_module, "Validator")
+            results = validator_type(Path(path), no_color=True).collect()
+        except ValidationError:
+            raise
+        except Exception as exc:
+            message = f"Unable to load or run visualize validator for {path}: {exc}"
+            print(f"[svgkit] {message}", file=sys.stderr)
+            raise ValidationError(path, [], message) from exc
+
+        problems = [result for result in results if result.status != "pass"]
         if not problems:
             print(f"[svgkit] {path}: self-check passed", file=sys.stderr)
-            return
-        fails = sum(1 for r in problems if r.status == "fail")
-        head = f"{fails} error(s)" if fails else f"{len(problems)} warning(s)"
-        print(f"[svgkit] {path}: self-check found {head}", file=sys.stderr)
+            return results
+
+        failures = [result for result in problems if result.status == "fail"]
+        heading = (f"{len(failures)} error(s)" if failures
+                   else f"{len(problems)} warning(s)")
+        print(f"[svgkit] {path}: self-check found {heading}", file=sys.stderr)
         for result in problems:
             mark = "FAIL" if result.status == "fail" else "warn"
             suffix = f" ({result.message})" if result.message else ""
             print(f"  [{mark}] {result.name}{suffix}", file=sys.stderr)
-            for detail in (result.details or [])[:4]:
+            for detail in result.details or []:
                 print(f"         - {detail}", file=sys.stderr)
+            if result.fix:
+                print(f"         Fix: {result.fix}", file=sys.stderr)
+
+        if failures:
+            raise ValidationError(path, results)
+        return results
