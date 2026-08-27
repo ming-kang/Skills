@@ -20,7 +20,7 @@ Visualize generates clean technical diagrams as self-contained SVG — architect
 
 ### Code Quality Review
 
-An extremely strict maintainability review — focused on structural simplification, abstraction quality, file size discipline, and spaghetti-condition prevention.
+An extremely strict maintainability review — over a diff, a commit, uncommitted work, a module, or the whole project. Focused on structural simplification, abstraction quality, file size discipline, and spaghetti-condition prevention.
 
 → [docs/README.code-quality-review.md](docs/README.code-quality-review.md)
 
