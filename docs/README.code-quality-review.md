@@ -1,68 +1,89 @@
 # Code Quality Review
 
-An extremely strict maintainability review skill focused on structural simplification, abstraction quality, file size discipline, and spaghetti-condition prevention.
+An extremely strict maintainability review skill focused on implementation quality, structural simplification, abstraction cleanliness, file size discipline, and spaghetti-condition prevention.
 
-## Two Modes
+## Philosophy: The "Code Judo" Move
 
-The skill establishes which mode applies before doing anything else, because the two produce different deliverables.
+Above all, this skill pushes the reviewer to be **ambitious** about code structure rather than stopping at cosmetic cleanups.
 
-| Mode | Scope | Closes with |
+It actively searches for **"code judo" moves**: structural refactorings that preserve existing behavior while making the implementation dramatically simpler, smaller, more direct, and more elegant. If there is a path to delete whole categories of complexity rather than merely rearrange them, the review pushes hard for that path.
+
+## Non-Negotiable Review Standards
+
+Every review enforces eight explicit quality standards:
+
+| # | Standard | Core Expectation |
 |---|---|---|
-| **Change review** | A diff against main, a commit, a commit range, or uncommitted work | An approval verdict |
-| **Codebase audit** | A directory, a module, a subsystem, or the whole project | A prioritized remediation list |
+| **0** | **Structural Simplification** | Seek "code judo" reframings so whole branches, helpers, or layers disappear. Prefer solutions that feel inevitable in hindsight. |
+| **1** | **1k-Line File Limit** | Treat files crossing or exceeding 1,000 lines as a strong smell. Require decomposition into helpers, subcomponents, or modules. |
+| **2** | **No Spaghetti Growth** | Reject ad-hoc conditionals or special cases scattered across unrelated flows. Push logic into dedicated abstractions or state machines. |
+| **3** | **Design Cleanliness** | Do not rubber-stamp "it works" code that leaves the codebase messier. Bias toward removing moving pieces altogether. |
+| **4** | **Boring & Direct Code** | Avoid magic handling, pass-through helpers, or thin wrappers that add indirection without buying clarity. |
+| **5** | **Type & Boundary Cleanliness** | Question unnecessary optionality, casts, `unknown`, or `any`. Prefer explicit typed models and shared contracts. |
+| **6** | **Canonical Layering & Reuse** | Prevent feature logic from leaking into shared paths. Reuse canonical codebase utilities instead of introducing bespoke one-offs. |
+| **7** | **Orchestration & Atomicity** | Parallelize independent async work when obvious. Ensure related updates flow atomically rather than leaving partial state. |
 
-The difference is whether a baseline exists. With one, the skill can see direction and intent — what a change made worse. Without one, nothing is "new," so the code is judged as it stands. If a request is ambiguous ("review the auth code"), the skill asks rather than guesses.
+## Primary Review Checklist
 
-## When to Use
+For every meaningful change or audited module, the reviewer probes:
 
-- Before merging a branch that touches core modules.
-- After a commit that feels like it added incidental complexity.
-- On uncommitted changes when you want a structural sanity check.
-- On a module or subsystem that feels like it's accumulating debt, regardless of what changed recently.
-- On a whole project you've inherited or haven't looked at structurally in a while.
+- **Simplification**: Is there a code-judo move that makes this dramatically simpler? Can concepts, branches, or helper layers be eliminated?
+- **Architecture**: Does this improve or degrade local architecture? Does logic live in the canonical file and layer?
+- **Branching**: Are ad-hoc conditionals or flags being bolted onto unrelated paths?
+- **Scale & Cohesion**: Did a cohesive module become more coupled or stateful? Does a file exceed healthy size boundaries?
+- **Abstractions**: Is every abstraction earning its keep, or is it a superfluous wrapper?
+- **Contracts**: Are casts, `any`, or loose object shapes obscuring invariants?
+- **Concurrency & State**: Is orchestration unnecessarily sequential or non-atomic?
 
-## What It Does
+## What Gets Flagged Aggressively
 
-**Change review:** identifies the baseline → reads changed files in full → applies the overriding lens and six dimensions → grounds each finding in the surrounding unchanged code → assembles the report → states the verdict.
+Findings are escalated when code exhibits any of the following critical smells:
 
-**Codebase audit:** establishes the boundary → surveys file sizes, layout, and dependency direction *without* reading everything → triages to hotspots → reads those in full and applies the same lens and dimensions → grounds each finding → assembles a remediation list, naming what it surveyed but did not read.
+- **Incidental Complexity**: Complicated implementations where a cleaner reframing would delete moving parts.
+- **Complexity Shuffling**: Refactors that move code around without reducing cognitive load for the reader.
+- **Bloated Files**: Files exceeding 1,000 lines without decomposition.
+- **Scattered Conditionals**: Ad-hoc special-case checks, one-off flags, or feature logic leaking into shared modules.
+- **Magic & Thin Wrappers**: Identity abstractions, pass-through helpers, or magic behavior obscuring simple data flow.
+- **Type Dilution**: Unnecessary casts, `any`, `unknown`, or silent fallbacks papering over unclear invariants.
+- **Helper Duplication**: Bespoke one-off utilities duplicating existing canonical helpers.
+- **Suboptimal Orchestration**: Serialized independent async operations or non-atomic state mutations.
 
-An audit is a sample. The skill is required to say so rather than let the report imply full coverage.
+## Preferred Remedies
 
-## The Overriding Lens
+When structural issues are identified, the review favors high-leverage solutions:
 
-Structural simplification sits above the individual dimensions rather than beside them: is there a "code judo" move that deletes whole categories of complexity, instead of rearranging them? Every dimension finding gets re-examined through it — the best version of a branching complaint is usually a reframing that removes the branch.
+- **Delete indirection** layers rather than polishing them.
+- **Reframe state models** so conditionals disappear naturally rather than requiring centralized handling.
+- **Shift ownership boundaries** so features become natural extensions of existing abstractions.
+- **Turn special-case branches** into simpler default flows with fewer exceptions.
+- **Extract helpers or pure functions** and split large files along natural cohesion seams.
+- **Replace condition chains** with typed models or explicit dispatchers.
+- **Parallelize independent operations** and enforce atomic state updates.
 
-## Review Dimensions
+## Output Expectations & Prioritization
 
-| # | Dimension | Core Question |
-|---|-----------|---------------|
-| 1 | File Size & Cohesion | How many unrelated concerns does this file carry? |
-| 2 | Branching & Spaghetti Growth | Are conditionals sitting in flows they have nothing to do with? |
-| 3 | Abstraction Quality | Is every abstraction earning its keep, or just adding indirection? |
-| 4 | Type & Boundary Cleanliness | Are casts, optionality, or ad-hoc shapes obscuring real invariants? |
-| 5 | Layer & Canonical Placement | Is logic in the right layer, reusing existing helpers? |
-| 6 | Orchestration & Atomicity | Is independent work needlessly serialized, or state left half-applied? |
+Reviews prioritize high-conviction structural feedback over superficial nits:
 
-Both modes share these six. Signals phrased as deltas — "new," "crossing," "becoming" — get read in their state form during an audit: same defect, weaker evidence, since a delta shows intent and a state does not.
+1. Structural code-quality regressions
+2. Missed opportunities for dramatic simplification / code-judo restructuring
+3. Spaghetti / branching complexity increases
+4. Boundary, abstraction, and type-contract problems
+5. File-size and decomposition concerns
+6. Modularity and abstraction issues
+7. Legibility and maintainability concerns
 
-On file size: the 1000-line threshold is a tripwire that starts the cohesion question, not the answer to it. A UI component is suspect well below it; a table-driven constants file can run far past it and stay healthy.
+Low-value cosmetic comments are suppressed when larger structural issues are present.
 
-## Evidence Bar
+## Approval Bar & Presumptive Blockers
 
-Structural findings are claims about code outside the immediate change unit or hotspot — that a simpler framing exists, that a canonical helper already covers this, that logic belongs elsewhere. The skill requires each one to name its evidence: the resulting shape and what it deletes, the helper's actual path, the target module and its dependency direction.
+Working code is **not** sufficient for approval. The review blocks on:
 
-Concerns that can't be grounded are still raised, but as explicit questions rather than blocking feedback.
-
-## Output Expectations
-
-Strictness applies to the bar each finding must clear, not to the number of findings. The skill prefers a few high-conviction comments over a long list of nits, scales its ambition to what it's reviewing, and keeps blocking feedback, optional suggestions, and open questions visibly separate.
-
-## Verdict
-
-**Change review** does not approve merely because behavior is correct. It blocks on structural regressions, missed simplifications, unjustified file-size explosions or cohesion regressions, spaghetti growth, unnecessary wrappers and casts, and architecture-boundary leaks. Blocking feedback must itself clear the evidence bar.
-
-**Codebase audit** has nothing to approve. It delivers a plan ordered by structural leverage rather than by the severity of individual smells, with a rough blast radius per item, split into "fix before building further here" and "fix opportunistically next time you touch this."
+- Preserving incidental complexity when an obvious simplification path is visible.
+- Pushing a file past 1,000 lines (or touching an oversized file without decomposing it).
+- Introducing ad-hoc branching that tangles control flow.
+- Scattering feature checks across shared code paths.
+- Introducing unnecessary wrappers, magic, or cast-heavy contracts.
+- Duplicating canonical helpers or putting logic in the wrong architectural layer.
 
 ## License
 
