@@ -2,7 +2,7 @@
 
 This skill ships **one** style: warm, flat, restrained, and built for technical clarity. There is no style flag and no second theme — keep output predictable.
 
-The look in one sentence: **warm paper canvas, cream/tinted rounded boxes, thin open-chevron arrows that recolor themselves, and absolutely flat** (no shadows, no gradients, no filters). Meaning is carried by a small set of **color families** used as box *fills*, not by icons or borders.
+The look in one sentence: **white canvas, warm cream/tinted rounded boxes, thin open-chevron arrows that recolor themselves, and absolutely flat** (no shadows, no gradients, no filters). Meaning is carried by a small set of **color families** used as box *fills*, not by icons or borders.
 
 > The skill's own reference diagrams live in `assets/gallery/<type>.svg` — one per common diagram type, all in this style and all generated with `svgkit`. Read the one matching your task before drawing; they are the ground truth for the look. Index: `references/diagram-gallery.md`.
 
@@ -30,13 +30,13 @@ Each conceptual category gets exactly one family. A family is a 5-tuple: **FILL*
 The five families are a *vocabulary*, not a quota — using all of them in one diagram is usually a mistake. Two rules, learned from studying editorial research diagrams (editorial workflow figures):
 
 - **Default to fewer families.** One accent family + Neutral cream is almost always stronger than two or three. Reach for a second family only when there is a *meaning* contrast to mark (primary vs. alternate path, success vs. failure), never just to color-code unrelated boxes. A diagram that reads "one system" beats one that reads "five sticky notes".
-- **Tint-within-family for siblings.** When items are peers (pipeline stages, lane rows, a series of steps), distinguish them by varying the family FILL **opacity** (0.9 → 0.55 → 0.4) rather than switching families. Opacity is applied as a `opacity="…"` attribute on the `<rect>`; combine with the family STROKE so edges stay crisp. This is a common editorial-workflow trick — one periwinkle family in three tints carries a whole multi-stage flow.
+- **Tint-within-family for siblings.** Peers can share one fill. When tint variation carries useful meaning, use `fill-opacity` (0.9 → 0.55 → 0.4) rather than changing families. This preserves the stroke and text contrast; whole-element `opacity` fades the border too.
 
 ```xml
 <!-- three sibling stages, one green family, opacity does the differentiation -->
-<rect x="40"  y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.9"/>
-<rect x="240" y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.55"/>
-<rect x="440" y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.4"/>
+<rect x="40"  y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.9"/>
+<rect x="240" y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.55"/>
+<rect x="440" y="40" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.4"/>
 ```
 
 ### Decorative pastel tints
@@ -98,15 +98,23 @@ The estimate deliberately errs wide, so text never clips. For long labels prefer
 ```xml
 <rect x="X" y="Y" width="W" height="56" rx="8"
       fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-<text x="CX" y="Y+22" text-anchor="middle" dominant-baseline="central"
+<text x="CX" y="Y+20" text-anchor="middle" dominant-baseline="central"
       font-size="14" font-weight="500" fill="#141413">Title</text>
-<text x="CX" y="Y+39" text-anchor="middle" dominant-baseline="central"
+<text x="CX" y="Y+37" text-anchor="middle" dominant-baseline="central"
       font-size="12" fill="#3D3D3A">sub-label</text>
 ```
 
 - One-line: a single `<text>` at `y = Y + h/2`, 14/500.
 - Vertical gap between stacked boxes: `≥ 56–60px` (the connector lives in the gap).
 - Horizontal gap between boxes: `≥ 40–75px`. Outer margin: `40px`.
+
+For a shared row or column, use the largest computed width among its peers and align their centers. Matrix cells and lists of parallel choices can use 16–32px gutters when no connector needs that space.
+
+### Heading and footer clearance
+
+A visible heading is optional. The gallery uses a 16/600 heading at `(40, 32)`, an optional 12px subtitle at `(40, 56)`, and starts the body at about y=96. Keep the heading separate from node and container labels. A narrow canvas should fit the content without leaving an unused half-page beside a single column.
+
+Reserve a footer for the complete legend, including wrapped rows. Its last row is centered 40px above the bottom edge; a quiet hairline may separate it from the body. Leave at least 24px between that divider and the lowest shape. `svgkit.legend()` reserves wrapped rows when `y` is omitted; explicit `y` anchors the first row.
 
 ---
 
@@ -161,7 +169,7 @@ Define **one** marker. The open chevron recolors itself to match each line via `
 
 ## Legend
 
-Include one whenever 2+ families or 2+ arrow meanings appear. A horizontal row near the bottom; each item = swatch + label:
+Include one whenever 2+ families or 2+ arrow meanings appear. Place swatches and labels in a dedicated footer, wrapping at the right margin. For solid/dashed or other connector meanings, use short line samples with the same style as the actual connections:
 
 ```xml
 <rect x="X" y="Y" width="12" height="12" rx="3"

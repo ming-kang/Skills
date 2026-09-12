@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" width="760" height="470" role="img">
-  <title>AI agent capability map</title>
-  <desc>Five core agent capabilities radiating from a central node: perception, memory, reasoning, action, and learning.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" width="760" height="520" role="img">
+  <title>AI agent capabilities</title>
+  <desc>Perception, learning, memory, action, and reasoning branch from one core agent loop.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -9,23 +9,34 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="760" height="470" fill="#FFFFFF"/>
-  <path d="M 365 200 C 362 200 362 90 360 90" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M 425 228 C 508 228 508 140 590 140" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M 425 228 C 508 228 508 320 590 320" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M 305 228 C 272 228 272 320 240 320" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M 305 228 C 258 228 258 140 210 140" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
-  <rect x="305" y="200" width="120" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <rect x="300" y="50" width="120" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="590" y="120" width="120" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="590" y="300" width="120" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="120" y="300" width="120" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="90" y="120" width="120" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text data-role="node-text" x="365" y="220" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">AI agent</text>
-  <text data-role="node-text" x="365" y="237" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">core loop</text>
-  <text data-role="node-text" x="360" y="70" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Perception</text>
-  <text data-role="node-text" x="650" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Memory</text>
-  <text data-role="node-text" x="650" y="320" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Reasoning</text>
-  <text data-role="node-text" x="180" y="320" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Action</text>
-  <text data-role="node-text" x="150" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Learning</text>
+  <rect width="760" height="520" fill="#FFFFFF"/>
+  <path d="M 380 260 C 380 260 380 148 380 148" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 280 288 C 240 288 240 232 200 232" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 280 288 C 240 288 240 392 200 392" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 480 288 C 520 288 520 232 560 232" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 480 288 C 520 288 520 392 560 392" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="280" y="260" width="200" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="300" y="108" width="160" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="40" y="204" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="40" y="364" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="560" y="204" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="560" y="364" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text data-role="node-text" x="380" y="280" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">AI agent</text>
+  <text data-role="node-text" x="380" y="297" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">core loop</text>
+  <text data-role="node-text" x="380" y="128" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Perception</text>
+  <text data-role="node-text" x="120" y="224" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Learning</text>
+  <text data-role="node-text" x="120" y="241" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">adapt from feedback</text>
+  <text data-role="node-text" x="120" y="384" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Action</text>
+  <text data-role="node-text" x="120" y="401" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">interact with tools</text>
+  <text data-role="node-text" x="640" y="224" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Memory</text>
+  <text data-role="node-text" x="640" y="241" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">recall prior context</text>
+  <text data-role="node-text" x="640" y="384" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Reasoning</text>
+  <text data-role="node-text" x="640" y="401" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">plan the next step</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">AI agent capabilities</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Five capabilities organized around one core loop</text>
+<line x1="40" y1="456" x2="720" y2="456" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<rect x="40" y="474" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<text data-role="legend-label" x="58" y="480" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Core loop</text>
+<rect x="144" y="474" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text data-role="legend-label" x="162" y="480" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Capabilities</text>
 </svg>

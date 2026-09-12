@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" width="720" height="360" role="img">
-  <title>RAG vs fine-tuning vs prompting</title>
-  <desc>A feature matrix comparing three approaches across setup cost, latency, freshness, and control.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 432" width="760" height="432" role="img">
+  <title>Choosing an adaptation method</title>
+  <desc>An illustrative comparison of RAG, fine-tuning, and prompting across setup effort, latency, freshness, and behavioral control.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -9,36 +9,45 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="720" height="360" fill="#FFFFFF"/>
-  <rect x="206" y="76" width="148" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="366" y="76" width="148" height="40" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <rect x="526" y="76" width="148" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="206" y="128" width="148" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="366" y="128" width="148" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="526" y="128" width="148" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="206" y="180" width="148" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="366" y="180" width="148" height="40" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <rect x="526" y="180" width="148" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="206" y="232" width="148" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="366" y="232" width="148" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="526" y="232" width="148" height="40" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <text x="280" y="54" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">RAG</text>
-  <text x="440" y="54" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Fine-tune</text>
-  <text x="600" y="54" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Prompt</text>
-  <text x="280" y="96" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Low</text>
-  <text x="440" y="96" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">High</text>
-  <text x="600" y="96" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Low</text>
-  <text x="280" y="148" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Med</text>
-  <text x="440" y="148" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Low</text>
-  <text x="600" y="148" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Low</text>
-  <text x="280" y="200" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">High</text>
-  <text x="440" y="200" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Low</text>
-  <text x="600" y="200" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Med</text>
-  <text x="280" y="252" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Med</text>
-  <text x="440" y="252" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">High</text>
-  <text x="600" y="252" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Low</text>
-  <text x="188" y="96" text-anchor="end" dominant-baseline="central" font-size="12" fill="#3D3D3A">Setup cost</text>
-  <text x="188" y="148" text-anchor="end" dominant-baseline="central" font-size="12" fill="#3D3D3A">Latency</text>
-  <text x="188" y="200" text-anchor="end" dominant-baseline="central" font-size="12" fill="#3D3D3A">Freshness</text>
-  <text x="188" y="252" text-anchor="end" dominant-baseline="central" font-size="12" fill="#3D3D3A">Control</text>
+  <rect width="760" height="432" fill="#FFFFFF"/>
+  <rect x="208" y="132" width="160" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="384" y="132" width="160" height="40" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect x="560" y="132" width="160" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="208" y="188" width="160" height="40" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect x="384" y="188" width="160" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="560" y="188" width="160" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="208" y="244" width="160" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="384" y="244" width="160" height="40" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect x="560" y="244" width="160" height="40" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect x="208" y="300" width="160" height="40" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect x="384" y="300" width="160" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="560" y="300" width="160" height="40" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <text data-role="node-text" x="288" y="152" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Low</text>
+  <text data-role="node-text" x="464" y="152" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">High</text>
+  <text data-role="node-text" x="640" y="152" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Low</text>
+  <text data-role="node-text" x="288" y="208" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B">Medium</text>
+  <text data-role="node-text" x="464" y="208" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Low</text>
+  <text data-role="node-text" x="640" y="208" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Low</text>
+  <text data-role="node-text" x="288" y="264" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">High</text>
+  <text data-role="node-text" x="464" y="264" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">Low</text>
+  <text data-role="node-text" x="640" y="264" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B">Limited</text>
+  <text data-role="node-text" x="288" y="320" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B">Medium</text>
+  <text data-role="node-text" x="464" y="320" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">High</text>
+  <text data-role="node-text" x="640" y="320" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B">Medium</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Choosing an adaptation method</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Illustrative trade-offs; workload and implementation matter</text>
+<text data-role="caption" x="288" y="102" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">RAG</text>
+<text data-role="caption" x="464" y="102" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Fine-tune</text>
+<text data-role="caption" x="640" y="102" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Prompt</text>
+<text data-role="caption" x="184" y="152" text-anchor="end" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Setup effort</text>
+<text data-role="caption" x="184" y="208" text-anchor="end" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Added latency</text>
+<text data-role="caption" x="184" y="264" text-anchor="end" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Fresh knowledge</text>
+<text data-role="caption" x="184" y="320" text-anchor="end" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Behavior control</text>
+<line x1="40" y1="368" x2="720" y2="368" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<rect x="40" y="386" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text data-role="legend-label" x="58" y="392" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Favorable</text>
+<rect x="144" y="386" width="12" height="12" rx="3" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+<text data-role="legend-label" x="162" y="392" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Trade-off</text>
+<rect x="247" y="386" width="12" height="12" rx="3" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text data-role="legend-label" x="265" y="392" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Constraint</text>
 </svg>

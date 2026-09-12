@@ -5,17 +5,22 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import types
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest import mock
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-SKILL_DIR = SCRIPT_DIR.parent
+SKILL_DIR = Path(__file__).resolve().parents[2] / "visualize"
+SCRIPT_DIR = SKILL_DIR / "scripts"
+sys.dont_write_bytecode = True
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -873,6 +878,72 @@ class ParserAndCompatibilityTests(unittest.TestCase):
         self.assertGreaterEqual(rendered.count('stroke-dasharray="4 3"'), 3)
         self.assertIn('x="420" y="242"', rendered)
         self.assertIn(">curve</text>", rendered)
+
+
+class SkillDistributionTests(unittest.TestCase):
+    def test_copied_skill_runs_without_repository_or_site_packages(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            copied = Path(tmp) / "standalone-skill"
+            shutil.copytree(SKILL_DIR, copied, ignore=shutil.ignore_patterns("__pycache__"))
+            script = """
+import sys
+from pathlib import Path
+skill = Path(sys.argv[1])
+sys.path.insert(0, str(skill / 'scripts'))
+from svgkit import Diagram
+d = Diagram(480, 320, title='独立 Skill', desc='Runtime helpers need only this copied folder.')
+d.panel(40, 40, 400, 160, 'Result', family='green')
+a = d.node(80, 104, '输入', w=120)
+b = d.node(280, 104, '输出', family='green', w=120)
+d.arrow(a.right, b.left, color='green')
+d.legend([('neutral', 'Input'), ('green', 'Output')])
+d.save('standalone.svg')
+"""
+            proc = subprocess.run(
+                [sys.executable, "-I", "-S", "-B", "-c", script, str(copied)],
+                cwd=tmp, check=False, capture_output=True, text=True, encoding="utf-8",
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertTrue((Path(tmp) / "standalone.svg").is_file())
+
+
+class VisualLayoutRegressionTests(unittest.TestCase):
+    def test_panel_background_cannot_cover_internal_connectors(self) -> None:
+        d = svgkit.Diagram(760, 320, title="Panel", desc="Two connected panel contents.")
+        d.panel(40, 80, 680, 152, "Result", family="green")
+        first = d.node(80, 136, "Input", w=160)
+        second = d.node(480, 136, "Output", w=160)
+        d.arrow(first.right, second.left)
+        elements = list(ET.fromstring(d.render()))
+        connector = next(i for i, element in enumerate(elements) if element.get("marker-end"))
+        backgrounds = [i for i, element in enumerate(elements)
+                       if element.tag.endswith("}rect") and element.get("x") == "40"]
+        self.assertTrue(backgrounds)
+        self.assertTrue(all(index < connector for index in backgrounds))
+
+    def test_default_legend_reserves_every_wrapped_row(self) -> None:
+        d = svgkit.Diagram(360, 208, title="Legend", desc="A narrow legend.")
+        items = [("green", "Retrieval path"), ("purple", "Generation path"),
+                 ("neutral", "Input / embedding")]
+        d.legend(items)
+        labels = [element for element in ET.fromstring(d.render())
+                  if element.get("data-role") == "legend-label"]
+        self.assertEqual([element.text for element in labels], [label for _, label in items])
+        rows = {float(element.get("y")) for element in labels}
+        self.assertGreater(len(rows), 1)
+        self.assertGreaterEqual(min(rows), 6)
+        self.assertLessEqual(max(rows), d.height - 40)
+        for element in labels:
+            right = float(element.get("x")) + svgkit.text_width(element.text, 12)
+            self.assertLessEqual(right, d.width - 40)
+
+    def test_explicit_legend_y_remains_the_first_row(self) -> None:
+        d = svgkit.Diagram(240, 300, title="Legend", desc="An explicitly placed legend.")
+        d.legend([("green", "Retrieval path"), ("purple", "Generation path")], y=160)
+        labels = [element for element in ET.fromstring(d.render())
+                  if element.get("data-role") == "legend-label"]
+        self.assertEqual(float(labels[0].get("y")), 160)
+        self.assertGreater(float(labels[1].get("y")), 160)
 
 
 class GeometryModuleTests(unittest.TestCase):

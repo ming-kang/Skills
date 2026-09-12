@@ -1,0 +1,16 @@
+{
+  "name": "agent-skills",
+  "private": true,
+  "scripts": {
+    "visualize:build": "python tools/visualize/build_gallery.py",
+    "visualize:render": "node tools/visualize/render_gallery.mjs",
+    "visualize:test": "python tools/visualize/test_visualize.py",
+    "visualize:palette": "python tools/visualize/check_palette.py"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

@@ -6,15 +6,15 @@ disable-model-invocation: true
 
 # Visualize
 
-Generate production-quality, self-contained SVG technical diagrams in one consistent house style: warm, flat, restrained, and built for technical clarity. Zero required dependencies.
+Generate production-quality, self-contained SVG technical diagrams in one consistent house style: warm, flat, restrained, and built for technical clarity. Zero required third-party dependencies.
 
-**The style in one line:** warm paper canvas, cream/tinted rounded boxes, thin open-chevron arrows that recolor themselves, completely flat (no shadows, no gradients, no filters). Meaning comes from a small set of **color families** used as box fills.
+**The style in one line:** white canvas, warm cream/tinted rounded boxes, thin open-chevron arrows that recolor themselves, completely flat (no shadows, no gradients, no filters). Meaning comes from a small set of **color families** used as box fills.
 
 ## Reference gallery — read one before you draw
 
 The skill ships its own on-style reference diagrams, one per common type, at `assets/gallery/<type>.svg`. They are all generated with `svgkit`, all pass the validator, and are the ground truth for the look. **Before drawing, open the gallery entry that matches the request** and adapt it.
 
-Index with a one-line description of each: `references/diagram-gallery.md` — one reference diagram per supported type (fourteen standard types), plus the decision-ladder compositing-pattern example and the `data-flow_mobile.svg` narrow re-layout variant. The full list of supported types with layout rules lives in `references/diagram-types.md`.
+Index with a one-line description of each: `references/diagram-gallery.md` — 17 gallery diagrams (fourteen standard types, decision ladder, sequence frames, and a narrow data-flow variant), six skeletons, and four showcase samples. The full list of supported types with layout rules lives in `references/diagram-types.md`.
 
 ## Reading order
 
@@ -29,9 +29,10 @@ Index with a one-line description of each: `references/diagram-gallery.md` — o
 1. **Understand the request** — Identify the diagram type (architecture, data flow, flowchart, agent architecture, memory architecture, sequence, comparison, mind map, ER, state machine, network, class, use case, timeline/gantt; full per-type rules in `references/diagram-types.md`) and the entities / relationships.
 2. **Plan the layout** — Pick a viewBox (width ~680–760 is typical), 40px margins, 56px two-line boxes, ≥56px vertical gaps. For a minimal scaffold, start from `assets/gallery/skeletons/<type>.svg` instead of the full gallery entry. For anything non-trivial (≥6 nodes or multi-layer) read `references/svg-layout-best-practices.md`. If the request is a trust-boundary split, a numbered recipe, an allow/deny decision chain, a repeating scope, or any structure a flat graph hides, read `references/layout-patterns.md` and use its `svgkit` one-liners (`.step/.panel/.scope/.zone`). If the user wants a **mobile / narrow** version, re-lay-out per `references/layout-patterns.md` §10 (a separate `<name>_mobile.svg`).
 3. **Assign color families by meaning** — Neutral cream for plumbing; **Green** for the primary / happy path / retrieval; **Purple** for an alternate or parallel branch; **Terracotta** for warnings / limitations / failure; **Amber** for a highlighted special module. Exact tokens: `references/style.md`. **Default to fewer families** — one accent + Neutral often beats three; see the Restraint subsection in `references/style.md` and the tint-within-family technique before reaching for a second family. Per-type guidance: `references/diagram-types.md`. Shape choices: `references/shape-vocabulary.md`. Product icons (optional): `references/product-colors.md`.
-4. **Write the SVG** — If `python3` is available, build it with the **`svgkit` helper** (`references/svg-cookbook.md` §0): you write the layout and it computes box widths from the text, anchors arrows on edges, and guarantees the marker / z-order / closing tag. Otherwise assemble the skeleton and snippets from the cookbook by hand (Python list method, one `lines.append(...)` per line so the file cannot be truncated mid-tag).
+4. **Write the SVG** — If `python3` is available, build it with the **`svgkit` helper** (`references/svg-cookbook.md` §0): you write the layout and it computes box widths from the text, anchors arrows on edges, and guarantees the marker / z-order / closing tag. Otherwise assemble the complete SVG directly from the skeleton and snippets. When using Python for manual markup, append one element per line with the list method below.
 5. **Save SVG** — Default to the working directory, or the path the user gave (`--output /path/` or `输出到 /path/`). Semantic kebab-case filename.
 6. **Self-check — it's code, not a vibe.** `d.save()` writes the SVG first, then runs this skill's validator. Warnings are printed to stderr but remain non-fatal; any hard failure prints every problem's details and fix, then raises `svgkit.ValidationError` with the structured results attached (the invalid file remains on disk for inspection). Fix failures before declaring done. Hand-written SVG gets the same pass explicitly: `python3 scripts/validate_svg.py <file>…` (takes several files at once; `-q` is completely silent for clean files and prints only warnings/failures otherwise). What each finding means and how to fix it: `references/svg-layout-best-practices.md` §4.
+7. **Inspect the rendered result** when a browser renderer is available. Read every label at the intended display size and trace each connection. Check alignment, arrowheads hidden by shapes, container header clearance, and legend spacing; XML and geometry checks do not prove these are visually correct.
 
 > A worked example shipped with the skill: `assets/samples/hero.svg` (a RAG pipeline) — open it to see every token in context.
 
@@ -46,7 +47,7 @@ What makes the output look right. **Exact tokens (every hex value, the marker XM
 - **Size every box from its text — compute, don't guess.** Text overflow is the #1 failure; the width is measured from the label (CJK ≈ 2× Latin — critical for Chinese), not eyeballed. Exact formula in `references/style.md`; `svgkit.node()` and the validator's text-fit check both apply it.
 - **Locked type scale.** Two sizes only — 14 (titles, weight 500) and 12 (rest); one optional 15–16 heading. Labels in sentence case (or natural Chinese).
 - **Warm palette, colors as fills.** Five families (Neutral / Green / Purple / Terracotta / Amber) used as box fills for meaning. Values: `references/style.md`.
-- **One arrow marker** — the open chevron that recolors per line via `context-stroke`; lines 1.5px, round caps, colored with a family LINE color. Encode meaning with **color** and, sparingly, **dashing** (`dashed=True` for async / optional edges and the whole UML realization family — `«implements»`, `«include»`, `«extend»`, `uses`) — never by swapping the head shape or thickening the line.
+- **One arrow marker** — the open chevron that recolors per line via `context-stroke`; lines 1.5px, round caps, colored with a family LINE color. Encode meaning with **color** and, sparingly, **dashing** (`dashed=True` for returns, async / optional edges, and UML realization — `«implements»`, `«include»`, `«extend»`, `uses`) — never by swapping the head shape or thickening the line. Define each line meaning in the legend.
 - **White background**, flat — no shadows, gradients, filters, or blur.
 - **Self-contained** — font inline in `<style>`, no `@import`, no remote `url()/href/src`. `<title>`+`<desc>` first. Always end with `</svg>`.
 - **Clean presentation attributes** (`fill="…"`), not a duplicated `style="…"`.
@@ -72,7 +73,7 @@ Use `d.raw(svg, layer=...)` for custom art (scatter points, patch grids, vector 
 
 `d.save()` validates the file it just wrote and prints findings to stderr — treat that output as part of the build, not an optional extra.
 
-**Fallback — the Python list method** (no `python3`, or full manual control). Append one line per element so the file cannot be truncated mid-tag:
+**Manual markup — the Python list method** (Python is available, but full manual control is needed). Append one line per element so the file cannot be truncated mid-tag. Without Python, write the same complete XML directly:
 
 ```python
 python3 << 'EOF'
@@ -100,7 +101,9 @@ EOF
 ## Layout Essentials
 
 - Spacing: ≥40–75px between nodes horizontally, ≥56–60px vertically (connector lives in the gap), 40px margin. Snap coordinates to integers.
+- Equal peers may share the largest computed box width. Align vertical chains by their centers, not their left edges; auto-sized labels otherwise produce slanted connectors. Compact matrix cells and unconnected parallel choices can use smaller gaps.
 - Arrows anchor on box **edges**, never centers; orthogonal L-paths for branches and crossings; only the arriving segment carries the marker.
+- Draw shared branch/merge rails without arrowheads. Put one arrowhead at each actual destination. Keep feedback rails clear of both boxes and unrelated success paths.
 - Text: title 14/500, sub 12/400, captions 12. Centered text uses `text-anchor="middle" dominant-baseline="central"`.
 - Arrow labels: ≤3 words; midpoint offset 6–15px; add a `#FFFFFF` background plate only if it would overlap a line or box. A label must be shorter than the arrow it rides — if the validator reports it running into a neighbouring node, shorten the wording, widen the gap, or flip it to the other side of the line (`label_offset=-8`).
 

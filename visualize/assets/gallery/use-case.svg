@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" width="760" height="480" role="img">
-  <title>E-commerce use cases</title>
-  <desc>Customer and Admin actors interact with five system use cases. Place order includes Process payment; Apply discount extends Place order. Relationships use the single open-chevron marker; &lt;&lt;include&gt;&gt; / &lt;&lt;extend&gt;&gt; are dashed with labels and routed around the ellipse obstacles.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 636" width="900" height="636" role="img">
+  <title>Store use cases</title>
+  <desc>Customers browse and order. Orders include payment. Administrators manage inventory and apply an optional discount that extends ordering.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -9,50 +9,59 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="760" height="480" fill="#FFFFFF"/>
-  <rect x="150" y="60" width="480" height="380" rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
-  <text x="170" y="86" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">E-commerce System</text>
-  <text x="170" y="104" dominant-baseline="central" font-size="12" fill="#3D3D3A">online store</text>
-  <path d="M100 232 L150 232 L150 140 L200 140" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M100 232 L150 232 L150 250 L200 250" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M660 232 L610 232 L610 140 L580 140" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M660 232 L610 232 L610 360 L564 360" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="340" y1="250" x2="420" y2="250" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
-  <path d="M492 330 L492 300 L270 300 L270 280" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <rect width="900" height="636" fill="#FFFFFF"/>
+  <rect data-role="container" x="160" y="96" width="580" height="420" rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <text data-role="container-label" x="180" y="122" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">E-commerce system</text>
+  <text data-role="container-label" x="180" y="140" dominant-baseline="central" font-size="12" fill="#3D3D3A">online store</text>
+<path d="M100 300 L128 300" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M128 206 L128 330" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="128" y1="206" x2="196" y2="206" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="128" y1="330" x2="196" y2="330" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M800 300 L772 300" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M772 206 L772 450" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="772" y1="206" x2="696" y2="206" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="772" y1="450" x2="696" y2="450" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="380" y1="330" x2="512" y2="330" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <path d="M604 420 L604 392 L288 392 L288 360" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
   <g stroke="#73726C" stroke-width="1.5" fill="none" stroke-linecap="round">
-    <circle cx="80" cy="208" r="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-    <line x1="80" y1="216" x2="80" y2="240"/>
-    <line x1="69" y1="222" x2="91" y2="222"/>
-    <line x1="80" y1="240" x2="72" y2="254"/>
-    <line x1="80" y1="240" x2="88" y2="254"/>
+    <circle cx="80" cy="276" r="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+    <line x1="80" y1="284" x2="80" y2="308"/>
+    <line x1="69" y1="290" x2="91" y2="290"/>
+    <line x1="80" y1="308" x2="72" y2="322"/>
+    <line x1="80" y1="308" x2="88" y2="322"/>
   </g>
-  <g stroke="#7F77DD" stroke-width="1.5" fill="none" stroke-linecap="round">
-    <circle cx="680" cy="208" r="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-    <line x1="680" y1="216" x2="680" y2="240"/>
-    <line x1="669" y1="222" x2="691" y2="222"/>
-    <line x1="680" y1="240" x2="672" y2="254"/>
-    <line x1="680" y1="240" x2="688" y2="254"/>
+  <g stroke="#73726C" stroke-width="1.5" fill="none" stroke-linecap="round">
+    <circle cx="820" cy="276" r="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+    <line x1="820" y1="284" x2="820" y2="308"/>
+    <line x1="809" y1="290" x2="831" y2="290"/>
+    <line x1="820" y1="308" x2="812" y2="322"/>
+    <line x1="820" y1="308" x2="828" y2="322"/>
   </g>
-  <ellipse cx="276" cy="140" rx="76" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <ellipse cx="270" cy="250" rx="70" ry="30" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <ellipse cx="496" cy="250" rx="76" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <ellipse cx="500" cy="140" rx="80" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <ellipse cx="492" cy="360" rx="72" ry="30" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <text x="80" y="268" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Customer</text>
-  <text x="680" y="268" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Admin</text>
-  <text x="276" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Browse products</text>
-  <text x="270" y="250" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Place order</text>
-  <text x="496" y="250" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Process payment</text>
-  <text x="500" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Manage inventory</text>
-  <text x="492" y="360" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Apply discount</text>
-  <text x="380" y="240" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">&lt;&lt;include&gt;&gt;</text>
-  <text x="381" y="292" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">&lt;&lt;extend&gt;&gt;</text>
-  <rect x="40" y="454" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <text x="58" y="460" dominant-baseline="central" font-size="12" fill="#3D3D3A">Customer / use case</text>
-  <rect x="212" y="454" width="12" height="12" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="230" y="460" dominant-baseline="central" font-size="12" fill="#3D3D3A">Admin</text>
-  <rect x="289" y="454" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="307" y="460" dominant-baseline="central" font-size="12" fill="#3D3D3A">primary use case</text>
-  <rect x="440" y="454" width="12" height="12" rx="3" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <text x="458" y="460" dominant-baseline="central" font-size="12" fill="#3D3D3A">optional extension</text>
+  <ellipse cx="288" cy="206" rx="92" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <ellipse cx="288" cy="330" rx="92" ry="30" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <ellipse cx="604" cy="206" rx="92" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <ellipse cx="604" cy="330" rx="92" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <ellipse cx="604" cy="450" rx="92" ry="30" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <text data-role="node-text" x="80" y="336" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Customer</text>
+  <text data-role="node-text" x="820" y="336" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Admin</text>
+  <text data-role="node-text" x="288" y="206" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Browse products</text>
+  <text data-role="node-text" x="288" y="330" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Place order</text>
+  <text data-role="node-text" x="604" y="206" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Manage inventory</text>
+  <text data-role="node-text" x="604" y="330" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Process payment</text>
+  <text data-role="node-text" x="604" y="450" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Apply discount</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Store use cases</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Actors stay outside the system; relationships stay inside</text>
+  <text data-role="arrow-label" x="446" y="318" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">«include»</text>
+  <text data-role="arrow-label" x="446" y="380" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">«extend»</text>
+<line x1="40" y1="572" x2="860" y2="572" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<rect x="40" y="590" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<text data-role="legend-label" x="58" y="596" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Actor / use case</text>
+<rect x="192" y="590" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text data-role="legend-label" x="210" y="596" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Primary use case</text>
+<rect x="343" y="590" width="12" height="12" rx="3" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+<text data-role="legend-label" x="361" y="596" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Extension</text>
+<line x1="447" y1="596" x2="477" y2="596" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text data-role="legend-label" x="489" y="596" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Association</text>
+<line x1="589" y1="596" x2="619" y2="596" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<text data-role="legend-label" x="631" y="596" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Include / extend</text>
 </svg>

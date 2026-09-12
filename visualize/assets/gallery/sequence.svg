@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 440" width="820" height="440" role="img">
-  <title>OAuth2 authorization code flow</title>
-  <desc>The client redirects the user to the auth server, exchanges the code for a token, then calls the resource server.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 536" width="760" height="536" role="img">
+  <title>Authorization code flow</title>
+  <desc>The browser authorizes with the auth server, redirects a code to the client, and the client exchanges it for a token.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -9,24 +9,40 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="820" height="440" fill="#FFFFFF"/>
-  <line x1="140" y1="80" x2="140" y2="400" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
-  <line x1="400" y1="80" x2="400" y2="400" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
-  <line x1="660" y1="80" x2="660" y2="400" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
-  <line x1="140" y1="150" x2="660" y2="150" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="660" y1="200" x2="140" y2="200" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="140" y1="250" x2="400" y2="250" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="400" y1="300" x2="660" y2="300" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="660" y1="350" x2="400" y2="350" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="60" y="40" width="160" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="320" y="40" width="160" height="40" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="580" y="40" width="160" height="40" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="140" y="60" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">User</text>
-  <text x="400" y="60" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Client</text>
-  <text x="660" y="60" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Auth server</text>
-  <text x="400" y="142" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">authorize request</text>
-  <text x="400" y="192" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">login + consent</text>
-  <text x="270" y="242" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">auth code</text>
-  <text x="530" y="292" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">exchange code</text>
-  <text x="530" y="342" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">access token</text>
+  <rect width="760" height="536" fill="#FFFFFF"/>
+  <line x1="140" y1="136" x2="140" y2="440" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <line x1="380" y1="136" x2="380" y2="440" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <line x1="620" y1="136" x2="620" y2="440" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <line x1="140" y1="192" x2="620" y2="192" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="620" y1="248" x2="140" y2="248" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <line x1="140" y1="304" x2="380" y2="304" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="380" y1="360" x2="620" y2="360" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="620" y1="416" x2="380" y2="416" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <rect x="318" y="172" width="125" height="16" rx="3" fill="#FFFFFF"/>
+  <rect x="325" y="228" width="111" height="16" rx="3" fill="#FFFFFF"/>
+  <rect x="225" y="284" width="70" height="16" rx="3" fill="#FFFFFF"/>
+  <rect x="451" y="340" width="97" height="16" rx="3" fill="#FFFFFF"/>
+  <rect x="455" y="396" width="90" height="16" rx="3" fill="#FFFFFF"/>
+  <rect x="60" y="96" width="160" height="40" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="300" y="96" width="160" height="40" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="540" y="96" width="160" height="40" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text data-role="node-text" x="140" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Browser</text>
+  <text data-role="node-text" x="380" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Client</text>
+  <text data-role="node-text" x="620" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Auth server</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Authorization code flow</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Browser redirects, then the client exchanges the code</text>
+  <text data-role="arrow-label" x="380" y="180" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">authorize request</text>
+  <text data-role="arrow-label" x="380" y="236" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">login + consent</text>
+  <text data-role="arrow-label" x="260" y="292" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">auth code</text>
+  <text data-role="arrow-label" x="500" y="348" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">exchange code</text>
+  <text data-role="arrow-label" x="500" y="404" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">access token</text>
+<line x1="40" y1="472" x2="720" y2="472" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<rect x="40" y="490" width="12" height="12" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text data-role="legend-label" x="58" y="496" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Auth request</text>
+<rect x="164" y="490" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text data-role="legend-label" x="182" y="496" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Credentials</text>
+<line x1="282" y1="496" x2="312" y2="496" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text data-role="legend-label" x="324" y="496" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Request</text>
+<line x1="396" y1="496" x2="426" y2="496" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<text data-role="legend-label" x="438" y="496" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Return</text>
 </svg>

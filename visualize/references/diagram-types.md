@@ -13,6 +13,7 @@ Nodes = services/components. Group into **horizontal layers** (top→bottom or l
 - Typical layers: Client → Gateway/LB → Services → Data/Storage
 - Use `<rect>` dashed containers to group related services in the same layer
 - Arrow direction follows data/request flow
+- Align centers within each vertical chain. Use shared rails without arrowheads for fan-out/fan-in, with heads only where a connection reaches a node.
 - ViewBox: width ~720, height grows with content (taller for many layers)
 - **Trust-boundary / deployment split**: when nodes sit on opposite sides of a boundary (client↔server, on-prem↔cloud), separate them with a `.zone()` divider and let the cross-zone edges carry the story (`references/layout-patterns.md` §1). A titled `.panel()` groups a cluster that needs a stronger frame than a dashed container (§4).
 
@@ -32,7 +33,7 @@ Sequential decision/process steps.
 - Top-to-bottom preferred; left-to-right for wide flows
 - Diamond shapes for decisions, rounded rects for processes, parallelograms for I/O
 - Keep node labels short (≤3 words); put detail in sub-labels
-- Align nodes on a grid: x positions snap to 120px intervals, y to 80px
+- Align the main flow on one centerline, size boxes from labels, and reserve routing gutters before placing side branches
 - **Numbered recipe / pipeline**: use `.step()` cards (circled badge + title) so order reads without an arrow on every link (`references/layout-patterns.md` §2).
 - **Allow/deny ladder**: a chain of checks bracketed by a green "Execute" rail and a terracotta "Blocked" rail — green arrows up = pass, terracotta down = fail (§3). A long feedback return routes up the right gutter (§6).
 
@@ -66,8 +67,9 @@ Time-ordered message exchanges between participants.
 - Messages as horizontal arrows between lifelines, top-to-bottom time order
 - Activation boxes (thin filled rects on lifeline) show active processing
 - Group with `<rect>` loop/alt frames with label in top-left corner
-- ViewBox height = 80 + (num_messages × 50)
-- Frame label badges must be vertically centered with first message arrow: `badge_y = first_arrow_y - badge_height/2`
+- Start messages at least 40px below the participant boxes, use roughly 48–60px between messages, and reserve a separate legend area below the lifelines
+- Anchor messages on activation-bar edges when present, so the bars cannot cover arrowheads; a 12px activation uses `cx ± 6`
+- Reserve a left gutter for frame names and guards; place real messages in each `alt` branch and keep them clear of the frame header
 - **Payload messages**: when an arrow carries both a name and literal data, stack a 12/CAPTION label above the line and a monospace payload below — monospace is the only place a non-system font appears (`references/layout-patterns.md` §8).
 - **Repeating region**: wrap a span of messages in a `.scope()` frame labelled `EACH TURN` / `PER REQUEST` rather than a plain loop box (§5); out-of-band events (notifications, telemetry) hang off a dashed side-rail (§7).
 
@@ -77,6 +79,7 @@ Side-by-side comparison of approaches, systems, or components.
 
 - Column headers = systems, row headers = attributes
 - Row height: 40px; column width: min 120px; header row height: 50px
+- Use equal column widths and 16–24px gutters; keep row labels in a dedicated, consistently aligned column
 - "Has it" cell: tinted family background (Green `#E1F5EE` + `✓` in `#0F6E56`); "lacks it" cell: neutral `#F5F4ED` (or a Terracotta `#FAECE7` ✗ when it's a real downside)
 - Keep the grid quiet: white rows with hairline `rgba(31,30,29,0.3)` dividers
 - Max readable columns: 5; beyond that, split into two diagrams
@@ -88,15 +91,16 @@ Horizontal time axis showing durations, phases, and milestones.
 - X-axis = time (weeks/months/quarters); Y-axis = items/tasks/phases
 - Bars: rounded rects, colored by category, labeled inside or beside
 - Milestone markers: diamond or filled circle at specific x position with label above
+- Derive bars, week guides, and milestones from the same time scale. Use one fill family for peer phases unless color encodes a distinct category; avoid repeating the row name inside every bar.
 - ViewBox: width ~720 (wider for many time periods), height grows with content
-- Helpers: `.bar(x, y, w, label, family=...)` per bar — the width is the time span, not the label (height 28 stays under the collision-obstacle floor, so bars never trip the arrow-collision check); `diamond(..., hw=22, hh=16, family="amber")` for milestones (label via `.raw()` above it); the time axis is a `.raw()` loop of `<line>` ticks + `<text>` labels. See `assets/gallery/timeline-gantt.svg`.
+- Helpers: `.bar(x, y, w, label, family=...)` per bar — the width is the time span, not the label (default height 28); `diamond(..., hw=8, hh=8, family="amber")` for milestones with an external label; the time axis is a `.raw()` loop of `<line>` guides + `<text>` labels. See `assets/gallery/timeline-gantt.svg`.
 
 ## Mind Map / Concept Map
 
 Radial layout from central concept.
 
-- Central node at `cx=480, cy=280`
-- First-level branches: evenly distributed around center (360/N degrees)
+- Center the core node in the available body area, leaving room for the heading and legend
+- Balance first-level branches around the center; paired left/right rows can be easier to read than a strict angular distribution
 - Second-level branches: branch off first-level at 30-45° offset
 - Use curved `<path>` with cubic bezier for branches, not straight lines
 
@@ -115,6 +119,7 @@ Static structure showing classes, attributes, methods, and relationships.
   - Aggregation / Composition: solid line + chevron + label `aggregates` / `composes` + multiplicity (the label carries the meaning instead of a diamond on the container side)
   - Dependency: dashed line + chevron + label `uses`
 - **Interface**: `<<interface>>` stereotype above name; **Enum**: `<<enumeration>>`
+- Allow a 48px title compartment for a stereotype plus name, with distinct text baselines; the plain name compartment is 30px
 - Layout: parent classes top, children below; interfaces to the left/right
 - ViewBox: width ~720, height grows with content (taller for deep hierarchies)
 - Helper: `.class_box(x, y, name, attrs, methods, family=..., abstract=False, stereotype="interface")` renders the 3-compartment box (min width 160, abstract name italic). Realization / dependency lines are `dashed=True` on `.arrow()` / `.lpath()`. See `assets/gallery/class-diagram.svg`.
@@ -140,12 +145,13 @@ System functionality from user perspective.
 
 Lifecycle states and transitions of an entity.
 
-- **State**: rounded rect with name, min 120×50px
+- **State**: rounded rect with name, min width 120px; height 40 for one line or 56 for two
   - Internal activities: `entry/ action`, `exit/ action`, `do/ activity`
-  - **Initial state**: filled black circle (r=8), one outgoing arrow
-  - **Final state**: filled circle (r=8) inside hollow circle (r=12)
-  - **Choice**: small hollow diamond, guard labels `[condition]`
+- **Initial state**: filled black circle (r=8), one outgoing arrow
+- **Final state**: filled circle (r=8) inside hollow circle (r=12)
+- **Choice**: small diamond, guard labels `[condition]`
 - **Transition**: arrow with `event [guard] / action`
+- Anchor initial/final connections at the circle boundary (8px / 12px from the center) so the state marker cannot hide the arrowhead
 - **Composite state**: larger rect containing sub-states, with name tab. For hand-written SVG, mark the outer rect `data-role="panel"` and its title `data-role="container-label"`; otherwise ordinary node containment correctly fails validation.
 - **Fork/join**: thick black bar (synchronization)
 - Layout: initial top-left, final bottom-right, flow top→bottom
@@ -156,10 +162,11 @@ Lifecycle states and transitions of an entity.
 Database schema and data relationships.
 
 - **Entity**: rect with name header (bold), attributes below
-  - Primary key: underlined; Foreign key: italic or (FK)
+  - Primary key: underline or `(PK)`; Foreign key: italic or `(FK)`
   - Min width: 160px; attribute font-size: 12px
 - **Relationship**: diamond shape on connecting line
-  - Label: "has", "belongs to"; Cardinality: `1`, `N`, `0..1`, `0..*`, `1..*`
+  - Label: "has", "belongs to"; Cardinality: `1`, `N`, `M`, `0..1`, `0..*`, `1..*`
+- Put cardinality labels close to their entity endpoints. Use separate ports for unrelated relationships; a shared rail would imply a connection that is not present.
 - **Weak entity**: double-bordered rect with double diamond
 - **Associative entity**: rect with diamond inside
 - Solid lines for identifying, dashed for non-identifying relationships
@@ -170,10 +177,11 @@ Database schema and data relationships.
 
 Physical or logical network infrastructure.
 
-- **Devices**: Router (circle + cross), Switch (rect + arrow grid), Server (stacked rect), Firewall (shield), Load Balancer (split rect), Cloud (overlapping arcs)
-- **Connections**: Ethernet (solid, label bandwidth), Wireless (dashed + WiFi), VPN (dashed + lock)
+- **Devices**: labeled rounded rectangles for routers, switches, servers, firewalls, and load balancers; use a cylinder when the storage role matters
+- **Connections**: solid or dashed paths with short protocol/bandwidth labels; explain different line meanings in the legend
 - **Subnets/Zones**: dashed rect containers (DMZ, Internal, External)
-- **Labels**: hostname + IP, 12-13px
+- Keep boundary devices clearly placed relative to zones, with room between each container header and its nodes
+- **Labels**: hostname at 14px, IP or protocol detail at 12px
 - Layout: tiered Internet → Edge → Core → Access → Endpoints
 - ViewBox: width ~720, height grows with content
 
@@ -189,9 +197,9 @@ Physical or logical network infrastructure.
 | Object | Class Diagram | Underlined instance names |
 | Use Case | Use Case Diagram | House-style: actor + ellipse + dashed «include»/«extend» |
 | Activity | Flowchart | Add fork/join bars |
-| State Machine | State Machine Diagram | Full UML notation |
+| State Machine | State Machine Diagram | States, guards, initial/final markers, and labeled transitions in the house style |
 | Sequence | Sequence Diagram | alt/opt/loop frames |
 | Communication | — | Approximate with Sequence |
 | Timing | Timeline | Adapt time axis |
 | Interaction Overview | Flowchart | Activity + sequence fragments |
-| ER Diagram | ER Diagram | Chen/Crow's foot notation |
+| ER Diagram | ER Diagram | Entity compartments, relationship diamonds, and explicit cardinality labels |

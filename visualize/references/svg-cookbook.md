@@ -69,6 +69,8 @@ That is the **entire** diagram. The equivalent by hand is ~30 lines of `<rect>`/
 
 `family` is one of `neutral / green / purple / terracotta / amber`. `color` takes a family name **or** a raw hex. Layers for `.raw()`: `containers, arrows, plates, boxes, box_text, labels, legend`.
 
+`class_box()` gives a stereotype and class name a 48px header with separate baselines. `panel()` paints its body and header band behind arrows, so connections between child nodes remain visible. `legend()` with no `y` reserves every wrapped 24px row above a 40px bottom margin; an explicit `y` sets the first row's center. Leave body clearance above the whole legend.
+
 `svgkit` adds non-visual `data-role` hints so validation can distinguish intentional structure from accidental overlap: `panel` / `container` on grouping shapes, and `node-text`, `arrow-label`, `legend-label`, or `container-label` on text. These attributes do not change rendering. Add the same roles to hand-written SVG when semantics matter—especially `data-role="panel"` on a solid shape that intentionally contains nodes.
 
 **`.save()` checks its own work.** It always writes the file before loading and running the sibling `scripts/validate_svg.py`. A clean file returns its path; warnings are printed to stderr and still return normally. Any hard failure prints all warning/failure details and fixes, then raises `svgkit.ValidationError`; its `.results` attribute contains the complete structured result list, and the invalid SVG remains available to inspect. Validator load/run failures are also wrapped in `ValidationError` rather than ignored. Pass `check=False` only as an explicit opt-out. This verification pass covers structure, accessibility, the unique marker and references, a full white background, flat/self-contained styling, geometry and labels, type scale, palette, and the closing tag.
@@ -129,9 +131,9 @@ Paste this, set `W`/`H`, then drop snippets between the comments.
 ```xml
 <rect x="300" y="40" width="160" height="56" rx="8"
       fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-<text x="380" y="62" text-anchor="middle" dominant-baseline="central"
+<text x="380" y="60" text-anchor="middle" dominant-baseline="central"
       font-size="14" font-weight="500" fill="#141413">Compressor</text>
-<text x="380" y="79" text-anchor="middle" dominant-baseline="central"
+<text x="380" y="77" text-anchor="middle" dominant-baseline="central"
       font-size="12" fill="#3D3D3A">splits into KV</text>
 ```
 
@@ -149,9 +151,9 @@ Swap the four colors together. Green shown; the others are drop-in.
 <!-- GREEN (primary / retrieval) -->
 <rect x="60" y="120" width="220" height="56" rx="8"
       fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-<text x="170" y="142" text-anchor="middle" dominant-baseline="central"
+<text x="170" y="140" text-anchor="middle" dominant-baseline="central"
       font-size="14" font-weight="500" fill="#085041">Retriever</text>
-<text x="170" y="159" text-anchor="middle" dominant-baseline="central"
+<text x="170" y="157" text-anchor="middle" dominant-baseline="central"
       font-size="12" fill="#0F6E56">top-k from store</text>
 ```
 | Family | rect fill | rect stroke | title fill | sub fill |
@@ -168,13 +170,13 @@ Swap the four colors together. Green shown; the others are drop-in.
 <!-- Dashed group with a top-left label -->
 <rect data-role="container" x="40" y="40" width="240" height="300" rx="14"
       fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
-<text data-role="container-label" x="60" y="66" font-size="14" font-weight="500" fill="#141413">Knowledge base</text>
-<text data-role="container-label" x="60" y="84" font-size="12" fill="#3D3D3A">indexed once</text>
+<text data-role="container-label" x="60" y="66" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Knowledge base</text>
+<text data-role="container-label" x="60" y="84" dominant-baseline="central" font-size="12" fill="#3D3D3A">indexed once</text>
 
 <!-- Solid section panel -->
 <rect data-role="panel" x="120" y="40" width="440" height="380" rx="20"
       fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-<text data-role="container-label" x="140" y="66" font-size="14" font-weight="500" fill="#141413">61 transformer layers</text>
+<text data-role="container-label" x="140" y="66" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">61 transformer layers</text>
 ```
 Only shapes explicitly marked `data-role="container"` / `data-role="panel"` receive container semantics: arrows may cross them and they may intentionally contain nodes. Ordinary solid shapes remain collision obstacles.
 
@@ -208,7 +210,7 @@ Only shapes explicitly marked `data-role="container"` / `data-role="panel"` rece
 <path d="M460 416 L600 416 L600 160 L460 160" fill="none" stroke="#7F77DD"
       stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
 
-<!-- dashed: async / optional edge, and every UML realization («implements», «include», «extend», uses) -->
+<!-- dashed: return / async / optional edge, and UML realization («implements», «include», «extend», uses) -->
 <line x1="380" y1="190" x2="380" y2="132" stroke="#73726C" stroke-width="1.5"
       stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
 
@@ -226,8 +228,10 @@ Only shapes explicitly marked `data-role="container"` / `data-role="panel"` rece
 ```
 Only add a background plate if it overlaps a line:
 ```xml
-<rect x="262" y="166" width="46" height="16" rx="3" fill="#FFFFFF"/>
+<rect x="250" y="167" width="70" height="16" rx="3" fill="#FFFFFF"/>
 ```
+
+Size the plate from the label (`text_width(label, 12) + 8`), rather than using a fixed width for every word.
 
 ---
 
@@ -246,11 +250,11 @@ Alternating pattern (e.g. interleaved layers). Cells are <70px wide so the valid
 
 Rows of varying width + opacity depict a numeric vector.
 ```xml
-<rect x="490" y="100" width="22" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.9"/>
-<rect x="490" y="115" width="36" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.55"/>
-<rect x="490" y="130" width="16" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.4"/>
-<rect x="490" y="145" width="40" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" opacity="0.8"/>
-<text x="510" y="175" text-anchor="middle" font-size="12" fill="#3D3D3A">vector (1152-d)</text>
+<rect x="490" y="100" width="22" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.9"/>
+<rect x="490" y="115" width="36" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.55"/>
+<rect x="490" y="130" width="16" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.4"/>
+<rect x="490" y="145" width="40" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" fill-opacity="0.8"/>
+<text x="510" y="175" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">vector (1152-d)</text>
 ```
 
 ## 7. Scatter points + leader line
@@ -262,7 +266,7 @@ For concept / embedding-space diagrams (put inside a dashed container).
       stroke-linecap="round" marker-end="url(#arrow)"/>
 <!-- the point -->
 <circle cx="450" cy="140" r="5" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-<text x="460" y="135" font-size="12" fill="#3D3D3A">king</text>
+<text x="460" y="135" dominant-baseline="central" font-size="12" fill="#3D3D3A">king</text>
 
 <!-- leader/callout: dashed line + small anchor dot -->
 <line x1="95" y1="87" x2="298" y2="140" stroke="#73726C" stroke-width="0.5" stroke-dasharray="4 3"/>
@@ -271,11 +275,12 @@ For concept / embedding-space diagrams (put inside a dashed container).
 
 ## 8. Patch / color grid
 
-Decorative tints, 45×45 cells, hairline stroke. (Highlight one cell with a 2px family stroke to single it out.) See `references/style.md` for the full decorative pastel palette (amber / peach / mint / lavender / pink / lime / sky).
+Decorative tints, 45×45 cells, hairline stroke. A family-colored label can identify a selected cell without thickening its border. See `references/style.md` for the full decorative pastel palette (amber / peach / mint / lavender / pink / lime / sky).
 ```xml
-<rect x="50" y="65" width="45" height="45" fill="#FAC775" stroke="#854F0B" stroke-width="2"/>
+<rect x="50" y="65" width="45" height="45" fill="#FAC775" stroke="#854F0B" stroke-width="0.5"/>
 <rect x="95" y="65" width="45" height="45" fill="#9FE1CB" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <rect x="140" y="65" width="45" height="45" fill="#CECBF6" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<text x="72" y="128" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B">selected</text>
 ```
 
 ## 9. Legend row
@@ -305,14 +310,16 @@ When `svgkit` is unavailable, use these raw XML snippets for shapes that need mo
 
 ### Database / Vector Store (cylinder)
 
-Prefer `d.cylinder(x, y, title, sub, family)`. Raw fallback:
+Prefer `d.cylinder(x, y, title, sub, family)`. This concrete fallback matches a cylinder at `(40, 40)` with width 160 and body height 54. The cap radius is 9, giving a total height of 72; do not use `w/6` for a tall, swollen cap.
 
 ```xml
-<ellipse cx="cx" cy="top" rx="w/2" ry="w/6" fill="fill" stroke="stroke" stroke-width="0.5"/>
-<rect x="cx-w/2" y="top" width="w" height="h" fill="fill" stroke="none"/>
-<line x1="cx-w/2" y1="top" x2="cx-w/2" y2="top+h" stroke="stroke" stroke-width="0.5"/>
-<line x1="cx+w/2" y1="top" x2="cx+w/2" y2="top+h" stroke="stroke" stroke-width="0.5"/>
-<ellipse cx="cx" cy="top+h" rx="w/2" ry="w/6" fill="fill" stroke="stroke" stroke-width="0.5"/>
+<path d="M40 49 A80 9 0 0 1 200 49 L200 103 A80 9 0 0 1 40 103 Z"
+      fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<ellipse cx="120" cy="49" rx="80" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="120" y="68" text-anchor="middle" dominant-baseline="central"
+      font-size="14" font-weight="500" fill="#085041">Vector store</text>
+<text x="120" y="85" text-anchor="middle" dominant-baseline="central"
+      font-size="12" fill="#0F6E56">embeddings</text>
 ```
 
 ### Decision diamond (flowcharts)
@@ -320,10 +327,10 @@ Prefer `d.cylinder(x, y, title, sub, family)`. Raw fallback:
 Prefer `d.diamond(x, y, title, family)`. Raw fallback:
 
 ```xml
-<polygon points="cx,cy-hh  cx+hw,cy  cx,cy+hh  cx-hw,cy"
-         fill="fill" stroke="stroke" stroke-width="0.5"/>
-<text x="cx" y="cy" text-anchor="middle" dominant-baseline="central"
-      fill="text" font-size="14" font-weight="500">Condition?</text>
+<polygon points="120,40 200,84 120,128 40,84"
+         fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+<text x="120" y="84" text-anchor="middle" dominant-baseline="central"
+      fill="#633806" font-size="14" font-weight="500">Condition?</text>
 ```
 
 ### User / human actor (sequence + use-case diagrams)
@@ -331,17 +338,22 @@ Prefer `d.diamond(x, y, title, family)`. Raw fallback:
 Prefer `d.actor(cx, y, label, family)`. Raw fallback:
 
 ```xml
-<circle cx="cx" cy="cy-18" r="10" fill="fill" stroke="stroke" stroke-width="0.5"/>
-<path d="M cx-14,cy+16 Q cx-14,cy-4 cx,cy-4 Q cx+14,cy-4 cx+14,cy+16"
-      fill="fill" stroke="stroke" stroke-width="0.5"/>
-<text x="cx" y="cy+30" text-anchor="middle" fill="text" font-size="14">User</text>
+<g stroke="#73726C" stroke-width="1.5" fill="none" stroke-linecap="round">
+  <circle cx="80" cy="48" r="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <line x1="80" y1="56" x2="80" y2="80"/>
+  <line x1="69" y1="62" x2="91" y2="62"/>
+  <line x1="80" y1="80" x2="72" y2="94"/>
+  <line x1="80" y1="80" x2="88" y2="94"/>
+</g>
+<text x="80" y="108" text-anchor="middle" dominant-baseline="central"
+      fill="#141413" font-size="14" font-weight="500">User</text>
 ```
 
 ---
 
 ## Generating with the Python list method (fallback)
 
-Prefer `svgkit` (§0). Use this hand-written method only when you need full manual control or `python3` is unavailable. Append one line at a time so the file can't be truncated mid-tag:
+Prefer `svgkit` (§0). Use this method when Python is available and you need full manual control. Without Python, write the complete SVG directly from the snippets. Append one line at a time so the file can't be truncated mid-tag:
 
 ```python
 lines = []

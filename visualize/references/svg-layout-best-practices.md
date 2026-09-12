@@ -8,8 +8,9 @@ Layout and routing rules for the one house style. Tokens (colors, fonts, the ope
 - **Node size**: height **56** (two-line) or **40** (one-line); `rx="8"`. **Width is computed from the text, never a round guess** (CJK ≈ 2× Latin). Text overflow is the #1 diagram failure; `svgkit` and the validator both size off the text. Exact formula: `references/style.md`.
 - **Vertical gap** between stacked boxes: **≥ 56–60px** (the connector lives in the gap).
 - **Horizontal gap** between boxes: **≥ 40–75px**.
+- Align vertical flows on one centerline. Compute a common width for peers when useful; `col()` is left-aligned by default and does not automatically center differently sized nodes. Matrix cells and unconnected parallel choices can use 16–32px gaps.
 - **Containers**: dashed group `rx="14"`; solid panel `rx="20"`; hairline `0.5` stroke.
-- **Reserve canvas height for the legend.** The legend defaults to the bottom row. If the lowest nodes (datastores, result boxes) already reach the bottom, grow the canvas by ~40px so the legend gets its own clear row instead of overlapping a node — a legend swimming into a cylinder reads as a mistake even when both are individually correct.
+- **Reserve canvas height for the legend.** `legend()` with no `y` computes all wrapped rows above a 40px bottom margin. The body still needs to end above that block. With explicit `y`, reserve the subsequent 24px rows yourself. Keep any footer divider at least 24px below the lowest shape.
 
 ## 2. Arrow routing & connection points
 
@@ -17,6 +18,7 @@ Layout and routing rules for the one house style. Tokens (colors, fonts, the ope
 - **Anchor on edges, never centers.** A vertical connector between two stacked boxes runs from the bottom-edge midpoint of one to the top-edge midpoint of the next.
 - **Never run a straight segment through a box.** Use an orthogonal L-shaped `<path>` to route around it. Only the *arriving* segment carries `marker-end`.
 - **Branches**: split a parent into children with `M px py L bx py L bx cy` per child (color each branch with its family LINE color); merge with the mirror.
+- Shared rails have no marker. Put arrowheads at the real destination edges, not at intermediate merge junctions. For initial/final state dots, subtract the radius from the destination center; for sequence activation bars, use the side of the bar.
 - **Multiple arrows between the same two rows**: stagger by 15–20px so heads don't overlap.
 - **Crossings**: prefer rerouting. If unavoidable, a 5px white jump-over arc on the lower-priority line reads cleanly (we use no other tricks).
 
@@ -28,7 +30,7 @@ Layout and routing rules for the one house style. Tokens (colors, fonts, the ope
 - **A label must be shorter than the arrow it rides.** The gap between neighbouring boxes is often only ~40px, but a few words of text easily exceed that — a centered label wider than its arrow spills into the boxes on both ends. When the natural wording is too long, either shorten it (`top-k chunks` → `top-k`), widen the gap so the arrow is long enough to carry it, or flip the label to the emptier side of the line (`svgkit`: negate `label_offset`). Never let a label overhang into an adjacent box. The `label vs box` check enforces this.
 - **`label_offset` is signed.** On a vertical segment positive puts the label to the right of the line, negative to the left; on a horizontal segment positive is above, negative below. A right-gutter loop-back or a return edge running down a left-hand gutter usually wants the negative side.
 
-## 4. Self-check pass (automated — read the output, don't eyeball it)
+## 4. Self-check pass (automated geometry)
 
 This is an explicit pass, and it is **code**. `d.save()` writes the SVG first and validates that exact file. Warnings print to stderr but remain non-fatal; any hard failure prints all details/fixes and raises `svgkit.ValidationError`, whose `.results` contains the complete structured result list. The failed artifact remains on disk. For hand-written SVG run `python3 scripts/validate_svg.py <file>…`; it accepts several files, exits 1 if any has a hard failure, and exits 0 for clean or warnings-only input. `-q` is completely silent when every file is clean and prints only warnings/failures otherwise.
 
@@ -53,6 +55,10 @@ Containment is semantic, not heuristic: only explicit `data-role="panel"` / `dat
 
 Current geometry limits are deliberate and visible: an element under an XML `transform`, CSS `transform`, or individual `translate` / `rotate` / `scale` property (inline or inherited from an ancestor) is skipped by obstacle/text/arrow geometry checks and produces a warning. Because stylesheet selectors are not resolved, any stylesheet rule using those transform properties conservatively skips all obstacle/text geometry with an explicit warning. A `<text>` with any child/nested run (including wrapped or positioned `<tspan>`) is not flattened into a fictional line, so its text geometry is skipped with a warning. Dashed shapes, hidden/fully transparent paint, cells smaller than 70×30, and very broad backdrop shapes (>70% of a viewBox dimension) are not treated as obstacles. Treat every warning as something to inspect even though it does not raise `ValidationError`.
 
+### Browser inspection
+
+When a browser renderer is available, complement geometry checks with real font metrics and screenshots. Review every affected image at its intended size, including Chinese labels and narrow variants. Check that headers have clearance, paths can be followed, arrowheads remain visible, and legends are complete. A white panel can hide a valid connector if painted later; a stereotype can collide with a class name even when approximate text boxes pass. Neither screenshot generation nor a zero-error text report replaces looking at the image.
+
 ## 5. Z-order (SVG render order; top of file = back)
 
 ```
@@ -65,6 +71,8 @@ Current geometry limits are deliberate and visible: an element under an XML `tra
 7. Arrow-label text
 8. Legend
 ```
+
+Titled panel bodies and their header bands belong to the container layer. Their internal arrows must be painted over the background, then below the child nodes.
 
 ## 6. The flat rule
 

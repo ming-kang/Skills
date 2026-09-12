@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 560" width="360" height="560" role="img">
-  <title>Streaming data pipeline (mobile)</title>
-  <desc>Vertical re-layout of the data-flow gallery diagram for narrow viewports.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 608" width="360" height="608" role="img">
+  <title>Streaming data pipeline</title>
+  <desc>The same Kafka, Spark, S3, and Athena pipeline arranged vertically for a narrow viewport.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -9,30 +9,33 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="360" height="560" fill="#FFFFFF"/>
-  <line x1="180" y1="96" x2="180" y2="156" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="180" y1="212" x2="180" y2="272" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="180" y1="344" x2="180" y2="404" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="80" y="40" width="200" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="80" y="156" width="200" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <path d="M 80 281 A 100 9 0 0 1 280 281 L 280 335 A 100 9 0 0 1 80 335 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <ellipse cx="180" cy="281" rx="100" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="80" y="404" width="200" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="180" y="60" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Kafka</text>
-  <text x="180" y="77" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">event stream</text>
-  <text x="180" y="176" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Spark</text>
-  <text x="180" y="193" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">transform</text>
-  <text x="180" y="300" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">S3</text>
-  <text x="180" y="317" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">parquet</text>
-  <text x="180" y="424" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Athena</text>
-  <text x="180" y="441" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">SQL query</text>
-  <text x="188" y="126" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">stream</text>
-  <text x="188" y="242" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">batch</text>
-  <text x="188" y="374" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">query</text>
-  <rect x="40" y="514" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="58" y="520" dominant-baseline="central" font-size="12" fill="#3D3D3A">write path</text>
-  <rect x="151" y="514" width="12" height="12" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="169" y="520" dominant-baseline="central" font-size="12" fill="#3D3D3A">read path</text>
-  <rect x="40" y="538" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <text x="58" y="544" dominant-baseline="central" font-size="12" fill="#3D3D3A">ingest</text>
+  <rect width="360" height="608" fill="#FFFFFF"/>
+  <line x1="180" y1="160" x2="180" y2="220" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="180" y1="276" x2="180" y2="336" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="180" y1="408" x2="180" y2="464" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="80" y="104" width="200" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="80" y="220" width="200" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <path d="M 80 345 A 100 9 0 0 1 280 345 L 280 399 A 100 9 0 0 1 80 399 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <ellipse cx="180" cy="345" rx="100" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="80" y="464" width="200" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text data-role="node-text" x="180" y="124" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Kafka</text>
+  <text data-role="node-text" x="180" y="141" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">event stream</text>
+  <text data-role="node-text" x="180" y="240" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Spark</text>
+  <text data-role="node-text" x="180" y="257" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">transform</text>
+  <text data-role="node-text" x="180" y="364" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">S3</text>
+  <text data-role="node-text" x="180" y="381" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Parquet</text>
+  <text data-role="node-text" x="180" y="484" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Athena</text>
+  <text data-role="node-text" x="180" y="501" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">SQL query</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Streaming data pipeline</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">The same flow, arranged vertically</text>
+  <text data-role="arrow-label" x="192" y="190" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">stream</text>
+  <text data-role="arrow-label" x="192" y="306" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">batch</text>
+  <text data-role="arrow-label" x="192" y="436" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">query</text>
+<line x1="40" y1="544" x2="320" y2="544" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<rect x="40" y="562" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<text data-role="legend-label" x="58" y="568" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Ingest</text>
+<rect x="123" y="562" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text data-role="legend-label" x="141" y="568" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Write path</text>
+<rect x="234" y="562" width="12" height="12" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text data-role="legend-label" x="252" y="568" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Read path</text>
 </svg>

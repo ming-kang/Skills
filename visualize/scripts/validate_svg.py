@@ -103,8 +103,8 @@ except (ImportError, ValueError):
         text_width = _local_text_width
 
 
-# The warm house palette (mirrors references/style.md). check_palette.py asserts
-# that every family token in svgkit is present here.
+# The warm house palette mirrors references/style.md and includes every family
+# token used by svgkit.
 WARM_PALETTE: set[str] = {
     "#f5f4ed", "#141413", "#3d3d3a", "#73726c",
     "#e1f5ee", "#0f6e56", "#085041", "#1d9e75",

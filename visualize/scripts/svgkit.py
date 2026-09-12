@@ -619,7 +619,7 @@ class Diagram:
         fam = FAMILIES[family]
         attrs = attrs or []
         methods = methods or []
-        name_h = 30 + (10 if stereotype else 0)
+        name_h = 48 if stereotype else 30
         attr_h = max(len(attrs), 1) * 18 + 8
         meth_h = max(len(methods), 1) * 18 + 8
         h = name_h + attr_h + meth_h
@@ -646,12 +646,12 @@ class Diagram:
         cx = x + w / 2
         if stereotype:
             self._layers["box_text"].append(
-                f'  <text x="{snap(cx)}" y="{snap(y + 12)}" text-anchor="middle" '
+                f'  <text x="{snap(cx)}" y="{snap(y + 13)}" text-anchor="middle" '
                 f'dominant-baseline="central" font-size="12" '
                 f'fill="{fam["sub"]}">{_esc(f"<<{stereotype}>>")}</text>'
             )
             self._layers["box_text"].append(
-                f'  <text x="{snap(cx)}" y="{snap(y + 25)}" text-anchor="middle" '
+                f'  <text x="{snap(cx)}" y="{snap(y + 32)}" text-anchor="middle" '
                 f'dominant-baseline="central" font-size="14" font-weight="500"{italic} '
                 f'fill="{fam["title"]}">{_esc(name)}</text>'
             )
@@ -756,20 +756,20 @@ class Diagram:
         header band carries the family color + the title (and an optional muted
         subtitle on the same row). The band is drawn as two stacked rects (a
         rounded one + a square one) so it reads flat against the body. Band
-        height 26 is under the validator's 30px obstacle floor, so arrows still
-        treat the whole panel as a single collision box.
+        height 26 is under the validator's 30px obstacle floor. Panel backgrounds
+        paint on the container layer so they cannot cover internal connectors.
         """
         fam = FAMILIES[family]
         band_h = 26
-        self._layers["boxes"].append(
+        self._layers["containers"].append(
             f'  <rect data-role="panel" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
             f'fill="{BG}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
-        self._layers["boxes"].append(
+        self._layers["containers"].append(
             f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{band_h}" rx="8" '
             f'fill="{fam["fill"]}"/>'
         )
-        self._layers["boxes"].append(
+        self._layers["containers"].append(
             f'  <rect x="{snap(x)}" y="{snap(y + band_h - 14)}" width="{snap(w)}" '
             f'height="14" fill="{fam["fill"]}"/>'
         )
@@ -960,7 +960,7 @@ class Diagram:
 
         For regions that *mean* something — "EACH TURN", "AGENTIC LOOP",
         "RETRY ×3". Visually a container() variant, but the label is uppercased,
-        weight 600, and tracked out (letter-spacing 2) so it reads as a scope
+        weight 500, and tracked out (letter-spacing 2) so it reads as a scope
         badge rather than a group title. Still dashed, still a non-obstacle, so
         arrows cross it freely. Returns a Box for anchoring inner content.
         """
@@ -1013,21 +1013,25 @@ class Diagram:
                y: float | None = None, gap: float = 24) -> None:
         """A horizontal swatch+label row. ``items`` = [(family, label), ...].
 
-        Wraps to a new line (24px down) if the next item would pass the right
-        margin (40px from the edge); the first item on a row never triggers a
-        wrap, so many-item legends never overflow.
+        Wraps at the 40px right margin, with 24px between rows. With ``y=None``,
+        reserve all rows above a 40px bottom margin. An explicit ``y`` is the
+        first row's center; callers must then reserve the remaining rows.
         """
-        if y is None:
-            y = self.height - 20
         right_limit = self.width - 40
         cx = x
-        row_y = y
+        row = 0
+        positions = []
         for family, label in items:
-            fam = FAMILIES.get(family, FAMILIES["neutral"])
-            item_w = 18 + text_width(label, 12) + gap
+            item_w = 18 + text_width(label, 12)
             if cx != x and cx + item_w > right_limit:
                 cx = x
-                row_y += 24
+                row += 1
+            positions.append((cx, row, family, label))
+            cx += item_w + gap
+        first_y = y if y is not None else self.height - 40 - row * 24
+        for cx, row, family, label in positions:
+            fam = FAMILIES.get(family, FAMILIES["neutral"])
+            row_y = first_y + row * 24
             self._layers["legend"].append(
                 f'  <rect x="{snap(cx)}" y="{snap(row_y - 6)}" width="12" height="12" rx="3" '
                 f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
@@ -1036,7 +1040,6 @@ class Diagram:
                 f'  <text x="{snap(cx + 18)}" y="{snap(row_y)}" dominant-baseline="central" '
                 f'font-size="12" fill="{CAPTION}">{_esc(label)}</text>'
             )
-            cx += item_w
 
     # -- escape hatch ------------------------------------------------------ #
 

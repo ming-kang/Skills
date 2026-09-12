@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 260" width="600" height="260" role="img">
-  <title>Sequence skeleton</title>
-  <desc>Minimal sequence: two actors, request and response.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 368" width="520" height="368" role="img">
+  <title>Request and response</title>
+  <desc>Two participant lifelines exchange a request and a dashed response below the actor headers.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -9,15 +9,26 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="600" height="260" fill="#FFFFFF"/>
-  <line x1="180" y1="120" x2="180" y2="220" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
-  <line x1="480" y1="120" x2="480" y2="220" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
-  <line x1="180" y1="120" x2="480" y2="120" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="480" y1="170" x2="180" y2="170" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="120" y="80" width="120" height="40" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="420" y="80" width="120" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text data-role="node-text" x="180" y="100" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Client</text>
-  <text data-role="node-text" x="480" y="100" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Server</text>
-  <text data-role="arrow-label" x="330" y="112" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">request</text>
-  <text data-role="arrow-label" x="330" y="162" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">response</text>
+  <rect width="520" height="368" fill="#FFFFFF"/>
+  <line x1="136" y1="136" x2="136" y2="260" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <line x1="384" y1="136" x2="384" y2="260" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <line x1="136" y1="184" x2="384" y2="184" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="384" y1="240" x2="136" y2="240" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <rect x="64" y="96" width="144" height="40" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="312" y="96" width="144" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text data-role="node-text" x="136" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Client</text>
+  <text data-role="node-text" x="384" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Server</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Request and response</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Messages begin below the participant headers</text>
+  <text data-role="arrow-label" x="260" y="172" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">request</text>
+  <text data-role="arrow-label" x="260" y="228" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">response</text>
+<line x1="40" y1="304" x2="480" y2="304" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<rect x="40" y="322" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<text data-role="legend-label" x="58" y="328" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Client</text>
+<rect x="123" y="322" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text data-role="legend-label" x="141" y="328" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Server</text>
+<line x1="206" y1="328" x2="236" y2="328" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text data-role="legend-label" x="248" y="328" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Request</text>
+<line x1="320" y1="328" x2="350" y2="328" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<text data-role="legend-label" x="362" y="328" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Return</text>
 </svg>

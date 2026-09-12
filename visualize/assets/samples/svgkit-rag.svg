@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 250" width="760" height="250" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 272" width="840" height="272" role="img">
   <title>RAG pipeline</title>
-  <desc>A query is embedded, used to retrieve top-k passages, then grounded by the LLM into an answer.</desc>
+  <desc>A Chinese query is embedded, used to retrieve passages, and passed to a language model for a grounded answer.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -9,29 +9,31 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="760" height="250" fill="#FFFFFF"/>
-  <rect x="28" y="64" width="700" height="124" rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
-  <text x="48" y="90" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">RAG</text>
-  <text x="48" y="108" dominant-baseline="central" font-size="12" fill="#3D3D3A">retrieval-augmented generation</text>
-  <line x1="160" y1="148" x2="216" y2="148" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="336" y1="148" x2="392" y2="148" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="520" y1="148" x2="576" y2="148" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="40" y="120" width="120" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="216" y="120" width="120" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="392" y="120" width="128" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="576" y="120" width="136" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="100" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">查询</text>
-  <text x="100" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">用户问题</text>
-  <text x="276" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Embed</text>
-  <text x="276" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">to vector</text>
-  <text x="456" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Retriever</text>
-  <text x="456" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">top-k passages</text>
-  <text x="644" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">LLM</text>
-  <text x="644" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">grounded answer</text>
-  <text x="364" y="140" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">vector</text>
-  <text x="548" y="140" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">context</text>
-  <rect x="40" y="224" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="58" y="230" dominant-baseline="central" font-size="12" fill="#3D3D3A">retrieval path</text>
-  <rect x="178" y="224" width="12" height="12" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="196" y="230" dominant-baseline="central" font-size="12" fill="#3D3D3A">generation</text>
+  <rect width="840" height="272" fill="#FFFFFF"/>
+  <line x1="176" y1="148" x2="244" y2="148" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="380" y1="148" x2="448" y2="148" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line x1="592" y1="148" x2="660" y2="148" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect x="40" y="120" width="136" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="244" y="120" width="136" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect x="448" y="120" width="144" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect x="660" y="120" width="140" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text data-role="node-text" x="108" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">查询</text>
+  <text data-role="node-text" x="108" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">用户问题</text>
+  <text data-role="node-text" x="312" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Embed</text>
+  <text data-role="node-text" x="312" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">to vector</text>
+  <text data-role="node-text" x="520" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Retriever</text>
+  <text data-role="node-text" x="520" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">top-k passages</text>
+  <text data-role="node-text" x="730" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">LLM</text>
+  <text data-role="node-text" x="730" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7">grounded answer</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">RAG pipeline</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">From a question to an answer grounded in retrieved passages</text>
+  <text data-role="arrow-label" x="414" y="136" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">vector</text>
+  <text data-role="arrow-label" x="626" y="136" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">context</text>
+<line x1="40" y1="208" x2="800" y2="208" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<rect x="40" y="226" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<text data-role="legend-label" x="58" y="232" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Query / embedding</text>
+<rect x="199" y="226" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text data-role="legend-label" x="217" y="232" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Retrieval</text>
+<rect x="302" y="226" width="12" height="12" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text data-role="legend-label" x="320" y="232" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Generation</text>
 </svg>

@@ -68,12 +68,14 @@ Stagger multiple steps' allow/deny arrows by ±20px so heads don't pile up on th
 A white card with a colored title strip across the top — the "Step 1" / "Result" window treatment. Use when a group of rows needs both a visible container *and* an obvious name, and a dashed container isn't strong enough. The body is white so you can drop nodes, mono rows, or `.raw()` art onto it.
 
 ```python
-pnl = d.panel(40, 160, 360, 140, "Result", "cumulative", family="green")
-# place content inside; anchor off pnl.x / pnl.y + the 26px band
-d.node(60, pnl.y + 46, "total", "0.0034 USD", family="green")
+pnl = d.panel(40, 160, 520, 152, "Result", "cumulative", family="green")
+# Keep child nodes below the 26px header band, with padding on all sides.
+incoming = d.node(64, pnl.y + 52, "Input", "parsed values", w=160)
+total = d.node(376, pnl.y + 52, "Total", "0.0034 USD", family="green", w=160)
+d.arrow(incoming.right, total.left, color="green", label="sum", label_offset=12)
 ```
 
-Hand-written: body rect (white, family stroke) + a 26px header band in the family fill (drawn as a rounded rect + a thin square rect to flatten its bottom) + the title in the band. Mark the body `data-role="panel"` so the validator knows that contained nodes are intentional; ordinary solid-shape containment is an error. Mark the title `data-role="container-label"`. The band stays under 30px so it is not collected as a separate obstacle. `svgkit.panel()` emits both roles automatically.
+Hand-written: body rect (white, family stroke) + a 26px header band in the family fill (drawn as a rounded rect + a thin square rect to flatten its bottom) + the title in the band. Paint the body and band on the container layer, before internal arrows, or the white body will hide them. Mark the body `data-role="panel"` so the validator knows that contained nodes are intentional; ordinary solid-shape containment is an error. Mark the title `data-role="container-label"`. `svgkit.panel()` handles the layer order and both roles.
 
 ## §5. Scope / loop frame — `svgkit: .scope()`
 
@@ -90,12 +92,12 @@ When a feedback edge has to return from a late node to an early one, route it up
 
 ```python
 # from the bottom-right step's right edge, up the gutter, back into step 1
-d.lpath([(last.right[0], last.cy), (W - 24, last.cy),
-         (W - 24, first.cy), (first.right[0] + 10, first.cy)],
-        color="purple", label="repeat")
+d.lpath([last.right, (W - 40, last.cy),
+         (W - 40, first.cy), first.right],
+        color="purple", label="repeat", label_offset=-12)
 ```
 
-Reserve ~24px of right margin (so `W - 24` is clear) and keep the canvas 40px wider than the content when you plan to use it. Only the arriving segment carries the marker.
+Reserve a clear routing gutter at least 56px beyond the node edges, then a 40px outside margin. End at the destination's actual edge, and keep the return clear of unrelated success paths. Only the arriving segment carries the marker.
 
 ## §7. Side-rail of out-of-band events
 
@@ -116,14 +118,14 @@ The dashed *box* still needs `.raw()` (a dashed node is a side-rail idiom, not a
 Sequence and request/response diagrams often need both a human label *and* the actual payload on one arrow. Stack them: the label at 12/CAPTION above the line, a monospace payload at 12/SUB below. Monospace is the only place a non-system font appears — it signals "this is literal data".
 
 ```xml
-<text x="300" y="94" text-anchor="middle" dominant-baseline="central"
+<text x="300" y="90" text-anchor="middle" dominant-baseline="central"
       font-size="12" fill="#141413">permission_request</text>
-<text x="300" y="110" text-anchor="middle" dominant-baseline="central"
+<text x="300" y="118" text-anchor="middle" dominant-baseline="central"
       font-size="12" font-family="ui-monospace, 'SF Mono', Menlo, monospace"
       fill="#3D3D3A">{tool_name: "Bash", ...}</text>
 ```
 
-Keep payloads short — if they wrap, the arrow isn't the right place; move the detail into a side note or a `.panel()`.
+The corresponding arrow runs at y=104, leaving 14px to either label baseline. Keep payloads short — if they wrap, move the detail into a side note or a `.panel()`.
 
 ## §9. Stateful cell strip (time-stack)
 
@@ -157,23 +159,22 @@ When a diagram is wide it doesn't survive a phone screen by scaling — the text
 
 - Target a tall-narrow viewBox: width ~360, height grows to fit.
 - Re-flow a horizontal pipeline as a vertical column — `.col([...], x=80, gap=60)` instead of `.row([...], gap=56)`; re-anchor every arrow on `.top`/`.bottom`.
-- Stack parallel lanes (e.g. a 3-service fan-out) **serially** down the column rather than side-by-side; a fan-in/merge becomes a single vertical chain.
+- Stack parallel lanes vertically when needed, but preserve their original fan-out/fan-in connections using a side rail. Re-layout must not turn parallel work into a serial dependency chain.
 - Widen one box before shrinking the font (the type scale is locked). At width 360 with 40px margins, a single column of ~200–260-wide boxes reads cleanest.
-- The legend wraps on its own (svgkit's `legend()` wraps at the right margin); give the canvas ~40px extra height so the wrapped second row isn't clipped.
+- The legend wraps on its own; with no explicit `y`, `legend()` reserves all rows above the bottom margin. End the diagram body above that block. With explicit `y`, account for every extra 24px row.
 - Name it `<name>_mobile.svg` next to its desktop sibling.
 
 ```python
-# desktop:  Kafka → Spark → S3 → Athena   (.row, 880×230)
-# mobile:   same four nodes, top-to-bottom (.col, 360×N)
-d = Diagram(360, 560, title="Streaming data pipeline", desc="…")
-k  = d.node(80, 40,  "Kafka",  "event stream")
-sp = d.node(80, 156, "Spark",  "transform", family="green")
-s3 = d.cylinder(80, 272, "S3", "parquet", family="green", w=200, h=54)
-at = d.node(80, 404, "Athena", "SQL query", family="purple")
+# Same four nodes and edges, with a shared width and one vertical centerline.
+d = Diagram(360, 540, title="Streaming data pipeline", desc="Events become queryable tables.")
+k  = d.node(80, 40,  "Kafka",  "event stream", w=200)
+sp = d.node(80, 156, "Spark",  "transform", family="green", w=200)
+s3 = d.cylinder(80, 272, "S3", "Parquet", family="green", w=200, h=54)
+at = d.node(80, 400, "Athena", "SQL query", family="purple", w=200)
 d.arrow(k.bottom,  sp.top, label="stream")
 d.arrow(sp.bottom, s3.top,  color="green",  label="batch")
 d.arrow(s3.bottom, at.top,  color="purple", label="query")
-d.legend([("green", "write path"), ("purple", "read path"), ("neutral", "ingest")], y=520)
+d.legend([("neutral", "Ingest"), ("green", "Write path"), ("purple", "Read path")])
 ```
 
 See `assets/gallery/data-flow_mobile.svg` for the worked example.

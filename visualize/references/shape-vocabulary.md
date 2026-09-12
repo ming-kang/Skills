@@ -16,7 +16,7 @@ Pick a family by what a node *means*, and stay consistent across the diagram. Fu
 | Warning, limitation, failure, bottleneck | **Terracotta** |
 | Highlight, special module | **Amber** |
 
-Use 2–4 families per diagram, no more — beyond that it reads as noise. When 2+ families appear, add a legend. Full text/sub colors per family: `references/style.md`.
+Start with Neutral and one accent family. Add another family only when it represents a distinct meaning; the dense agent reference uses more roles, while peer capabilities share one fill. When 2+ families appear, add a legend. Full text/sub colors per family: `references/style.md`.
 
 ## Shapes (kept few and flat)
 
@@ -27,7 +27,7 @@ A small, honest set. Render every one flat with a hairline `0.5` stroke — no g
 | Process / step / service / component / **LLM** / **agent** / **tool** | **Rounded rect** | `rx="8"`, family fill. The default for almost everything — distinguish by label + family. |
 | Group / layer / boundary | **Dashed container** | `rx="14"`, `fill="none"`, `stroke-dasharray="4 3"`, label top-left; use non-visual `data-role="container"` (`svgkit.container()` adds it). |
 | Region / section panel | **Solid panel** | `rx="20"`, `fill="#F5F4ED"`, `data-role="panel"`. The explicit role is what allows intentional node containment without weakening ordinary overlap checks. |
-| Decision | **Diamond** | Flowcharts only; family stroke, two labeled exits. |
+| Decision / choice / relationship | **Diamond** | Labeled branches in flowcharts and state machines; named relationships in ER diagrams; small unlabeled diamonds can mark timeline milestones. |
 | Datastore / vector store / DB | **Cylinder** *or* a labelled rounded rect | A labelled rect is often cleaner; use a cylinder when the "storage" read matters. Note: a cylinder body IS a collision obstacle — route arrows to its edges. |
 | Point / item / actor | **Circle** | `r=5` scatter point (family fill+stroke); larger for an actor. |
 | Sequence / alternating pattern | **Striped strip** | Row of small `14×18 rx3` rects alternating two LINE colors. |

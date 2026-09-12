@@ -19,7 +19,7 @@ warm, so neither is flagged. This script closes that blind spot. It parses
   * every slot (fill / stroke / title / sub / line) matches byte-for-byte,
   * every hex a family defines is registered in ``validate_svg.WARM_PALETTE``.
 
-Run:  ``python3 scripts/check_palette.py``
+Run from the repository root: ``python tools/visualize/check_palette.py``
 Exits 0 when the three sources agree, 1 on any drift. Run after any
 style-token edit.
 """
@@ -29,14 +29,13 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# Both peers live next to this script; importing them directly works because
-# Python prepends the script's own directory to sys.path — the same trick
-# validate_svg.py relies on to `import svgkit`.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+SKILL_DIR = Path(__file__).resolve().parents[2] / "visualize"
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(SKILL_DIR / "scripts"))
 from svgkit import FAMILIES  # type: ignore
 from validate_svg import WARM_PALETTE, normalize_hex  # type: ignore
 
-STYLE_MD = Path(__file__).resolve().parent.parent / "references" / "style.md"
+STYLE_MD = SKILL_DIR / "references" / "style.md"
 SLOTS = ("fill", "stroke", "title", "sub", "line")
 
 

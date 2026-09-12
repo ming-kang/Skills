@@ -28,9 +28,9 @@ When Python 3 is available, the skill uses the included `svgkit` helper to size 
 
 No dependencies are installed by this skill.
 
-## Checked, Not Eyeballed
+## Geometry and Visual Checks
 
-Layout mistakes are the usual way a generated diagram goes wrong: text clipping its box, an arrow cutting through a node, two boxes overlapping, or an arrow label spilling into the box next to it. Visualize treats those as testable rather than a matter of taste.
+Layout mistakes are the usual way a generated diagram goes wrong: text clipping its box, an arrow cutting through a node, two boxes overlapping, or an arrow label spilling into the box next to it. Visualize combines geometry validation with inspection of the rendered result when a browser is available.
 
 `svgkit` writes and validates every file in the same `save()` call. A clean file—or one with warnings only—returns normally. A hard validation failure is machine-detectable: after writing the SVG and printing every problem's details and suggested fix, `save()` raises `svgkit.ValidationError`. The exception carries the complete structured results, and the invalid file remains on disk for inspection.
 
@@ -62,6 +62,8 @@ Checks cover:
 
 Geometry limits are deliberate and visible: transformed elements and `<text>` with nested `<tspan>` runs are skipped with explicit warnings rather than measured at fictitious coordinates. Curved arrows are sampled along real quadratic/cubic/arc trajectories. Hidden or fully transparent paint does not become an obstacle. `svgkit` emits non-visual `data-role` attributes to distinguish intentional structure from accidental overlap; hand-written SVG can use the same roles.
 
+Browser inspection catches a different class of problem: actual fonts can collide even when estimated widths pass, and a later shape can hide a correctly routed arrow. Inspect labels, arrowheads, group headers, and the complete legend at the intended display size.
+
 ## Supported Diagram Types
 
 | Type | Use it for |
@@ -83,7 +85,7 @@ Geometry limits are deliberate and visible: transformed elements and `<text>` wi
 
 Every supported type has an owned reference diagram under `assets/gallery/<type>.svg`. See [`references/diagram-gallery.md`](../visualize/references/diagram-gallery.md) for the full index.
 
-The gallery also ships `decision-ladder.svg` — not a separate type, but a compositing-pattern example (a step-by-step allow/deny chain) documented in [`references/layout-patterns.md`](../visualize/references/layout-patterns.md) §3.
+The gallery contains 17 diagrams: the fourteen standard types plus `decision-ladder.svg`, `sequence-frames.svg`, and `data-flow_mobile.svg`. Six compact skeletons and four showcase samples bring the bundled total to 27 SVGs. The decision ladder is a compositing pattern documented in [`references/layout-patterns.md`](../visualize/references/layout-patterns.md) §3.
 
 ## Style
 
@@ -119,11 +121,53 @@ visualize/
 ├── scripts/
 │   ├── svgkit.py                    # Default zero-dependency SVG helper (self-checks on save)
 │   ├── validate_svg.py              # SVG quality validator
-│   └── check_palette.py             # Palette drift check (style ↔ svgkit ↔ validator)
+│   └── geometry.py                  # Shared geometry implementation
 └── assets/
     ├── gallery/                     # Reference diagrams by type
     └── samples/                     # Showcase examples
 ```
+
+The entire `visualize/` folder is the Skill distribution unit. It contains runtime instructions, runtime Python helpers, and reusable SVG assets. It can be copied on its own into an agent's skills directory.
+
+## Repository Development
+
+Development dependencies and tooling stay outside the distributed Skill:
+
+```text
+package.json / package-lock.json     # Playwright development dependency
+tools/visualize/
+├── build_gallery.py                # Rebuild all 27 bundled SVGs
+├── gallery/                        # Editable Python layouts, grouped by diagram type
+├── render_gallery.mjs              # Browser captures and visual review pages
+├── test_visualize.py               # Runtime and distribution regression tests
+└── check_palette.py                # Compare documented and implemented color tokens
+.artifacts/visualize/                # Local screenshots and reports; ignored by Git
+```
+
+From the repository root, use Node.js 20+ and Python 3 available as `python`:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run visualize:render -- --output .artifacts/visualize/before
+```
+
+Edit the corresponding layout under `tools/visualize/gallery/`, then regenerate and review:
+
+```bash
+npm run visualize:build
+npm run visualize:render -- --output .artifacts/visualize/after --compare .artifacts/visualize/before
+npm run visualize:build -- --check
+npm run visualize:test
+npm run visualize:palette
+git diff --check
+```
+
+The renderer snapshots every SVG and captures a PNG in Chromium at device scale 2. `index.html` links to the full-size images; `comparison.html` places matching before/after captures together. `report.json` records browser text overlaps and canvas overflow, and these findings make the command exit 1. Open each affected image: a zero-error report is only the automated part of the review. Font rendering depends on the platform's installed fonts, so inspect Chinese samples and the narrow variant too.
+
+Both build and render support `--filter class-diagram` for an individual example. The renderer also accepts `--input path/to/diagram.svg` or a directory, with paths resolved from the repository root. `--check` compares the checked-in assets with their generation sources without writing files; a normal build validates each SVG as it saves it.
+
+Keep generated screenshots, browser caches, development dependencies, test fixtures, and gallery build sources out of `visualize/`. Skill usage still requires neither Node.js nor Playwright.
 
 ## License
 
