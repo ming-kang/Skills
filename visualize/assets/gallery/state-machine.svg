@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 632" width="720" height="632" role="img">
-  <title>Order lifecycle</title>
-  <desc>Create an order, pay and confirm it, then ship on success or enter the timeout error state.</desc>
+  <title>Job lifecycle</title>
+  <desc>A submitted job is queued and then started. Completion branches on the result: success can be archived, while a failed job can be retried.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -11,35 +11,38 @@
   </defs>
   <rect data-role="background" width="720" height="632" fill="#FFFFFF"/>
   <line data-role="connector" x1="88" y1="124" x2="144" y2="124" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line data-role="connector" x1="312" y1="124" x2="424" y2="124" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="312" y1="124" x2="424" y2="124" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="532" y1="152" x2="532" y2="220" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <path data-role="connector" d="M444 264 L240 264 L240 380" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="532" y1="308" x2="532" y2="380" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M616 408 L680 408 L680 124 L640 124" fill="none" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="240" y1="436" x2="240" y2="520" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <circle cx="80" cy="124" r="8" fill="#141413"/>
   <rect data-role="node" x="144" y="96" width="168" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect data-role="node" x="424" y="96" width="216" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="424" y="96" width="216" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <polygon data-role="node" points="532,220 620,264 532,308 444,264" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
   <rect data-role="node" x="156" y="380" width="168" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <rect data-role="node" x="448" y="380" width="168" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
   <circle cx="240" cy="532" r="12" fill="none" stroke="#141413" stroke-width="1.5"/>
   <circle cx="240" cy="532" r="8" fill="#141413"/>
-  <text data-role="node-text" x="228" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Idle</text>
-  <text data-role="node-text" x="228" y="133" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">awaiting payment</text>
-  <text data-role="node-text" x="532" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Processing</text>
-  <text data-role="node-text" x="532" y="133" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">payment cleared</text>
-  <text data-role="node-text" x="532" y="264" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Timeout?</text>
-  <text data-role="node-text" x="240" y="400" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Done</text>
-  <text data-role="node-text" x="240" y="417" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">shipped</text>
-  <text data-role="node-text" x="532" y="400" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Error</text>
-  <text data-role="node-text" x="532" y="417" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">payment timeout</text>
-<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Order lifecycle</text>
+  <text data-role="node-text" x="228" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Queued</text>
+  <text data-role="node-text" x="228" y="133" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">awaiting a worker</text>
+  <text data-role="node-text" x="532" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Running</text>
+  <text data-role="node-text" x="532" y="133" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">executing the job</text>
+  <text data-role="node-text" x="532" y="264" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Succeeded?</text>
+  <text data-role="node-text" x="240" y="400" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Succeeded</text>
+  <text data-role="node-text" x="240" y="417" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">output ready</text>
+  <text data-role="node-text" x="532" y="400" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Failed</text>
+  <text data-role="node-text" x="532" y="417" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">error recorded</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Job lifecycle</text>
 <text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Events and guards determine each transition</text>
-  <text data-role="arrow-label" x="116" y="112" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">create</text>
-  <text data-role="arrow-label" x="368" y="112" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">pay / confirm</text>
-  <text data-role="arrow-label" x="342" y="252" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">[no]</text>
-  <text data-role="arrow-label" x="544" y="344" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">[yes]</text>
-  <text data-role="arrow-label" x="252" y="478" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">deliver</text>
+  <text data-role="arrow-label" x="116" y="112" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">submit</text>
+  <text data-role="arrow-label" x="368" y="112" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">start / run</text>
+  <text data-role="arrow-label" x="544" y="186" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">complete</text>
+  <text data-role="arrow-label" x="342" y="252" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">[yes]</text>
+  <text data-role="arrow-label" x="544" y="344" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">[no]</text>
+  <text data-role="arrow-label" x="668" y="266" text-anchor="end" dominant-baseline="central" font-size="12" fill="#3D3D3A">retry</text>
+  <text data-role="arrow-label" x="252" y="478" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">archive</text>
 <line x1="40" y1="568" x2="680" y2="568" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <rect x="40" y="586" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <text data-role="legend-label" x="58" y="592" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Lifecycle</text>

@@ -63,19 +63,19 @@ def sequence():
 
 def comparison():
     d = canvas(520, 316, "Comparison scaffold",
-               "A two-by-two feature matrix with explicit favorable and limited verdicts.",
+               "A fictional two-by-two feature matrix with explicit yes and no labels.",
                "Keep the same scale across both options")
     for x, label in [(244, "Option A"), (408, "Option B")]:
         text(d, x, 98, label, size=14, anchor="middle")
     for index, cells in enumerate([
-        [("Good", "green"), ("Limited", "terracotta")],
-        [("Limited", "terracotta"), ("Good", "green")],
+        [("Yes", "green"), ("No", "neutral")],
+        [("No", "neutral"), ("Yes", "green")],
     ]):
         y = 124 + index * 56
         text(d, 40, y + 20, f"Feature {index + 1}")
         for x, (value, family) in zip((172, 336), cells):
             d.bar(x, y, 144, value, family=family, h=40)
-    footer(d, [("green", "Favorable"), ("terracotta", "Limited")])
+    footer(d, [("green", "Supported"), ("neutral", "Unavailable")])
     return d
 
 

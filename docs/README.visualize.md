@@ -75,7 +75,7 @@ Browser inspection catches a different class of problem: actual fonts can collid
 | Data flow | Pipelines with labeled payloads and transformations |
 | Flowchart | Decisions, branches, process loops |
 | Agent architecture | LLM, tools, memory, planning, output layers |
-| Memory architecture | Mem0 or MemGPT-style read and write paths |
+| Memory architecture | Separate memory writes and query-driven reads |
 | Sequence | Time-ordered requests and responses with lifelines |
 | State machine | UML states, transitions, guards, initial and final states |
 | Class diagram | UML-style classes with attributes, methods, and relationships |
@@ -88,7 +88,11 @@ Browser inspection catches a different class of problem: actual fonts can collid
 
 Every supported type has an owned reference diagram under `assets/gallery/<type>.svg`. See [`references/diagram-gallery.md`](../visualize/references/diagram-gallery.md) for the full index.
 
-The gallery contains 17 diagrams: the fourteen standard types plus `decision-ladder.svg`, `sequence-frames.svg`, and `data-flow_mobile.svg`. Six compact skeletons and four showcase samples bring the bundled total to 27 SVGs. The decision ladder is a compositing pattern documented in [`references/layout-patterns.md`](../visualize/references/layout-patterns.md) §3.
+The bundle contains 33 SVGs: 17 diagram examples, six explanatory layouts, six compact skeletons, and four showcase samples.
+
+The explanatory layouts cover a feedback pipeline, an annotated retention funnel, matched mechanism comparisons, shared-input parallel pipelines, an annotated chart, and a qualitative quadrant map. Their reusable design rules are in [`layout-patterns.md`](../visualize/references/layout-patterns.md), with direct links to each SVG. Numeric examples explicitly identify illustrative data.
+
+![Matched mechanism comparison](../visualize/assets/gallery/patterns/mechanism-comparison.svg)
 
 ## Style
 
@@ -119,14 +123,15 @@ visualize/
 │   ├── diagram-types.md             # Per-type layout rules
 │   ├── diagram-gallery.md           # Gallery index
 │   ├── shape-vocabulary.md          # Color-family-to-meaning mapping
-│   ├── product-colors.md            # Optional brand-color lookup
-│   └── product-colors-azure.md      # Azure service colors (conditional)
+│   ├── validation.md                # CLI, checks, CSS coverage, and limits
+│   ├── product-colors.md            # Named products and optional brand accents
+│   └── product-colors-azure.md      # Azure naming and boundary guidance
 ├── scripts/
 │   ├── svgkit.py                    # Default zero-dependency SVG helper (self-checks on save)
 │   ├── validate_svg.py              # SVG quality validator
 │   └── svg_runtime/                 # Shared style, geometry, CSS, and validation implementation
 └── assets/
-    ├── gallery/                     # Reference diagrams by type
+    ├── gallery/                     # Diagram examples, patterns/, and skeletons/
     └── samples/                     # Showcase examples
 ```
 
@@ -139,15 +144,17 @@ Development dependencies and tooling stay outside the distributed Skill:
 ```text
 package.json / package-lock.json     # Playwright development dependency
 tools/visualize/
-├── build_gallery.py                # Rebuild all 27 bundled SVGs
+├── build_gallery.py                # Rebuild all 33 bundled SVGs
 ├── gallery/                        # Editable Python layouts, grouped by diagram type
 ├── render_gallery.mjs              # Browser captures and visual review pages
 ├── test_visualize.py               # Runtime and distribution regression tests
+├── test_validation_inputs.py       # SVG input, CSS, and CLI regressions
+├── reference_study.md              # Findings from the 13 supplied SVG references
 └── check_palette.py                # Compare documented and implemented color tokens
 .artifacts/visualize/                # Local screenshots and reports; ignored by Git
 ```
 
-From the repository root, use Node.js 20+ and Python 3 available as `python`:
+From the repository root, use Node.js 20+ and Python 3.10+ available as `python`:
 
 ```bash
 npm ci
@@ -170,6 +177,8 @@ git diff --check
 The renderer snapshots every SVG and captures a PNG in Chromium at device scale 2. `index.html` links to the full-size images; `comparison.html` places matching before/after captures together. `report.json` records browser text overlaps and canvas overflow, and these findings make the command exit 1. Open each affected image: a zero-error report is only the automated part of the review. Font rendering depends on the platform's installed fonts, so inspect Chinese samples and the narrow variant too.
 
 Both build and render support `--filter class-diagram` for an individual example. The renderer also accepts `--input path/to/diagram.svg` or a directory, with paths resolved from the repository root. `--check` compares the checked-in assets with their generation sources without writing files; a normal build validates each SVG as it saves it.
+
+For percentage-sized SVG roots, the renderer derives the capture size from the viewBox. The [reference study](../tools/visualize/reference_study.md) records what was learned from each supplied SVG and where the resulting guidance and examples live.
 
 Keep generated screenshots, browser caches, development dependencies, test fixtures, and gallery build sources out of `visualize/`. Skill usage still requires neither Node.js nor Playwright.
 

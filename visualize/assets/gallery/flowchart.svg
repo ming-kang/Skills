@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 608" width="640" height="608" role="img">
   <title>Pull request workflow</title>
-  <desc>Open a pull request, review it, and deploy after tests pass. Failed checks return through a fixes branch.</desc>
+  <desc>Open a pull request, review the change and run tests, then merge after the required checks pass. Failed checks return through a fixes branch.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -22,15 +22,15 @@
   <rect data-role="node" x="424" y="336" width="176" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
   <text data-role="node-text" x="224" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Open PR</text>
   <text data-role="node-text" x="224" y="133" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">diff ready</text>
-  <text data-role="node-text" x="224" y="228" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Code review</text>
-  <text data-role="node-text" x="224" y="245" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">human + lint</text>
-  <text data-role="node-text" x="224" y="364" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Tests pass?</text>
-  <text data-role="node-text" x="224" y="484" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Deploy</text>
-  <text data-role="node-text" x="224" y="501" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">ship to production</text>
+  <text data-role="node-text" x="224" y="228" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Review + tests</text>
+  <text data-role="node-text" x="224" y="245" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">required checks</text>
+  <text data-role="node-text" x="224" y="364" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Checks pass?</text>
+  <text data-role="node-text" x="224" y="484" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Merge</text>
+  <text data-role="node-text" x="224" y="501" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">accept reviewed diff</text>
   <text data-role="node-text" x="512" y="356" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Fix issues</text>
   <text data-role="node-text" x="512" y="373" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">amend diff</text>
 <text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Pull request workflow</text>
-<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Review, validate, and deploy</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Review, validate, and merge</text>
   <text data-role="arrow-label" x="236" y="436" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">yes</text>
   <text data-role="arrow-label" x="372" y="352" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">no</text>
   <text data-role="arrow-label" x="416" y="224" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">review again</text>

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 704" width="760" height="704" role="img">
   <title>RAG pipeline</title>
-  <desc>A query is embedded, retrieves top-k chunks from an offline-indexed vector store, and reaches an LLM that returns a grounded answer.</desc>
+  <desc>The question is embedded for retrieval and also sent unchanged to the LLM. Retrieved passages provide context; the model uses both to compose an answer.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -17,6 +17,7 @@
   <line data-role="connector" x1="192" y1="280" x2="192" y2="336" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="192" y1="392" x2="192" y2="448" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="192" y1="504" x2="192" y2="560" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M80 140 L40 140 L40 476 L80 476" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="586" y1="224" x2="586" y2="328" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="496" y1="364" x2="304" y2="364" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <rect data-role="node" x="80" y="112" width="224" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
@@ -34,7 +35,7 @@
   <text data-role="node-text" x="192" y="356" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Retrieve</text>
   <text data-role="node-text" x="192" y="373" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">top-k similar chunks</text>
   <text data-role="node-text" x="192" y="468" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">LLM</text>
-  <text data-role="node-text" x="192" y="485" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">answer from context</text>
+  <text data-role="node-text" x="192" y="485" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">question + context</text>
   <text data-role="node-text" x="192" y="580" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Response</text>
   <text data-role="node-text" x="192" y="597" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">grounded answer</text>
   <text data-role="node-text" x="586" y="188" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Documents</text>
@@ -47,7 +48,8 @@
   <text data-role="arrow-label" x="204" y="308" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">vector</text>
   <text data-role="arrow-label" x="204" y="420" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">context</text>
   <text data-role="arrow-label" x="204" y="532" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">answer</text>
-  <text data-role="arrow-label" x="598" y="276" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">index</text>
+<text data-role="arrow-label" x="52" y="304" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">question</text>
+  <text data-role="arrow-label" x="598" y="276" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">chunk + embed</text>
   <text data-role="arrow-label" x="400" y="352" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">top-k</text>
 <line x1="40" y1="640" x2="720" y2="640" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <rect x="40" y="658" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>

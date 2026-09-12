@@ -9,7 +9,7 @@ SKILL_DIR = Path(__file__).resolve().parents[2] / "visualize"
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(SKILL_DIR / "scripts"))
 
-from gallery import agent, charts, flows, samples, skeletons, systems, uml
+from gallery import agent, charts, flows, patterns, samples, skeletons, systems, uml
 from svgkit import ValidationError
 
 
@@ -31,6 +31,12 @@ BUILDERS = {
     "gallery/state-machine.svg": flows.state_machine,
     "gallery/timeline-gantt.svg": charts.timeline_gantt,
     "gallery/use-case.svg": uml.use_case,
+    "gallery/patterns/feedback-pipeline.svg": patterns.feedback_pipeline,
+    "gallery/patterns/annotated-funnel.svg": patterns.annotated_funnel,
+    "gallery/patterns/parallel-pipelines.svg": patterns.parallel_pipelines,
+    "gallery/patterns/mechanism-comparison.svg": patterns.mechanism_comparison,
+    "gallery/patterns/annotated-chart.svg": patterns.annotated_chart,
+    "gallery/patterns/quadrant-map.svg": patterns.quadrant_map,
     "samples/hero.svg": samples.hero,
     "samples/sample-agent-loop.svg": samples.sample_agent_loop,
     "samples/sample-comparison.svg": samples.sample_comparison,

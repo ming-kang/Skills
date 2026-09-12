@@ -5,14 +5,14 @@ from .common import activation, canvas, footer, rail, text
 
 def sequence():
     d = canvas(760, 536, "Authorization code flow",
-               "The browser authorizes with the auth server, redirects a code to the client, and the client exchanges it for a token.",
-               "Browser redirects, then the client exchanges the code")
+               "After authentication and consent, the authorization server redirects the browser with a code. The client receives and exchanges the code for a token.",
+               "Authorization request, browser redirect, and token exchange")
     browser = d.lifeline(60, "Browser", 96, 440, w=160)
     client = d.lifeline(300, "Client", 96, 440, w=160)
     auth = d.lifeline(540, "Auth server", 96, 440, family="purple", w=160)
     for source, target, y, label, family, dashed in [
         (browser, auth, 192, "authorize request", "purple", False),
-        (auth, browser, 248, "login + consent", "neutral", True),
+        (auth, browser, 248, "redirect + code", "green", True),
         (browser, client, 304, "auth code", "green", False),
         (client, auth, 360, "exchange code", "purple", False),
         (auth, client, 416, "access token", "green", True),
@@ -26,7 +26,7 @@ def sequence():
 
 def sequence_frames():
     d = canvas(800, 644, "Authentication fragments",
-               "A login request receives a token or rejection in an alt fragment. An opt fragment calls the API only with permission.",
+               "A login request receives a token or rejection in an alt fragment. An opt fragment calls the API only with a valid token and permission.",
                "Alternative outcomes and an optional API call")
     client = d.lifeline(168, "Client", 96, 548, w=144)
     auth = d.lifeline(388, "Auth service", 96, 548, family="purple", w=144)
@@ -39,7 +39,7 @@ def sequence_frames():
           'stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>', layer="containers")
     text(d, 62, 260, "[valid]", role="container-label")
     text(d, 62, 320, "[invalid]", role="container-label")
-    d.scope(40, 400, 720, 132, "opt", "has permission")
+    d.scope(40, 400, 720, 132, "opt", "token valid + permitted")
     for source_x, target_x, y, label, family, dashed in [
         (client.x + 6, auth.x - 6, 172, "login", "purple", False),
         (auth.x - 6, client.x + 6, 256, "token", "purple", True),

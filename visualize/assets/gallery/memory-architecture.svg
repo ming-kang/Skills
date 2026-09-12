@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 528" width="1000" height="528" role="img">
   <title>Memory read and write paths</title>
-  <desc>The manager writes extracted memories to vector and graph stores. Retrieval ranks both sources into context.</desc>
+  <desc>The manager writes extracted memories to vector and graph stores. A separate query drives retrieval and ranking of both stores into context.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -19,6 +19,7 @@
 <path data-role="connector" d="M696 364 L752 364" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 <path data-role="connector" d="M752 148 L752 364" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
   <line data-role="connector" x1="752" y1="256" x2="800" y2="256" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="880" y1="152" x2="880" y2="228" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="880" y1="284" x2="880" y2="384" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <rect data-role="node" x="40" y="228" width="136" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <rect data-role="node" x="240" y="228" width="192" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
@@ -26,6 +27,7 @@
   <ellipse data-role="node-part" cx="604" cy="121" rx="92" ry="9" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <path data-role="node" d="M 512 337 A 92 9 0 0 1 696 337 L 696 391 A 92 9 0 0 1 512 391 Z" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <ellipse data-role="node-part" cx="604" cy="337" rx="92" ry="9" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="800" y="96" width="160" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <rect data-role="node" x="800" y="228" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <rect data-role="node" x="800" y="384" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <text data-role="node-text" x="108" y="248" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Input</text>
@@ -36,6 +38,8 @@
   <text data-role="node-text" x="604" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">embeddings</text>
   <text data-role="node-text" x="604" y="356" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Graph store</text>
   <text data-role="node-text" x="604" y="373" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">relations</text>
+  <text data-role="node-text" x="880" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Query</text>
+  <text data-role="node-text" x="880" y="133" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">current question</text>
   <text data-role="node-text" x="880" y="248" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Retrieve + rank</text>
   <text data-role="node-text" x="880" y="265" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">top-k + score</text>
   <text data-role="node-text" x="880" y="404" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Context</text>
@@ -43,6 +47,7 @@
 <text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Memory read and write paths</text>
 <text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Persist new information, then retrieve context for the next turn</text>
   <text data-role="arrow-label" x="208" y="244" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">write</text>
+  <text data-role="arrow-label" x="892" y="190" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">lookup</text>
   <text data-role="arrow-label" x="892" y="334" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">top-k</text>
 <line x1="40" y1="464" x2="960" y2="464" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <rect x="40" y="482" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>

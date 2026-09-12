@@ -40,7 +40,7 @@ def data_flow():
     for source, target, family, label in (
         (kafka, spark, "neutral", "stream"),
         (spark, store, "green", "batch"),
-        (store, athena, "purple", "query"),
+        (store, athena, "purple", "files"),
     ):
         d.arrow(source.right, target.left, color=family, label=label, label_offset=12)
     footer(d, [("neutral", "Ingest"), ("green", "Write path"), ("purple", "Read path")])
@@ -58,7 +58,7 @@ def data_flow_mobile():
     for source, target, family, label in (
         (kafka, spark, "neutral", "stream"),
         (spark, store, "green", "batch"),
-        (store, athena, "purple", "query"),
+        (store, athena, "purple", "files"),
     ):
         d.arrow(source.bottom, target.top, color=family, label=label, label_offset=12)
     footer(d, [("neutral", "Ingest"), ("green", "Write path"), ("purple", "Read path")])
@@ -67,12 +67,13 @@ def data_flow_mobile():
 
 def memory_architecture():
     d = canvas(1000, 528, "Memory read and write paths",
-               "The manager writes extracted memories to vector and graph stores. Retrieval ranks both sources into context.",
+               "The manager writes extracted memories to vector and graph stores. A separate query drives retrieval and ranking of both stores into context.",
                "Persist new information, then retrieve context for the next turn")
     incoming = d.node(40, 228, "Input", "new message", w=136)
     manager = d.node(240, 228, "Memory manager", "extract + route", family="purple", w=192)
     vector = d.cylinder(512, 112, "Vector store", "embeddings", family="neutral", w=184)
     graph = d.cylinder(512, 328, "Graph store", "relations", family="neutral", w=184)
+    query = d.node(800, 96, "Query", "current question", w=160)
     retrieve = d.node(800, 228, "Retrieve + rank", "top-k + score", family="green", w=160)
     context = d.node(800, 384, "Context", "for the next turn", family="green", w=160)
     d.arrow(incoming.right, manager.left, color="purple", label="write", label_offset=12)
@@ -83,6 +84,7 @@ def memory_architecture():
         rail(d, [store.right, (752, store.cy)], "green")
     rail(d, [(752, vector.cy), (752, graph.cy)], "green")
     d.arrow((752, retrieve.cy), retrieve.left, color="green")
+    d.arrow(query.bottom, retrieve.top, color="green", label="lookup", label_offset=12)
     d.arrow(retrieve.bottom, context.top, color="green", label="top-k", label_offset=12)
     footer(d, [("neutral", "Input / storage"), ("purple", "Write path"), ("green", "Read path")])
     return d

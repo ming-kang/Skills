@@ -30,7 +30,7 @@
 <text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">The same flow, arranged vertically</text>
   <text data-role="arrow-label" x="192" y="190" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">stream</text>
   <text data-role="arrow-label" x="192" y="306" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">batch</text>
-  <text data-role="arrow-label" x="192" y="436" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">query</text>
+  <text data-role="arrow-label" x="192" y="436" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">files</text>
 <line x1="40" y1="544" x2="320" y2="544" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <rect x="40" y="562" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <text data-role="legend-label" x="58" y="568" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Ingest</text>

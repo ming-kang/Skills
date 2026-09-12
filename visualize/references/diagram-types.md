@@ -1,205 +1,94 @@
-# Diagram Types — Full Layout Rules
+# Diagram types and notation
 
-This file contains detailed layout rules for each diagram type. Load when generating a diagram.
+Read the relevant type below and open its [gallery example](diagram-gallery.md). [Style](style.md) defines the shared tokens; [layout patterns](layout-patterns.md) covers composite explanations.
 
-> **Style first.** All colors, fonts, radii, the open-chevron arrow marker, and spacing come from `references/style.md`; ready-made snippets are in `references/svg-cookbook.md`. The notes below are about *layout and notation*. Default canvas width is ~720; height grows to fit the content (40px margins).
->
-> **Color families by role** (tinted box fills, not arrow-only accents): Neutral cream = plumbing/default · **Green** = primary / happy path / retrieval · **Purple** = alternate or parallel branch · **Terracotta** = warning / limitation / failure · **Amber** = highlighted special module. Pick the family by meaning and stay consistent within a diagram.
+## Architecture
 
-## Architecture Diagram
+Group components by responsibility, deployment location, or ownership. Client → gateway → services → storage is one useful layout, not a required architecture. Use a boundary only when it carries meaning. Label whether connections represent requests, data, or dependencies, and keep that convention consistent.
 
-Nodes = services/components. Group into **horizontal layers** (top→bottom or left→right).
+Align peers and route fan-out through a shared unheaded rail, with arrowheads at destination nodes. A component list inside a container does not imply that its items execute in sequence.
 
-- Typical layers: Client → Gateway/LB → Services → Data/Storage
-- Use `<rect>` dashed containers to group related services in the same layer
-- Arrow direction follows data/request flow
-- Align centers within each vertical chain. Use shared rails without arrowheads for fan-out/fan-in, with heads only where a connection reaches a node.
-- ViewBox: width ~720, height grows with content (taller for many layers)
-- **Trust-boundary / deployment split**: when nodes sit on opposite sides of a boundary (client↔server, on-prem↔cloud), separate them with a `.zone()` divider and let the cross-zone edges carry the story (`references/layout-patterns.md` §1). A titled `.panel()` groups a cluster that needs a stronger frame than a dashed container (§4).
+## Data flow
 
-## Data Flow Diagram
+Arrows follow the payload from producer to consumer. Label each with the data it carries: events, vectors, passages, files, or rows. A store → query engine edge carries data; a query request travels in the opposite direction. Keep control signals distinct when both appear.
 
-Emphasizes **what data moves where**. Focus on data transformation.
+For RAG, show both inputs to generation: **the original question and retrieved context**. Embeddings feed retrieval; they do not replace the question. An offline indexing group may show document chunking and embedding separately from query-time work.
 
-- Label every arrow with the data type (e.g., "embeddings", "query", "context")
-- Mark the primary data path with a family LINE color (Green `#1D9E75`); keep all line widths at 1.5 — distinguish by color, not by thickness
-- Dashed lines for control/trigger flows
-- Color arrows by data category using the families in `references/style.md`
+## Flowchart / process
 
-## Flowchart / Process Flow
+Use process boxes and decision diamonds with labeled exits. Put the common path on one axis and returns in an outside gutter. A condition's branches should cover its outcomes; label a default where applicable.
 
-Sequential decision/process steps.
+Numbered steps communicate order. In an ordered policy ladder, distinguish final allow, final deny, and no match/continue. The gallery's policy groups are illustrative, not a product implementation.
 
-- Top-to-bottom preferred; left-to-right for wide flows
-- Diamond shapes for decisions, rounded rects for processes, parallelograms for I/O
-- Keep node labels short (≤3 words); put detail in sub-labels
-- Align the main flow on one centerline, size boxes from labels, and reserve routing gutters before placing side branches
-- **Numbered recipe / pipeline**: use `.step()` cards (circled badge + title) so order reads without an arrow on every link (`references/layout-patterns.md` §2).
-- **Allow/deny ladder**: a chain of checks bracketed by a green "Execute" rail and a terracotta "Blocked" rail — green arrows up = pass, terracotta down = fail (§3). A long feedback return routes up the right gutter (§6).
+## Agent architecture
 
-## Agent Architecture Diagram
+Show the loop actually being explained: input/context → model decision → tool or output → observation → next decision. Include an exit when the loop can finish. A tool-assisted editing example need not represent every possible agent behavior.
 
-Shows how an AI agent reasons, uses tools, and manages memory.
+Show tools, memory, verification, and persistence only when the described system uses them. Progress indicators must distinguish completed work from the current step. Name feedback payloads instead of using a generic loop arrow.
 
-Key conceptual layers:
-- **Input layer**: User, query, trigger
-- **Agent core**: LLM, reasoning loop, planner
-- **Memory layer**: Short-term (context window), Long-term (vector/graph DB), Episodic
-- **Tool layer**: Tool calls, APIs, search, code execution
-- **Output layer**: Response, action, side-effects
+## Memory architecture
 
-Use cyclic arrows (loop arcs) for iterative reasoning. Separate memory types visually.
+Separate writes from query-driven reads. Label the information stored and the context returned. Group stores or memory categories without implying an unsupported conversion chain between them. Working, episodic, semantic, and procedural memory are not universal successive stages.
 
-## Memory Architecture Diagram (Mem0, MemGPT-style)
+Use the product's actual operations and boundaries when a specific implementation is requested. The generic gallery demonstrates routing through vector and graph stores, not a complete Mem0 or MemGPT architecture.
 
-Specialized agent diagram focused on memory operations.
+## Sequence
 
-- Show memory **write path** and **read path** separately (different arrow colors)
-- Memory tiers: Working Memory → Short-term → Long-term → External Store
-- Label memory operations: `store()`, `retrieve()`, `forget()`, `consolidate()`
-- Use stacked rects or layered cylinders for storage tiers
+Participants occupy vertical lifelines; horizontal messages run in time order from top to bottom. Start messages below the participant headers. Dashed returns should remain visually distinct from the lifelines and must be explained in the legend.
 
-## Sequence Diagram
+Use `alt`, `opt`, or loop frames with room for headings and guards. Show a real message in each alternative. An optional authenticated call needs both a valid token and the required permission. Anchor to activation-bar edges (`cx ± 6` for a 12px bar).
 
-Time-ordered message exchanges between participants.
+The authorization-code example abbreviates the protocol to show redirects and token exchange. Authentication/consent precede code issuance; a browser must receive a code before forwarding it. Add state, PKCE, errors, and other protocol details when those are part of the requested explanation.
 
-- Participants as vertical **lifelines** (top labels + vertical dashed lines)
-- Messages as horizontal arrows between lifelines, top-to-bottom time order
-- Activation boxes (thin filled rects on lifeline) show active processing
-- Group with `<rect>` loop/alt frames with label in top-left corner
-- Start messages at least 40px below the participant boxes, use roughly 48–60px between messages, and reserve a separate legend area below the lifelines
-- Anchor messages on activation-bar edges when present, so the bars cannot cover arrowheads; a 12px activation uses `cx ± 6`
-- Reserve a left gutter for frame names and guards; place real messages in each `alt` branch and keep them clear of the frame header
-- **Payload messages**: when an arrow carries both a name and literal data, stack a 12/CAPTION label above the line and a monospace payload below — monospace is the only place a non-system font appears (`references/layout-patterns.md` §8).
-- **Repeating region**: wrap a span of messages in a `.scope()` frame labelled `EACH TURN` / `PER REQUEST` rather than a plain loop box (§5); out-of-band events (notifications, telemetry) hang off a dashed side-rail (§7).
+## Comparison
 
-## Comparison / Feature Matrix
+Use the same criteria, units, and status definitions across columns. Align row labels and keep cell dimensions consistent. Distinguish “supported,” “planned,” “unavailable,” and “unknown” rather than assigning unsupported good/bad scores.
 
-Side-by-side comparison of approaches, systems, or components.
-
-- Column headers = systems, row headers = attributes
-- Row height: 40px; column width: min 120px; header row height: 50px
-- Use equal column widths and 16–24px gutters; keep row labels in a dedicated, consistently aligned column
-- "Has it" cell: tinted family background (Green `#E1F5EE` + `✓` in `#0F6E56`); "lacks it" cell: neutral `#F5F4ED` (or a Terracotta `#FAECE7` ✗ when it's a real downside)
-- Keep the grid quiet: white rows with hairline `rgba(31,30,29,0.3)` dividers
-- Max readable columns: 5; beyond that, split into two diagrams
+For mechanism comparisons, use matched panels with the same input and output; put concise comparison rows underneath. A color can identify a method without ranking it. Label fictional examples and source real performance claims.
 
 ## Timeline / Gantt
 
-Horizontal time axis showing durations, phases, and milestones.
+Derive task starts, bar widths, tick marks, and milestones from one time scale. Width represents duration; shorten or move a label instead of widening its bar. Use a shared fill for peer phases unless color carries a specific category. Put milestone captions outside their small marks.
 
-- X-axis = time (weeks/months/quarters); Y-axis = items/tasks/phases
-- Bars: rounded rects, colored by category, labeled inside or beside
-- Milestone markers: diamond or filled circle at specific x position with label above
-- Derive bars, week guides, and milestones from the same time scale. Use one fill family for peer phases unless color encodes a distinct category; avoid repeating the row name inside every bar.
-- ViewBox: width ~720 (wider for many time periods), height grows with content
-- Helpers: `.bar(x, y, w, label, family=...)` per bar — the width is the time span, not the label (default height 28); `diamond(..., hw=8, hh=8, family="amber")` for milestones with an external label; the time axis is a `.raw()` loop of `<line>` guides + `<text>` labels. See `assets/gallery/timeline-gantt.svg`.
+## Mind map / concept map
 
-## Mind Map / Concept Map
+Balance branches around one central concept. Curved, unheaded links express association. Use directional arrows only for a stated dependency or transfer. Peers can share one accent family. A radial trade-off map may pair each option with a small consequence note.
 
-Radial layout from central concept.
+## Class diagram
 
-- Center the core node in the available body area, leaving room for the heading and legend
-- Balance first-level branches around the center; paired left/right rows can be easier to read than a strict angular distribution
-- Second-level branches: branch off first-level at 30-45° offset
-- Use curved `<path>` with cubic bezier for branches, not straight lines
+Use name, attribute, and method compartments. Keep `+`/`-`/`#` visibility notation, interface stereotypes, and abstract names readable. A stereotype and class name need separate baselines; `class_box()` provides a 48px header when a stereotype is present.
 
-## Class Diagram (UML)
+The house style uses open chevrons with explicit labels, rather than standard UML arrowhead shapes:
 
-Static structure showing classes, attributes, methods, and relationships.
+- `extends`: child → parent, solid.
+- `«implements»`: class → interface, dashed.
+- `uses`: dependent → dependency, dashed.
+- Association, aggregation, and composition: state the relationship and multiplicity explicitly.
 
-- **Class box**: 3-compartment rect (name / attributes / methods), min width 160px
-  - Top: class name, bold, centered (abstract = *italic* via `font-style`)
-  - Middle: attributes with visibility (`+` public, `-` private, `#` protected)
-  - Bottom: method signatures, same visibility notation
-- **Relationships (House-style)** — this skill keeps a single open-chevron marker for every relationship; distinguish them by **line style + text label**, never by swapping arrowhead shapes:
-  - Inheritance: solid line + chevron + label `extends` (child → parent)
-  - Implementation: dashed line (`stroke-dasharray="4 3"`) + chevron + label `«implements»` (class → interface)
-  - Association: solid line + chevron + multiplicity labels (`1`, `0..*`, `1..*`)
-  - Aggregation / Composition: solid line + chevron + label `aggregates` / `composes` + multiplicity (the label carries the meaning instead of a diamond on the container side)
-  - Dependency: dashed line + chevron + label `uses`
-- **Interface**: `<<interface>>` stereotype above name; **Enum**: `<<enumeration>>`
-- Allow a 48px title compartment for a stereotype plus name, with distinct text baselines; the plain name compartment is 30px
-- Layout: parent classes top, children below; interfaces to the left/right
-- ViewBox: width ~720, height grows with content (taller for deep hierarchies)
-- Helper: `.class_box(x, y, name, attrs, methods, family=..., abstract=False, stereotype="interface")` renders the 3-compartment box (min width 160, abstract name italic). Realization / dependency lines are `dashed=True` on `.arrow()` / `.lpath()`. See `assets/gallery/class-diagram.svg`.
+Label this as a house-style UML diagram when strict notation fidelity matters.
 
-## Use Case Diagram (UML)
+## Use case
 
-System functionality from user perspective.
+Actors stay outside a named system boundary; use-case ellipses contain verb phrases. `«include»` points from base to included behavior. `«extend»` points from optional extension to base. In the house style both use dashed open chevrons with labels.
 
-- **Actor**: stick figure (circle head + body line) outside system boundary
-  - Label below figure, **14px** (family TITLE color)
-  - Primary actors on left, secondary on right
-- **Use case**: ellipse with label centered, min 140×60px
-  - Verb phrases: "Create order", "Process payment"
-- **System boundary**: large dashed rect + system name in top-left
-- **Relationships (House-style)** — single open-chevron marker, distinguished by line style + label:
-  - Include: dashed line + chevron + label `«include»` (base → included)
-  - Extend: dashed line + chevron + label `«extend»` (extension → base)
-  - Generalization (actor or use case): solid line + chevron + label `extends`
-- ViewBox: width ~720, height grows with content
-- Helpers: `.actor(cx, y, label, family=...)` (stick figure + 14px label; returns a Box for anchoring, and is NOT a collision obstacle — keep actors outside the boundary), `.usecase(x, y, label, family=...)` (ellipse min 140×60). **Ellipses ARE obstacles**, so route `«include»`/`«extend»` arrows with `.lpath(..., dashed=True)` through the row gutters around neighbouring ellipses. See `assets/gallery/use-case.svg`.
+Route around neighboring ellipses and keep the actor's label clear. The actor helper returns anchors; its entire figure is not modeled as a collision obstacle.
 
-## State Machine Diagram (UML)
+## State machine
 
-Lifecycle states and transitions of an entity.
+Name states as conditions, and transitions as `event [guard] / action`. Use a filled initial dot, a ringed final dot, and guarded choice exits where needed. A final state has no outgoing transitions; a recoverable failure may have a labeled retry.
 
-- **State**: rounded rect with name, min width 120px; height 40 for one line or 56 for two
-  - Internal activities: `entry/ action`, `exit/ action`, `do/ activity`
-- **Initial state**: filled black circle (r=8), one outgoing arrow
-- **Final state**: filled circle (r=8) inside hollow circle (r=12)
-- **Choice**: small diamond, guard labels `[condition]`
-- **Transition**: arrow with `event [guard] / action`
-- Anchor initial/final connections at the circle boundary (8px / 12px from the center) so the state marker cannot hide the arrowhead
-- **Composite state**: larger rect containing sub-states, with name tab. For hand-written SVG, mark the outer rect `data-role="panel"` and its title `data-role="container-label"`; otherwise ordinary node containment correctly fails validation.
-- **Fork/join**: thick black bar (synchronization)
-- Layout: initial top-left, final bottom-right, flow top→bottom
-- ViewBox: width ~720, height grows with content
+Keep events consistent with the source state. The job example queues, runs, evaluates the result, then succeeds or fails. Anchor initial/final connections at their 8px/12px boundaries. Composite states need an explicit panel role.
 
-## ER Diagram (Entity-Relationship)
+## Entity relationship
 
-Database schema and data relationships.
+Choose conceptual relationships or a physical schema before drawing. The gallery uses relationship diamonds and explicit cardinalities. A physical many-to-many schema needs an associative entity or join table. Mark keys consistently with `(PK)` and `(FK)`.
 
-- **Entity**: rect with name header (bold), attributes below
-  - Primary key: underline or `(PK)`; Foreign key: italic or `(FK)`
-  - Min width: 160px; attribute font-size: 12px
-- **Relationship**: diamond shape on connecting line
-  - Label: "has", "belongs to"; Cardinality: `1`, `N`, `M`, `0..1`, `0..*`, `1..*`
-- Put cardinality labels close to their entity endpoints. Use separate ports for unrelated relationships; a shared rail would imply a connection that is not present.
-- **Weak entity**: double-bordered rect with double diamond
-- **Associative entity**: rect with diamond inside
-- Solid lines for identifying, dashed for non-identifying relationships
-- Layout: entities in 2-3 rows, relationships between related entities
-- ViewBox: width ~720 (wider for many entities), height grows with content
+Place cardinalities close to their entity endpoints. Unrelated relationships need separate ports; a shared rail would imply a junction. Open chevrons in the gallery organize reading direction, not record flow.
 
-## Network Topology
+## Network topology
 
-Physical or logical network infrastructure.
+State whether the diagram is physical or logical. Label devices, protocols, and relevant addresses. Put boundary devices clearly relative to the zones they connect. Use arrowheads only when traffic direction is part of the explanation; identify other line meanings in the legend.
 
-- **Devices**: labeled rounded rectangles for routers, switches, servers, firewalls, and load balancers; use a cylinder when the storage role matters
-- **Connections**: solid or dashed paths with short protocol/bandwidth labels; explain different line meanings in the legend
-- **Subnets/Zones**: dashed rect containers (DMZ, Internal, External)
-- Keep boundary devices clearly placed relative to zones, with room between each container header and its nodes
-- **Labels**: hostname at 14px, IP or protocol detail at 12px
-- Layout: tiered Internet → Edge → Core → Access → Endpoints
-- ViewBox: width ~720, height grows with content
+## Charts and explanatory composites
 
-## UML Coverage Map
-
-| UML Diagram | Supported As | Notes |
-|-------------|-------------|-------|
-| Class | Class Diagram | House-style: 3-compartment boxes; relationships via line-style + label (no per-relation markers) |
-| Component | Architecture Diagram | Colored fills per type |
-| Deployment | Architecture Diagram | Node/instance labels |
-| Package | Architecture Diagram | Dashed grouping containers |
-| Composite Structure | Architecture Diagram | Nested rects |
-| Object | Class Diagram | Underlined instance names |
-| Use Case | Use Case Diagram | House-style: actor + ellipse + dashed «include»/«extend» |
-| Activity | Flowchart | Add fork/join bars |
-| State Machine | State Machine Diagram | States, guards, initial/final markers, and labeled transitions in the house style |
-| Sequence | Sequence Diagram | alt/opt/loop frames |
-| Communication | — | Approximate with Sequence |
-| Timing | Timeline | Adapt time axis |
-| Interaction Overview | Flowchart | Activity + sequence fragments |
-| ER Diagram | ER Diagram | Entity compartments, relationship diamonds, and explicit cardinality labels |
+For retention funnels, annotated curves, qualitative axes, shared-input lanes, and miniature mechanisms, use [layout-patterns.md](layout-patterns.md). Keep numeric scales faithful to data and distinguish illustrative values from measurements.

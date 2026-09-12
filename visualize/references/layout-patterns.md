@@ -1,190 +1,150 @@
-# Layout Patterns — compositing recipes
+# Layout patterns
 
-Single-element primitives (boxes, arrows, containers) live in `svg-cookbook.md`; per-type layout rules in `diagram-types.md`; routing in `svg-layout-best-practices.md`. **This file is the catalogue of multi-element *compositing patterns*** — the recurring ways those primitives are combined to express something a bare box/arrow can't. Each is shown in the house warm tokens.
+Choose a composition that exposes the relationship the reader needs to understand. Exact tokens live in [style.md](style.md), primitives in [svg-cookbook.md](svg-cookbook.md), and notation in [diagram-types.md](diagram-types.md). The snippets below assume an existing `Diagram`.
 
-Reach for these when the request is one of: a trust-boundary split, a numbered recipe / pipeline, an allow-vs-deny decision, a titled result panel, a repeating scope, a long feedback return, out-of-band side events, a two-line payload label, or a stateful cell strip. If `python3` is available, the `svgkit` helper implements the bolded ones as one-liners (`.step`, `.panel`, `.scope`, `.zone`).
+## Choose the reading order first
 
-> Style tokens, the marker, the type scale, and the flat rule all still apply — a pattern never justifies a new color, a filled triangle, or a shadow.
+| What the reader needs to see | Composition | Example |
+|---|---|---|
+| A sequence with revision | One main spine, feedback in an outside gutter | [Feedback pipeline](../assets/gallery/patterns/feedback-pipeline.svg) |
+| What survives successive checks | Aligned narrowing bands and a column of removal notes | [Annotated funnel](../assets/gallery/patterns/annotated-funnel.svg) |
+| Two implementations of the same task | Matched panels, the same input, and aligned comparison rows | [Mechanism comparison](../assets/gallery/patterns/mechanism-comparison.svg) |
+| Shared input and independent work | Common source above parallel lanes, explicit merge below | [Parallel pipelines](../assets/gallery/patterns/parallel-pipelines.svg) |
+| How a numeric value changes | Scaled axes, data marks, and a local callout | [Annotated chart](../assets/gallery/patterns/annotated-chart.svg) |
+| Two qualitative dimensions | Labeled regions on two axes | [Quadrant map](../assets/gallery/patterns/quadrant-map.svg) |
+| Choices around one constraint | A central hub with short, balanced branches | [Mind map](../assets/gallery/mind-map.svg) |
 
----
+Keep the main explanation readable without its side notes. Put detail next to the stage it explains, and use at most one short takeaway below the body when it adds information. Equal peers share dimensions, typography, and row baselines. Color related stages as a group; use an accent for a meaningful difference or focal point.
 
-## §1. Zone split (trust boundary) — `svgkit: .zone()`
+## §1. Zone split — `.zone()`
 
-Two regions separated by a dashed vertical divider, each with its own column header. For "Client | Server", "Local | External", "On-prem | Cloud". The interesting edges are the ones that **cross** the divider.
-
-```python
-d.zone(divider_x=380, y_top=70, y_bottom=420,
-       left_label="Client", right_label="Server",
-       left_cx=210, right_cx=560)
-# then place nodes in each half; cross-zone arrows are the story
-cli = d.node(60, 120, "Browser", family="neutral")
-srv = d.node(420, 120, "API", family="green")
-d.arrow(cli.right, srv.left, label="HTTPS")
-```
-
-Hand-written form:
-
-```xml
-<line x1="380" y1="70" x2="380" y2="420" stroke="rgba(31,30,29,0.3)"
-      stroke-width="0.5" stroke-dasharray="6 4"/>
-<text x="210" y="70" text-anchor="middle" dominant-baseline="central"
-      font-size="14" font-weight="500" fill="#141413">Client</text>
-<text x="560" y="70" text-anchor="middle" dominant-baseline="central"
-      font-size="14" font-weight="500" fill="#141413">Server</text>
-```
-
-A **double-headed** connector (e.g. a bind mount) is the same divider with `d.arrow(..., both=True)`, which adds `marker-start` alongside `marker-end` — used sparingly, only for genuinely bidirectional flows.
-
-## §2. Numbered step ladder — `svgkit: .step()`
-
-A row (or column) of cards, each with a circled step number + title + optional sub. For recipes, pipelines, and any "do this, then this, then this". The circled number makes order unmistakable without arrowheads on every link.
+Use a boundary when location, ownership, or trust changes the meaning of a connection. Name both regions and label the crossing payload or protocol.
 
 ```python
-s1 = d.step(40, 80, 1, "Receive", "tool request")
-s2 = d.step(d.right_of(s1, 40), 80, 2, "Check rules", "allow / deny", family="green")
-s3 = d.step(d.right_of(s2, 40), 80, 3, "Execute", family="green")
-d.arrow(s1.right, s2.left); d.arrow(s2.right, s3.left, color="green")
+d.zone(380, 70, 420, "Client", "Server", 210, 560)
+client = d.node(60, 120, "Browser")
+server = d.node(420, 120, "API", family="green")
+d.arrow(client.right, server.left, label="HTTPS")
 ```
 
-## §3. Verdict rails (allow ↑ / deny ↓)
+`both=True` means traffic travels both ways. Use two labeled edges when request and response carry different information.
 
-A specialised flowchart for a chain of checks where each step either **passes (continues right / up)** or **fails (drops down)**. Bracket the ladder between two terminal bars: a green "Execute" bar on top (or at the right end) and a terracotta "Blocked" bar on the bottom. Each step's verdict is the arrow color + direction — green up = allow, terracotta down = deny.
+## §2. Numbered steps — `.step()`
+
+Number steps when their order matters. Keep the number small and the title dominant; the number is an ordering cue, not a completion status.
 
 ```python
-# top rail = allow target, bottom rail = deny target
-d.raw('<rect x="40" y="20" width="680" height="28" rx="6" fill="#E1F5EE" '
-      'stroke="#0F6E56" stroke-width="0.5"/>', layer="boxes")
-d.raw('<rect x="40" y="280" width="680" height="28" rx="6" fill="#FAECE7" '
-      'stroke="#993C1D" stroke-width="0.5"/>', layer="boxes")
-s = d.step(60, 140, 1, "Hook", "PreToolUse")
-d.arrow(s.top, (s.cx, 48), color="green", label="allow")     # up to Execute
-d.arrow(s.bottom, (s.cx, 280), color="terracotta", label="deny")  # down to Blocked
+first = d.step(40, 80, 1, "Receive", "input file")
+second = d.step(d.right_of(first, 64), 80, 2, "Parse", "read records")
+d.arrow(first.right, second.left)
 ```
 
-Stagger multiple steps' allow/deny arrows by ±20px so heads don't pile up on the same rail point. (See `assets/gallery/decision-ladder.svg` for the full pattern.)
+## §3. Verdict rails
 
-## §4. Titled panel with header band — `svgkit: .panel()`
-
-A white card with a colored title strip across the top — the "Step 1" / "Result" window treatment. Use when a group of rows needs both a visible container *and* an obvious name, and a dashed container isn't strong enough. The body is white so you can drop nodes, mono rows, or `.raw()` art onto it.
+Use [decision-ladder.svg](../assets/gallery/decision-ladder.svg) for **ordered policy groups** that return allow, deny, or no match. A final verdict exits to its labeled rail; no match continues to the next group. Show the default after the last group. A successful check that merely continues is different from a final allow verdict.
 
 ```python
-pnl = d.panel(40, 160, 520, 152, "Result", "cumulative", family="green")
-# Keep child nodes below the 26px header band, with padding on all sides.
-incoming = d.node(64, pnl.y + 52, "Input", "parsed values", w=160)
-total = d.node(376, pnl.y + 52, "Total", "0.0034 USD", family="green", w=160)
-d.arrow(incoming.right, total.left, color="green", label="sum", label_offset=12)
+allow = d.node(40, 40, "Allow", family="green", w=680, h=32)
+deny = d.node(40, 320, "Deny", family="terracotta", w=680, h=32)
+group = d.step(64, 168, 1, "Group A", "first check")
+d.arrow(group.top, (group.cx, allow.y + allow.h), color="green", label="allow")
+d.arrow(group.bottom, (group.cx, deny.y), color="terracotta", label="deny")
 ```
 
-Hand-written: body rect (white, family stroke) + a 26px header band in the family fill (drawn as a rounded rect + a thin square rect to flatten its bottom) + the title in the band. Paint the body and band on the container layer, before internal arrows, or the white body will hide them. Mark the body `data-role="panel"` so the validator knows that contained nodes are intentional; ordinary solid-shape containment is an error. Mark the title `data-role="container-label"`. `svgkit.panel()` handles the layer order and both roles.
+Give each group its own vertical ports. Adapt the actual policy ordering; the example is not a product's authorization algorithm.
 
-## §5. Scope / loop frame — `svgkit: .scope()`
+## §4. Titled panel — `.panel()`
 
-A dashed region whose label says what the region *does*, not just what's in it: `EACH TURN`, `AGENTIC LOOP`, `RETRY ×3`. Visually a `container()` variant, but the label is **uppercased and tracked out** (letter-spacing 2, on the 14/500 container-label weight) so it reads as a scope badge. The uppercase + tracking carries the emphasis without leaving the locked type scale. Nest scopes to show "this group repeats inside that group".
+A panel groups related components or explanatory rows. Its 26px header band needs clear space beneath it; put child nodes about 52px below the panel top.
 
 ```python
-d.scope(28, 60, 700, 240, "each turn", sub="repeats per request")
-d.scope(60, 110, 640, 170, "agentic loop")
+panel = d.panel(40, 160, 520, 152, "Result", family="green")
+source = d.node(64, panel.y + 52, "Input", "parsed values", w=160)
+total = d.node(376, panel.y + 52, "Total", "sum of values", family="green", w=160)
+d.arrow(source.right, total.left, color="green", label="sum", label_offset=12)
 ```
 
-## §6. Right-gutter loop-back
+Paint the panel background before its connectors and child nodes. In manual SVG, mark the body `data-role="panel"` and its heading `container-label`. For a qualitative region, a full tinted background can be clearer than a header band; see the quadrant example.
 
-When a feedback edge has to return from a late node to an early one, route it up the **right margin** rather than across the diagram. The long vertical leg lives in empty space the boxes already leave as padding, so it never collides.
+## §5. Scope / loop frame — `.scope()`
+
+Name the condition or repetition that applies to the enclosed work: `each turn`, `retry`, `alt`, or `opt`. Put a guard in the subtitle when relevant. Nested frames indicate nested scope, not execution order by themselves.
 
 ```python
-# from the bottom-right step's right edge, up the gutter, back into step 1
-d.lpath([last.right, (W - 40, last.cy),
-         (W - 40, first.cy), first.right],
-        color="purple", label="repeat", label_offset=-12)
+d.scope(40, 100, 680, 240, "opt", "token valid + permitted")
 ```
 
-Reserve a clear routing gutter at least 56px beyond the node edges, then a 40px outside margin. End at the destination's actual edge, and keep the return clear of unrelated success paths. Only the arriving segment carries the marker.
+The [sequence frames](../assets/gallery/sequence-frames.svg) example leaves separate space for the frame heading, guards, and real messages.
 
-## §7. Side-rail of out-of-band events
+## §6. Feedback gutter
 
-A vertical column of **dashed** boxes beside the main spine, joined to it by short **dashed** arrows. For things that happen alongside the main flow without blocking it: async notifications, config changes, observers, telemetry. The dashing is the signal that they're not on the critical path.
+Keep the main flow on one axis; reserve a separate left or right gutter for the return. Route to the earlier node's edge and label what the return carries or why it happens. Give multiple unrelated returns separate gutters.
 
 ```python
-for lbl, y in [("Notification", 200), ("ConfigChange", 260)]:
-    d.raw(f'<rect x="20" y="{y}" width="120" height="42" rx="8" fill="#F5F4ED" '
-          f'stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>',
-          layer="boxes")
-    d.arrow((140, y + 21), (200, y + 21), dashed=True)   # dashed connector into the spine
+gutter_x = max(first.x + first.w, last.x + last.w) + 64
+d.lpath([last.right, (gutter_x, last.cy), (gutter_x, first.cy), first.right],
+        color="terracotta", dashed=True, label="revise", label_offset=-12)
 ```
 
-The dashed *box* still needs `.raw()` (a dashed node is a side-rail idiom, not a house-style node), but the dashed *connector* is `dashed=True` on `.arrow()` / `.lpath()`.
+Choose the label side with available room; a left gutter often needs a positive offset and a right gutter a negative one. Extend the canvas beyond the gutter and its text. See [feedback-pipeline.svg](../assets/gallery/patterns/feedback-pipeline.svg).
 
-## §8. Two-line arrow label (label + payload)
+## §7. Side notes and side events
 
-Sequence and request/response diagrams often need both a human label *and* the actual payload on one arrow. Stack them: the label at 12/CAPTION above the line, a monospace payload at 12/SUB below. Monospace is the only place a non-system font appears — it signals "this is literal data".
+A note explains a component; an event transfers information. Draw notes with a light **0.5–0.75px leader without an arrowhead**. Use a 1.5px arrow for an actual notification, query, or update. Reserve a side column so the extra text does not interrupt the main spine.
 
-```xml
-<text x="300" y="90" text-anchor="middle" dominant-baseline="central"
-      font-size="12" fill="#141413">permission_request</text>
-<text x="300" y="118" text-anchor="middle" dominant-baseline="central"
-      font-size="12" font-family="ui-monospace, 'SF Mono', Menlo, monospace"
-      fill="#3D3D3A">{tool_name: "Bash", ...}</text>
-```
+Use a short title and one or two explanatory lines. Put longer lists in a `.panel()`. The [feedback pipeline](../assets/gallery/patterns/feedback-pipeline.svg) uses a criteria panel; the [funnel](../assets/gallery/patterns/annotated-funnel.svg) aligns a note with each filtering stage. In both, the leader means “explains this,” not another processing step.
 
-The corresponding arrow runs at y=104, leaving 14px to either label baseline. Keep payloads short — if they wrap, move the detail into a side note or a `.panel()`.
+## §8. Message and payload labels
 
-## §9. Stateful cell strip (time-stack)
+When both a message name and literal payload matter, put 12px text on opposite sides of the line with about 14px baseline clearance. A monospace payload may distinguish literal data. Move long payloads into a nearby note instead of shrinking the font or covering the connector.
 
-Rows of small cells where **fill encodes state**, with a one-line caption under each row. For caches, token budgets, pipelines that grow turn-by-turn, queues. Reuse §5 of `svg-cookbook.md` (striped strip) and §6 (vector bars) vocabulary — the new part is the *legend of states* and the per-row caption.
+## §9. Repeated cells and miniature mechanisms
 
-```python
-# one row per timestep; cached vs new vs changed encoded by fill
-for row, turn in enumerate(turns):
-    y = 80 + row * 76
-    for col, cell in enumerate(turn.cells):
-        fill = {"cached": "#F1EFE8", "new": "#FAEEDA", "changed": "#FAECE7"}[cell.state]
-        d.raw(f'<rect x="{44 + col * 46}" y="{y}" width="40" height="26" '
-              f'rx="3" fill="{fill}" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>',
-              layer="boxes")
-    d.raw(f'<text x="44" y="{y + 42}" dominant-baseline="central" '
-          f'font-size="12" fill="#3D3D3A">{turn.caption}</text>',
-          layer="labels")
-```
+Small circles, cells, and bars can explain records, tokens, caches, and repeated state. Use the same spacing and shape for equivalent items. Mark chart cells `data-role="data-mark"`; their width or count may encode data, so it must not change merely to fit a label.
 
-Cells under 70×30 are ignored by the collision checker, so arrows can run between rows freely. A 1px hairline rule above the legend separates it from the data.
+Show a concrete, internally consistent example. In [mechanism-comparison.svg](../assets/gallery/patterns/mechanism-comparison.svg), the same inputs `2, 4, 3` produce `9`; intermediate running totals are `2, 6, 9`. The shapes explain what each method retains. Counts and highlighted progress cells must agree with their captions.
 
----
+## §10. Narrow re-layout
 
-## §10. Responsive re-layout (desktop → mobile)
+For a phone or a narrow document column, make a separate `<name>_mobile.svg`. Keep the font scale and graph; recompute the positions and edge anchors.
 
-When a diagram is wide it doesn't survive a phone screen by scaling — the text becomes illegible and the horizontal flow collapses. The fix is to **re-lay-out**, not rescale: produce a separate `_mobile.svg` with a tall-narrow viewBox and the same content re-flowed vertically. (Figure sets that ship `desktop` + `mobile` variants do this — e.g. a `596×407` desktop chart becomes a `327×467` mobile one, re-composed not cropped.)
+- A 360px canvas with 40px margins leaves 280px for content.
+- Turn a horizontal pipeline into a vertical spine. Give peers a common computed width and center them; `col()` alone aligns left edges.
+- Stack parallel panels when needed, preserving their shared input and merge. Their placement must not introduce a serial dependency.
+- Put notes below their relevant stage and reserve every wrapped legend row.
 
-**When:** the user asks for a "mobile / phone / narrow" version, or the source diagram is wider than ~760 and will be embedded in a column.
+The [desktop](../assets/gallery/data-flow.svg) and [narrow](../assets/gallery/data-flow_mobile.svg) examples carry the same stream, batch, and file payloads in the same direction.
 
-**Rules — only the geometry changes; tokens, marker, type scale, palette stay.**
+## §11. Funnel with aligned explanations
 
-- Target a tall-narrow viewBox: width ~360, height grows to fit.
-- Re-flow a horizontal pipeline as a vertical column — `.col([...], x=80, gap=60)` instead of `.row([...], gap=56)`; re-anchor every arrow on `.top`/`.bottom`.
-- Stack parallel lanes vertically when needed, but preserve their original fan-out/fan-in connections using a side rail. Re-layout must not turn parallel work into a serial dependency chain.
-- Widen one box before shrinking the font (the type scale is locked). At width 360 with 40px margins, a single column of ~200–260-wide boxes reads cleanest.
-- The legend wraps on its own; with no explicit `y`, `legend()` reserves all rows above the bottom margin. End the diagram body above that block. With explicit `y`, account for every extra 24px row.
-- Name it `<name>_mobile.svg` next to its desktop sibling.
+Use a funnel for successive retention or filtering. Keep stage labels on one centerline and align the explanations in a separate column. The remaining count belongs inside each band; removals explain the difference from the prior band.
 
-```python
-# Same four nodes and edges, with a shared width and one vertical centerline.
-d = Diagram(360, 540, title="Streaming data pipeline", desc="Events become queryable tables.")
-k  = d.node(80, 40,  "Kafka",  "event stream", w=200)
-sp = d.node(80, 156, "Spark",  "transform", family="green", w=200)
-s3 = d.cylinder(80, 272, "S3", "Parquet", family="green", w=200, h=54)
-at = d.node(80, 400, "Athena", "SQL query", family="purple", w=200)
-d.arrow(k.bottom,  sp.top, label="stream")
-d.arrow(sp.bottom, s3.top,  color="green",  label="batch")
-d.arrow(s3.bottom, at.top,  color="purple", label="query")
-d.legend([("neutral", "Ingest"), ("green", "Write path"), ("purple", "Read path")])
-```
+For numeric counts, use one width scale: `band_width = max_width * retained / initial`. Keep heights equal. In the [example](../assets/gallery/patterns/annotated-funnel.svg), `1000 → 800 → 600 → 480` has removals `200, 200, 120`. If the input has no quantities, label the funnel schematic rather than inventing a measured taper.
 
-See `assets/gallery/data-flow_mobile.svg` for the worked example.
+## §12. Matched mechanism comparison
 
----
+Give each method the same input, panel width, type scale, and output baseline. Show the distinctive operation inside the panel, using miniature shapes when they explain more than another labeled box. Put a compact comparison table below, with its value columns aligned to the panels.
 
-## When NOT to reach for these
+Color identifies the two methods; it need not imply that one is better. Compare the same dimension in each row and support any performance claim with data. [Example](../assets/gallery/patterns/mechanism-comparison.svg).
 
-- A plain `node`/`arrow` chain already says it → don't wrap it in a scope or panel.
-- Two boxes on each side of a boundary, but there's no meaningful "crossing" → a zone split is decorative; just label the boxes.
-- A decision has one outcome → it's not a ladder; use a single diamond.
+## §13. Shared source and parallel lanes
 
-The patterns exist to **clarify structure that a flat graph hides**. If the structure is already obvious, the pattern is noise.
+Place a common input above the lanes and draw its trunk once. Split at a clear junction, then color each branch consistently. Align equivalent stages. Merge only when the outputs really join; independent results can remain separate.
+
+If one phase consumes another's output, draw that dependency even when the phases sit side by side. A repeated caption is not a substitute for a missing edge. [Example](../assets/gallery/patterns/parallel-pipelines.svg).
+
+## §14. Annotated data chart
+
+Keep axes and guides quieter than the data. Derive ticks and marks from the same scale, state units, and label logarithmic axes if used. Put a callout near a meaningful point, using an unheaded leader; keep it clear of the plotted series.
+
+Use the series' actual line/point symbol in the legend. Mark illustrative values explicitly. [Example](../assets/gallery/patterns/annotated-chart.svg): attempts `1–5` and delays `1, 2, 4, 8, 8` seconds on linear axes. For measured or publication-ready charts, use the supplied data and a plotting tool, then apply the relevant visual principles.
+
+## §15. Two-axis concept map
+
+Name both dimensions and their directions. Use equal regions for qualitative categories; region size must not suggest an unsupported numeric difference. Keep labels in consistent positions and leave any trend arrow a clear corridor. [Example](../assets/gallery/patterns/quadrant-map.svg).
+
+For several choices around a single constraint, use a radial hub instead: pair each choice with a short consequence note. Equal branches communicate alternatives; use arrows only when their direction has a defined meaning.
+
+## Keep the composition proportional to the task
+
+A simple chain can remain a simple chain. Add a frame for a real boundary, a sidebar for useful explanation, or a chart for actual quantities. Validate the SVG and inspect the rendered reading order; neither a tidy grid nor a clean validator report establishes semantic correctness.

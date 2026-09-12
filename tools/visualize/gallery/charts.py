@@ -4,24 +4,24 @@ from .common import canvas, footer, rule, text
 
 
 def comparison():
-    d = canvas(760, 432, "Choosing an adaptation method",
-               "An illustrative comparison of RAG, fine-tuning, and prompting across setup effort, latency, freshness, and behavioral control.",
-               "Illustrative trade-offs; workload and implementation matter")
-    columns = [(208, "RAG"), (384, "Fine-tune"), (560, "Prompt")]
+    d = canvas(760, 432, "Feature coverage",
+               "Three fictional product profiles are compared on four features. Cell labels distinguish supported, planned, and unavailable features.",
+               "Fictional profiles; each cell shows a feature's availability")
+    columns = [(208, "Profile A"), (384, "Profile B"), (560, "Profile C")]
     for x, label in columns:
         text(d, x + 80, 102, label, size=14, anchor="middle")
     rows = [
-        ("Setup effort", [("Low", "green"), ("High", "terracotta"), ("Low", "green")]),
-        ("Added latency", [("Medium", "amber"), ("Low", "green"), ("Low", "green")]),
-        ("Fresh knowledge", [("High", "green"), ("Low", "terracotta"), ("Limited", "amber")]),
-        ("Behavior control", [("Medium", "amber"), ("High", "green"), ("Medium", "amber")]),
+        ("CSV export", [("Yes", "green"), ("Yes", "green"), ("Planned", "amber")]),
+        ("Offline mode", [("No", "neutral"), ("Yes", "green"), ("No", "neutral")]),
+        ("Audit log", [("Planned", "amber"), ("No", "neutral"), ("Yes", "green")]),
+        ("API access", [("Yes", "green"), ("Planned", "amber"), ("Yes", "green")]),
     ]
     for index, (label, values) in enumerate(rows):
         y = 132 + index * 56
         text(d, 184, y + 20, label, anchor="end")
         for (x, _), (value, family) in zip(columns, values):
             d.bar(x, y, 160, value, family=family, h=40)
-    footer(d, [("green", "Favorable"), ("amber", "Trade-off"), ("terracotta", "Constraint")])
+    footer(d, [("green", "Supported"), ("amber", "Planned"), ("neutral", "Unavailable")])
     return d
 
 

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 616" width="760" height="616" role="img">
+  <title>Prioritizing maintenance work</title>
+  <desc>A qualitative two-axis map groups maintenance work by impact and effort. The four regions distinguish quick wins, projects, small fixes, and work needing a scope review. Positions are categories, not measured scores.</desc>
+  <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect data-role="background" width="760" height="616" fill="#FFFFFF"/>
+<rect data-role="panel" x="144" y="112" width="248" height="176" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<rect data-role="panel" x="432" y="112" width="248" height="176" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+<rect data-role="panel" x="144" y="320" width="248" height="176" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<rect data-role="panel" x="432" y="320" width="248" height="176" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <line data-role="connector" x1="128" y1="512" x2="128" y2="96" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="128" y1="512" x2="704" y2="512" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Prioritizing maintenance work</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Qualitative map · categories, not measured positions</text>
+<text data-role="container-label" x="164" y="144" text-anchor="start" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Quick wins</text>
+<text data-role="container-label" x="164" y="188" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#0F6E56">Small change</text>
+<text data-role="container-label" x="164" y="220" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#0F6E56">Broad benefit</text>
+<text data-role="container-label" x="452" y="144" text-anchor="start" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Plan a project</text>
+<text data-role="container-label" x="452" y="188" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#854F0B">Larger change</text>
+<text data-role="container-label" x="452" y="220" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#854F0B">Broad benefit</text>
+<text data-role="container-label" x="164" y="352" text-anchor="start" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Batch small fixes</text>
+<text data-role="container-label" x="164" y="396" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Small change</text>
+<text data-role="container-label" x="164" y="428" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Narrow benefit</text>
+<text data-role="container-label" x="452" y="352" text-anchor="start" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Review the scope</text>
+<text data-role="container-label" x="452" y="396" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#993C1D">Larger change</text>
+<text data-role="container-label" x="452" y="428" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#993C1D">Narrow benefit</text>
+<text data-role="caption" x="48" y="96" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Impact</text>
+<text data-role="caption" x="112" y="200" text-anchor="end" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">High</text>
+<text data-role="caption" x="112" y="408" text-anchor="end" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Low</text>
+<text data-role="caption" x="268" y="532" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Low effort</text>
+<text data-role="caption" x="556" y="532" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">High effort</text>
+<line x1="40" y1="552" x2="720" y2="552" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<rect x="40" y="570" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text data-role="legend-label" x="58" y="576" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Quick win</text>
+<rect x="144" y="570" width="12" height="12" rx="3" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+<text data-role="legend-label" x="162" y="576" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Project</text>
+<rect x="234" y="570" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<text data-role="legend-label" x="252" y="576" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Small fix</text>
+<rect x="337" y="570" width="12" height="12" rx="3" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text data-role="legend-label" x="355" y="576" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Review scope</text>
+</svg>

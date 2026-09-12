@@ -22,12 +22,12 @@ Each conceptual category gets exactly one family. A family is a 5-tuple: **FILL*
 
 - Canvas background: `#FFFFFF` (full-canvas rect). The cream boxes read as intentional on it. Transparent is allowed only if the user asks.
 - Alt neutral fill `#F1EFE8` is fine for a second tier of muted boxes.
-- **Colors ARE box fills.** (Old rule "accents on arrows only" is retired.)
+- Use family fills to group related stages; keep text and borders at full contrast.
 - Box `stroke-width` is a hairline: **0.5** (0.75 acceptable in print). Lines are 1.5.
 
 ### Restraint (default to less)
 
-The five families are a *vocabulary*, not a quota — using all of them in one diagram is usually a mistake. Two rules, learned from studying editorial research diagrams (editorial workflow figures):
+The five families are a vocabulary, not a quota. Use a small set consistently:
 
 - **Default to fewer families.** One accent family + Neutral cream is almost always stronger than two or three. Reach for a second family only when there is a *meaning* contrast to mark (primary vs. alternate path, success vs. failure), never just to color-code unrelated boxes. A diagram that reads "one system" beats one that reads "five sticky notes".
 - **Tint-within-family for siblings.** Peers can share one fill. When tint variation carries useful meaning, use `fill-opacity` (0.9 → 0.55 → 0.4) rather than changing families. This preserves the stroke and text contrast; whole-element `opacity` fades the border too.
@@ -77,7 +77,7 @@ Centered text in a box: `text-anchor="middle" dominant-baseline="central"`.
 
 ### Size every box from its text — compute it, don't guess
 
-Text overflowing its box is the #1 failure in quick SVG diagrams. Never pick a round number; compute the width:
+Estimate widths before positioning nodes. Equal peers can share the largest required width:
 
 1. Estimate each line's pixel width by character class (at the 14px title size):
    - Latin letter / digit / space / punctuation ≈ **8px**
@@ -88,7 +88,7 @@ Text overflowing its box is the #1 failure in quick SVG diagrams. Never pick a r
 
 > Example: title `受上下文窗口限制` = 8 CJK → 8×15 = 120; +32 = **152** (not 150).
 
-The estimate deliberately errs wide, so text never clips. For long labels prefer a wider box or a shorter wording over shrinking the font (the scale is locked).
+The estimate is conservative, but actual glyphs depend on the installed fonts. For long labels prefer a wider box or shorter wording over shrinking the font. Keep fixed-size chart marks faithful to their values and place their labels outside when necessary.
 
 ### Placement
 
@@ -163,7 +163,8 @@ Define **one** marker. The open chevron recolors itself to match each line via `
 
 - Connect to box **edges**, never centers; never route a straight arrow through another box (use an L-shaped `path`).
 - Meaning rides **color** and, sparingly, **dashing** (`stroke-dasharray="4 3"` for async / optional / UML realization) — never a different head shape, never a thicker line. The same marker serves `marker-start` for a genuinely bidirectional connector.
-- Arrow labels: `≤3 words`, 12–14px, at the segment midpoint offset 6–15px. Add a tiny `#FFFFFF` background rect only if the label would overlap a line or box. Offset to whichever side is empty — a label must never overhang into a neighbouring box.
+- Arrow labels: usually `≤3 words`, 12px, at the segment midpoint offset 6–15px. Move a label away from neighboring nodes; a tiny white plate can clear a crossing line, but cannot repair text over a node.
+- Explanatory leaders have no arrowhead and use a quieter 0.5–0.75px stroke. Data-series lines follow their scales and use matching line/point legend symbols. See [layout-patterns.md](layout-patterns.md).
 
 ---
 
@@ -192,5 +193,5 @@ Make `<title>` and `<desc>` the first children of `<svg>` (the examples do this)
 
 - Self-contained: no `@import`, no remote `url()/href/src`, fonts inline. End with `</svg>`.
 - Flat: **no** drop shadows, gradients, filters, or blur.
-- Clean presentation attributes (`fill="…"`), not the verbose duplicated `style="…"` that the exported examples contain.
+- Use clean presentation attributes (`fill="…"`) and one shared font declaration; avoid repeated export-generated style strings.
 - Snap coordinates to integers. One `<marker id="arrow">` in `<defs>`.

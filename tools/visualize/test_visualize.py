@@ -6,6 +6,7 @@ from __future__ import annotations
 import contextlib
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -414,16 +415,27 @@ class CliAndDocumentationTests(unittest.TestCase):
             self.assertEqual(proc.stdout, "")
             self.assertEqual(proc.stderr, "")
 
-    def test_state_machine_retains_transition_action_and_validates(self) -> None:
-        path = SKILL_DIR / "assets" / "gallery" / "state-machine.svg"
-        text = path.read_text(encoding="utf-8")
-        self.assertIn("pay / confirm", text)
-        results = Validator(path, no_color=True).collect()
-        self.assertFalse([r for r in results if r.status == "fail"])
+    def test_all_bundled_diagrams_validate_without_warnings(self) -> None:
+        paths = sorted((SKILL_DIR / "assets").rglob("*.svg"))
+        self.assertTrue(paths)
+        for path in paths:
+            with self.subTest(path=path.relative_to(SKILL_DIR)):
+                results = Validator(path, no_color=True).collect()
+                self.assertFalse([r for r in results if r.status != "pass"])
 
-    def test_curve_label_offset_is_documented(self) -> None:
+    def test_cookbook_example_runs_as_documented(self) -> None:
         cookbook = (SKILL_DIR / "references" / "svg-cookbook.md").read_text(encoding="utf-8")
-        self.assertIn("marker=True, dashed=False, label_offset=8", cookbook)
+        source = re.search(r"```python\n(.*?)\n```", cookbook, re.S).group(1)
+        with tempfile.TemporaryDirectory() as tmp:
+            script = Path(tmp) / "draw.py"
+            output = Path(tmp) / "output.svg"
+            script.write_text(source, encoding="utf-8")
+            result = subprocess.run([sys.executable, "-I", "-S", "-B", str(script), str(SKILL_DIR), str(output)],
+                                    cwd=tmp, capture_output=True, text=True, encoding="utf-8", check=False)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertFalse([r for r in Validator(output, no_color=True).collect() if r.status != "pass"])
+            roles = {element.get("data-role") for element in ET.parse(output).getroot().iter()}
+            self.assertTrue({"panel", "node", "connector"} <= roles)
 
 
 class FinalReviewRegressionTests(unittest.TestCase):
@@ -776,13 +788,6 @@ class AdvancedGeometryAndStyleTests(unittest.TestCase):
             self.assertEqual(result.status, "warn")
             self.assertTrue(any("tspan" in detail.lower() for detail in result.details or []))
 
-    def test_cookbook_panel_template_has_semantic_roles(self) -> None:
-        cookbook = (SKILL_DIR / "references" / "svg-cookbook.md").read_text(encoding="utf-8")
-        self.assertIn('<rect data-role="panel" x="120" y="40"', cookbook)
-        self.assertIn('<text data-role="container-label" x="140" y="66"', cookbook)
-        self.assertNotIn("Full containment is fine", cookbook)
-
-
 class CSSCascadeTests(unittest.TestCase):
     def test_inline_important_visibility_and_alpha_are_normalized(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -950,7 +955,7 @@ class VisualLayoutRegressionTests(unittest.TestCase):
 
 
 class GeometryModuleTests(unittest.TestCase):
-    """Verify the extracted geometry.py works as a standalone module."""
+    """Verify geometry helpers remain available through the public facade."""
 
     def test_geometry_import_standalone(self) -> None:
         from validate_svg import (

@@ -6,14 +6,15 @@ from .common import canvas, footer, rail, text
 
 
 def agent_loop():
-    d = canvas(1360, 924, "Agent loop · turn 7 of N",
+    d = canvas(1360, 924, "Agent loop · turn 7 of 11",
                "Intake builds context, the model selects tools, and outputs are verified. Failed verification loops back; successful results become the response. Memory is a separate read/write rail.",
                "Intake, tool use, verification, and persisted memory")
     for index in range(11):
-        fill = FAMILIES["green"]["line"] if index < 7 else FAMILIES["neutral"]["fill"]
+        family = "green" if index < 6 else "amber" if index == 6 else "neutral"
+        fill = FAMILIES[family]["line" if index < 7 else "fill"]
         d.raw(f'<rect x="{760 + index * 22}" y="25" width="16" height="14" '
               f'rx="3" fill="{fill}"/>')
-    text(d, 760, 56, "Each filled cell is a completed turn")
+    text(d, 760, 56, "6 complete · current turn in amber · 4 remaining")
     d.container(40, 96, 232, 420, "1 · Intake", "inputs to this turn")
     d.container(328, 96, 248, 420, "2 · Reasoning", "prepare and choose")
     d.container(632, 96, 300, 500, "3 · Tools", "one selected action")
@@ -58,7 +59,7 @@ def agent_loop():
         d.arrow((964, memory.cy), memory.left, color="green", dashed=True)
 
     response = d.node(60, 732, "Response", "answer + diff", family="green", w=192)
-    patch = d.node(356, 732, "Patch set", "verified changes", family="green", w=192)
+    patch = d.node(356, 732, "Accepted result", "checked output", family="green", w=192)
     verifier = d.node(660, 732, "Verifier", "diff + tests", family="amber", w=192)
     observation = d.node(1020, 732, "Observation", "tool output", family="amber", w=264)
     d.arrow((1152, 628), observation.top, label="observe", label_offset=12)

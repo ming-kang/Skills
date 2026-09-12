@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 924" width="1360" height="924" role="img">
-  <title>Agent loop · turn 7 of N</title>
+  <title>Agent loop · turn 7 of 11</title>
   <desc>Intake builds context, the model selects tools, and outputs are verified. Failed verification loops back; successful results become the response. Memory is a separate read/write rail.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
@@ -60,7 +60,7 @@
 <rect x="826" y="25" width="16" height="14" rx="3" fill="#1D9E75"/>
 <rect x="848" y="25" width="16" height="14" rx="3" fill="#1D9E75"/>
 <rect x="870" y="25" width="16" height="14" rx="3" fill="#1D9E75"/>
-<rect x="892" y="25" width="16" height="14" rx="3" fill="#1D9E75"/>
+<rect x="892" y="25" width="16" height="14" rx="3" fill="#EF9F27"/>
 <rect x="914" y="25" width="16" height="14" rx="3" fill="#F5F4ED"/>
 <rect x="936" y="25" width="16" height="14" rx="3" fill="#F5F4ED"/>
 <rect x="958" y="25" width="16" height="14" rx="3" fill="#F5F4ED"/>
@@ -113,15 +113,15 @@
   <text data-role="node-text" x="1152" y="425" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">code knowledge</text>
   <text data-role="node-text" x="156" y="752" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Response</text>
   <text data-role="node-text" x="156" y="769" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">answer + diff</text>
-  <text data-role="node-text" x="452" y="752" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Patch set</text>
-  <text data-role="node-text" x="452" y="769" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">verified changes</text>
+  <text data-role="node-text" x="452" y="752" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Accepted result</text>
+  <text data-role="node-text" x="452" y="769" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">checked output</text>
   <text data-role="node-text" x="756" y="752" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Verifier</text>
   <text data-role="node-text" x="756" y="769" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B">diff + tests</text>
   <text data-role="node-text" x="1152" y="752" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">Observation</text>
   <text data-role="node-text" x="1152" y="769" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B">tool output</text>
-<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Agent loop · turn 7 of N</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Agent loop · turn 7 of 11</text>
 <text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Intake, tool use, verification, and persisted memory</text>
-<text data-role="caption" x="760" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Each filled cell is a completed turn</text>
+<text data-role="caption" x="760" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">6 complete · current turn in amber · 4 remaining</text>
   <text data-role="arrow-label" x="464" y="248" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">prompt</text>
   <text data-role="arrow-label" x="464" y="360" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">action</text>
   <text data-role="arrow-label" x="1164" y="680" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">observe</text>

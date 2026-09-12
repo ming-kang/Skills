@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 316" width="520" height="316" role="img">
   <title>Comparison scaffold</title>
-  <desc>A two-by-two feature matrix with explicit favorable and limited verdicts.</desc>
+  <desc>A fictional two-by-two feature matrix with explicit yes and no labels.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -11,13 +11,13 @@
   </defs>
   <rect data-role="background" width="520" height="316" fill="#FFFFFF"/>
   <rect data-role="data-mark" x="172" y="124" width="144" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect data-role="data-mark" x="336" y="124" width="144" height="40" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <rect data-role="data-mark" x="172" y="180" width="144" height="40" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect data-role="data-mark" x="336" y="124" width="144" height="40" rx="6" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="data-mark" x="172" y="180" width="144" height="40" rx="6" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <rect data-role="data-mark" x="336" y="180" width="144" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text data-role="node-text" x="244" y="144" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Good</text>
-  <text data-role="node-text" x="408" y="144" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">Limited</text>
-  <text data-role="node-text" x="244" y="200" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">Limited</text>
-  <text data-role="node-text" x="408" y="200" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Good</text>
+  <text data-role="node-text" x="244" y="144" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Yes</text>
+  <text data-role="node-text" x="408" y="144" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">No</text>
+  <text data-role="node-text" x="244" y="200" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">No</text>
+  <text data-role="node-text" x="408" y="200" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Yes</text>
 <text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Comparison scaffold</text>
 <text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Keep the same scale across both options</text>
 <text data-role="caption" x="244" y="98" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Option A</text>
@@ -26,7 +26,7 @@
 <text data-role="caption" x="40" y="200" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Feature 2</text>
 <line x1="40" y1="252" x2="480" y2="252" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <rect x="40" y="270" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-<text data-role="legend-label" x="58" y="276" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Favorable</text>
-<rect x="144" y="270" width="12" height="12" rx="3" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-<text data-role="legend-label" x="162" y="276" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Limited</text>
+<text data-role="legend-label" x="58" y="276" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Supported</text>
+<rect x="144" y="270" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+<text data-role="legend-label" x="162" y="276" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Unavailable</text>
 </svg>

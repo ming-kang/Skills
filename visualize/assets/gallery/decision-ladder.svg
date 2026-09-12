@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 440" width="920" height="440" role="img">
-  <title>Tool permission decisions</title>
-  <desc>Ordered checks may allow, deny, or continue to the next check. The rails show final verdicts.</desc>
+  <title>Ordered policy checks</title>
+  <desc>Three illustrative policy groups are evaluated in order. A matching allow or deny exits the chain; no match continues. If no group matches, the explicit default is deny.</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -16,11 +16,10 @@
   <line data-role="connector" x1="352" y1="252" x2="352" y2="320" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="568" y1="196" x2="568" y2="128" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="568" y1="252" x2="568" y2="320" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line data-role="connector" x1="784" y1="196" x2="784" y2="128" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line data-role="connector" x1="784" y1="252" x2="784" y2="320" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="216" y1="224" x2="272" y2="224" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="432" y1="224" x2="488" y2="224" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <line data-role="connector" x1="648" y1="224" x2="704" y2="224" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="784" y1="252" x2="784" y2="320" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <rect data-role="node" x="40" y="96" width="840" height="32" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <rect data-role="node" x="40" y="320" width="840" height="32" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
   <rect data-role="node" x="56" y="196" width="160" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
@@ -29,35 +28,32 @@
   <circle data-role="node-part" cx="294" cy="224" r="11" fill="#F1EFE8" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <rect data-role="node" x="488" y="196" width="160" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <circle data-role="node-part" cx="510" cy="224" r="11" fill="#F1EFE8" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect data-role="node" x="704" y="196" width="160" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <circle data-role="node-part" cx="726" cy="224" r="11" fill="#F1EFE8" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <text data-role="node-text" x="460" y="112" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Execute</text>
-  <text data-role="node-text" x="460" y="336" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Blocked</text>
+  <rect data-role="node" x="704" y="196" width="160" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <text data-role="node-text" x="460" y="112" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Allow</text>
+  <text data-role="node-text" x="460" y="336" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Deny</text>
   <text data-role="node-text" x="78" y="224" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">1</text>
-  <text data-role="node-text" x="100" y="216" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Hooks</text>
-  <text data-role="node-text" x="100" y="233" dominant-baseline="central" font-size="12" fill="#3D3D3A">tool event</text>
+  <text data-role="node-text" x="100" y="216" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Group A</text>
+  <text data-role="node-text" x="100" y="233" dominant-baseline="central" font-size="12" fill="#3D3D3A">first check</text>
   <text data-role="node-text" x="294" y="224" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">2</text>
-  <text data-role="node-text" x="316" y="216" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Deny rules</text>
-  <text data-role="node-text" x="316" y="233" dominant-baseline="central" font-size="12" fill="#3D3D3A">policy match</text>
+  <text data-role="node-text" x="316" y="216" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Group B</text>
+  <text data-role="node-text" x="316" y="233" dominant-baseline="central" font-size="12" fill="#3D3D3A">second check</text>
   <text data-role="node-text" x="510" y="224" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">3</text>
-  <text data-role="node-text" x="532" y="216" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Allow rules</text>
-  <text data-role="node-text" x="532" y="233" dominant-baseline="central" font-size="12" fill="#3D3D3A">policy match</text>
-  <text data-role="node-text" x="726" y="224" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">4</text>
-  <text data-role="node-text" x="748" y="216" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">canUseTool</text>
-  <text data-role="node-text" x="748" y="233" dominant-baseline="central" font-size="12" fill="#3D3D3A">custom check</text>
-<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Tool permission decisions</text>
-<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">A final verdict exits the chain; otherwise continue to the next check</text>
+  <text data-role="node-text" x="532" y="216" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Group C</text>
+  <text data-role="node-text" x="532" y="233" dominant-baseline="central" font-size="12" fill="#3D3D3A">last check</text>
+  <text data-role="node-text" x="784" y="216" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Default</text>
+  <text data-role="node-text" x="784" y="233" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">no group matched</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">Ordered policy checks</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">A final verdict exits; no match continues to the next group</text>
   <text data-role="arrow-label" x="148" y="162" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">allow</text>
   <text data-role="arrow-label" x="148" y="286" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">deny</text>
   <text data-role="arrow-label" x="364" y="162" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">allow</text>
   <text data-role="arrow-label" x="364" y="286" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">deny</text>
   <text data-role="arrow-label" x="580" y="162" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">allow</text>
   <text data-role="arrow-label" x="580" y="286" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">deny</text>
-  <text data-role="arrow-label" x="796" y="162" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">allow</text>
-  <text data-role="arrow-label" x="796" y="286" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">deny</text>
   <text data-role="arrow-label" x="244" y="212" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">next</text>
   <text data-role="arrow-label" x="460" y="212" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">next</text>
   <text data-role="arrow-label" x="676" y="212" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">next</text>
+  <text data-role="arrow-label" x="796" y="286" text-anchor="start" dominant-baseline="central" font-size="12" fill="#3D3D3A">deny</text>
 <line x1="40" y1="376" x2="880" y2="376" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <rect x="40" y="394" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <text data-role="legend-label" x="58" y="400" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">Continue</text>

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 452" width="800" height="452" role="img">
-  <title>RAG、微调与提示工程</title>
-  <desc>比较三种方法的实现方式与主要取舍：RAG 检索知识，微调更新权重，提示工程组织指令与示例。</desc>
+  <title>请求处理：三种结果</title>
+  <desc>有效请求进入处理并返回成功；缺少必要信息时等待补充；格式错误时拒绝并说明原因。三行采用相同的布局和明确的状态标签。</desc>
   <style>text { font-family: 'Anthropic Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif; }</style>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -21,38 +21,40 @@
   <rect data-role="node" x="584" y="136" width="176" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <rect data-role="node" x="40" y="220" width="168" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <rect data-role="node" x="288" y="220" width="208" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect data-role="node" x="584" y="220" width="176" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect data-role="node" x="584" y="220" width="176" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
   <rect data-role="node" x="40" y="304" width="168" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <rect data-role="node" x="288" y="304" width="208" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <rect data-role="node" x="584" y="304" width="176" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <text data-role="node-text" x="124" y="156" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">RAG</text>
-  <text data-role="node-text" x="124" y="173" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">检索增强生成</text>
-  <text data-role="node-text" x="392" y="156" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">检索外部知识</text>
-  <text data-role="node-text" x="392" y="173" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">查询时拼接</text>
-  <text data-role="node-text" x="672" y="156" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">知识可更新</text>
-  <text data-role="node-text" x="672" y="173" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">无需重新训练</text>
-  <text data-role="node-text" x="124" y="240" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">微调</text>
-  <text data-role="node-text" x="124" y="257" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">Fine-tuning</text>
-  <text data-role="node-text" x="392" y="240" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">更新模型权重</text>
-  <text data-role="node-text" x="392" y="257" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">使用训练数据</text>
-  <text data-role="node-text" x="672" y="240" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">更新需要重训</text>
-  <text data-role="node-text" x="672" y="257" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">增加训练与维护成本</text>
-  <text data-role="node-text" x="124" y="324" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">提示工程</text>
-  <text data-role="node-text" x="124" y="341" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">Prompting</text>
-  <text data-role="node-text" x="392" y="324" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">加入指令与示例</text>
-  <text data-role="node-text" x="392" y="341" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">直接组织上下文</text>
-  <text data-role="node-text" x="672" y="324" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">受上下文长度限制</text>
-  <text data-role="node-text" x="672" y="341" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">需控制提示与示例</text>
-<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">RAG、微调与提示工程</text>
-<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">实现方式与主要取舍</text>
-<text data-role="caption" x="124" y="98" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">方法</text>
-<text data-role="caption" x="392" y="98" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">实现方式</text>
-<text data-role="caption" x="672" y="98" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">特点</text>
+  <text data-role="node-text" x="124" y="156" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">信息完整</text>
+  <text data-role="node-text" x="124" y="173" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">字段与格式有效</text>
+  <text data-role="node-text" x="392" y="156" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">执行业务逻辑</text>
+  <text data-role="node-text" x="392" y="173" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">写入合法数据</text>
+  <text data-role="node-text" x="672" y="156" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">处理成功</text>
+  <text data-role="node-text" x="672" y="173" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">返回确认结果</text>
+  <text data-role="node-text" x="124" y="240" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">缺少信息</text>
+  <text data-role="node-text" x="124" y="257" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">必要字段未填写</text>
+  <text data-role="node-text" x="392" y="240" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">等待补充</text>
+  <text data-role="node-text" x="392" y="257" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">标出缺失字段</text>
+  <text data-role="node-text" x="672" y="240" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806">待补充</text>
+  <text data-role="node-text" x="672" y="257" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B">补齐后可继续</text>
+  <text data-role="node-text" x="124" y="324" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">格式错误</text>
+  <text data-role="node-text" x="124" y="341" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">字段无法解析</text>
+  <text data-role="node-text" x="392" y="324" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">拒绝并说明</text>
+  <text data-role="node-text" x="392" y="341" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">返回错误位置</text>
+  <text data-role="node-text" x="672" y="324" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">处理失败</text>
+  <text data-role="node-text" x="672" y="341" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">修正后重新提交</text>
+<text data-role="diagram-title" x="40" y="32" text-anchor="start" dominant-baseline="central" font-size="16" font-weight="600" fill="#141413">请求处理：三种结果</text>
+<text data-role="caption" x="40" y="56" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">按请求情况选择处理动作，并给出明确结果</text>
+<text data-role="caption" x="124" y="98" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">请求情况</text>
+<text data-role="caption" x="392" y="98" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">处理动作</text>
+<text data-role="caption" x="672" y="98" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">结果</text>
 <line x1="40" y1="388" x2="760" y2="388" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
 <rect x="40" y="406" width="12" height="12" rx="3" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-<text data-role="legend-label" x="58" y="412" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">方法与机制</text>
+<text data-role="legend-label" x="58" y="412" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">情况与动作</text>
 <rect x="146" y="406" width="12" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-<text data-role="legend-label" x="164" y="412" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">优势</text>
-<rect x="214" y="406" width="12" height="12" rx="3" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-<text data-role="legend-label" x="232" y="412" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">局限</text>
+<text data-role="legend-label" x="164" y="412" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">成功</text>
+<rect x="214" y="406" width="12" height="12" rx="3" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+<text data-role="legend-label" x="232" y="412" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">待补充</text>
+<rect x="295" y="406" width="12" height="12" rx="3" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text data-role="legend-label" x="313" y="412" text-anchor="start" dominant-baseline="central" font-size="12" font-weight="400" fill="#3D3D3A">失败</text>
 </svg>

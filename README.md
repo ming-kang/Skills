@@ -14,7 +14,7 @@ npx skills add ming-kang/skills
 
 ### Visualize
 
-Visualize generates clean technical diagrams as self-contained SVG — architecture, flowchart, sequence, data flow, ER, network topology, and more. It includes 27 reference diagrams, skeletons, and samples; repository development tools live outside the distributable skill folder.
+Visualize generates clean technical diagrams as self-contained SVG — architecture, flowchart, sequence, data flow, ER, network topology, and more. It includes 33 reference diagrams, explanatory layouts, skeletons, and samples; repository development tools live outside the distributable skill folder.
 
 → [docs/README.visualize.md](docs/README.visualize.md)
 
