@@ -9,20 +9,20 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="680" height="636" fill="#FFFFFF"/>
-  <line x1="340" y1="264" x2="340" y2="196" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
-<path d="M176 464 L176 424 L504 424 L504 464" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="340" y1="424" x2="340" y2="382" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="236" y="96" width="208" height="100" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="background" width="680" height="636" fill="#FFFFFF"/>
+  <line data-role="connector" x1="340" y1="264" x2="340" y2="196" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M176 464 L176 424 L504 424 L504 464" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="340" y1="424" x2="340" y2="382" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect data-role="node" x="236" y="96" width="208" height="100" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <line x1="236" y1="144" x2="444" y2="144" stroke="#0F6E56" stroke-width="0.5"/>
   <line x1="236" y1="170" x2="444" y2="170" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="236" y="264" width="208" height="118" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="236" y="264" width="208" height="118" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <line x1="236" y1="294" x2="444" y2="294" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <line x1="236" y1="338" x2="444" y2="338" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="72" y="464" width="208" height="82" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="72" y="464" width="208" height="82" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <line x1="72" y1="494" x2="280" y2="494" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <line x1="72" y1="520" x2="280" y2="520" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="400" y="464" width="208" height="82" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="400" y="464" width="208" height="82" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <line x1="400" y1="494" x2="608" y2="494" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <line x1="400" y1="520" x2="608" y2="520" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <text data-role="node-text" x="340" y="109" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">&lt;&lt;interface&gt;&gt;</text>

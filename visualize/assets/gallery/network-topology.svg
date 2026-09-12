@@ -9,21 +9,21 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="720" height="664" fill="#FFFFFF"/>
+  <rect data-role="background" width="720" height="664" fill="#FFFFFF"/>
   <rect data-role="container" x="40" y="304" width="640" height="264" rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
   <text data-role="container-label" x="60" y="330" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">DMZ</text>
   <text data-role="container-label" x="60" y="348" dominant-baseline="central" font-size="12" fill="#3D3D3A">10.0.1.0/24</text>
-  <line x1="360" y1="152" x2="360" y2="208" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="360" y1="264" x2="360" y2="364" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M360 420 L360 450" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M198 450 L522 450" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="198" y1="450" x2="198" y2="476" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="522" y1="450" x2="522" y2="476" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="270" y="96" width="180" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="270" y="208" width="180" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <rect x="270" y="364" width="180" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="108" y="476" width="180" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="432" y="476" width="180" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <line data-role="connector" x1="360" y1="152" x2="360" y2="208" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="360" y1="264" x2="360" y2="364" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M360 420 L360 450" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M198 450 L522 450" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="198" y1="450" x2="198" y2="476" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="522" y1="450" x2="522" y2="476" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect data-role="node" x="270" y="96" width="180" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="270" y="208" width="180" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect data-role="node" x="270" y="364" width="180" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="108" y="476" width="180" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="432" y="476" width="180" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <text data-role="node-text" x="360" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Internet</text>
   <text data-role="node-text" x="360" y="133" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">public WAN</text>
   <text data-role="node-text" x="360" y="228" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#712B13">Firewall</text>

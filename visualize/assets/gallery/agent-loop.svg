@@ -9,7 +9,7 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="1360" height="924" fill="#FFFFFF"/>
+  <rect data-role="background" width="1360" height="924" fill="#FFFFFF"/>
   <rect data-role="container" x="40" y="96" width="232" height="420" rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
   <text data-role="container-label" x="60" y="122" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">1 · Intake</text>
   <text data-role="container-label" x="60" y="140" dominant-baseline="central" font-size="12" fill="#3D3D3A">inputs to this turn</text>
@@ -25,35 +25,35 @@
   <rect data-role="container" x="40" y="652" width="1280" height="184" rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
   <text data-role="container-label" x="60" y="678" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">4 · Verify and finalize</text>
   <text data-role="container-label" x="60" y="696" dominant-baseline="central" font-size="12" fill="#3D3D3A">accept or continue</text>
-<path d="M252 192 L300 192" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M252 300 L300 300" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M252 408 L300 408" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M300 192 L300 408" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="300" y1="192" x2="356" y2="192" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="452" y1="220" x2="452" y2="276" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="452" y1="332" x2="452" y2="388" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M548 416 L608 416" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M608 192 L608 512" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="608" y1="192" x2="660" y2="192" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M852 192 L908 192" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="608" y1="272" x2="660" y2="272" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M852 272 L908 272" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="608" y1="352" x2="660" y2="352" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M852 352 L908 352" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="608" y1="432" x2="660" y2="432" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M852 432 L908 432" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="608" y1="512" x2="660" y2="512" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M852 512 L908 512" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M908 192 L908 628 L1152 628" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M548 304 L592 304 L592 76 L964 76 L964 192 L1020 192" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-<path d="M964 192 L964 416" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 3"/>
-  <line x1="964" y1="304" x2="1020" y2="304" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
-  <line x1="964" y1="416" x2="1020" y2="416" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
-  <line x1="1152" y1="628" x2="1152" y2="732" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="1020" y1="760" x2="852" y2="760" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="660" y1="760" x2="548" y2="760" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="356" y1="760" x2="252" y2="760" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M756 732 L756 616 L312 616 L312 304 L356 304" fill="none" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M252 192 L300 192" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M252 300 L300 300" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M252 408 L300 408" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M300 192 L300 408" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="300" y1="192" x2="356" y2="192" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="452" y1="220" x2="452" y2="276" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="452" y1="332" x2="452" y2="388" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M548 416 L608 416" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M608 192 L608 512" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="608" y1="192" x2="660" y2="192" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M852 192 L908 192" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="608" y1="272" x2="660" y2="272" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M852 272 L908 272" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="608" y1="352" x2="660" y2="352" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M852 352 L908 352" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="608" y1="432" x2="660" y2="432" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M852 432 L908 432" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="608" y1="512" x2="660" y2="512" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M852 512 L908 512" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M908 192 L908 628 L1152 628" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path data-role="connector" d="M548 304 L592 304 L592 76 L964 76 L964 192 L1020 192" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M964 192 L964 416" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 3"/>
+  <line data-role="connector" x1="964" y1="304" x2="1020" y2="304" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="964" y1="416" x2="1020" y2="416" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="1152" y1="628" x2="1152" y2="732" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="1020" y1="760" x2="852" y2="760" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="660" y1="760" x2="548" y2="760" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="356" y1="760" x2="252" y2="760" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M756 732 L756 616 L312 616 L312 304 L356 304" fill="none" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="760" y="25" width="16" height="14" rx="3" fill="#1D9E75"/>
 <rect x="782" y="25" width="16" height="14" rx="3" fill="#1D9E75"/>
 <rect x="804" y="25" width="16" height="14" rx="3" fill="#1D9E75"/>
@@ -65,24 +65,24 @@
 <rect x="936" y="25" width="16" height="14" rx="3" fill="#F5F4ED"/>
 <rect x="958" y="25" width="16" height="14" rx="3" fill="#F5F4ED"/>
 <rect x="980" y="25" width="16" height="14" rx="3" fill="#F5F4ED"/>
-  <rect x="60" y="164" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="60" y="272" width="192" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="60" y="380" width="192" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="356" y="164" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="356" y="276" width="192" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <rect x="356" y="388" width="192" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <rect x="660" y="164" width="192" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="660" y="244" width="192" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="660" y="324" width="192" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="660" y="404" width="192" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="660" y="484" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="1020" y="164" width="264" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="1020" y="276" width="264" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="1020" y="388" width="264" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="60" y="732" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="356" y="732" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="660" y="732" width="192" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="1020" y="732" width="264" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect data-role="node" x="60" y="164" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="60" y="272" width="192" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="60" y="380" width="192" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="356" y="164" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="356" y="276" width="192" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <rect data-role="node" x="356" y="388" width="192" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <rect data-role="node" x="660" y="164" width="192" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="660" y="244" width="192" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect data-role="node" x="660" y="324" width="192" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect data-role="node" x="660" y="404" width="192" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="660" y="484" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="1020" y="164" width="264" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="1020" y="276" width="264" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="1020" y="388" width="264" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="60" y="732" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="356" y="732" width="192" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="660" y="732" width="192" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect data-role="node" x="1020" y="732" width="264" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
   <text data-role="node-text" x="156" y="184" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">User request</text>
   <text data-role="node-text" x="156" y="201" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">task + limits</text>
   <text data-role="node-text" x="156" y="292" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Session history</text>

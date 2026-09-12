@@ -742,7 +742,7 @@ class AdvancedGeometryAndStyleTests(unittest.TestCase):
             )
             self.assertEqual(result.status, "fail")
 
-    def test_stylesheet_marker_none_is_rejected(self) -> None:
+    def test_stylesheet_marker_none_overrides_the_presentation_attribute(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = write_svg(
                 Path(tmp),
@@ -753,8 +753,11 @@ class AdvancedGeometryAndStyleTests(unittest.TestCase):
                     'marker-end="url(#arrow)"/>'
                 ),
             )
-            result = result_named(Validator(path, no_color=True).collect(), "Checking marker contract")
-            self.assertEqual(result.status, "fail")
+            validator = Validator(path, no_color=True)
+            result = result_named(validator.collect(), "Checking marker contract")
+            self.assertEqual(result.status, "pass")
+            line = next(element for element in validator.root if element.tag.endswith("}line"))
+            self.assertFalse(validator.is_arrow(line))
 
     def test_nested_tspan_is_skipped_with_warning(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -950,7 +953,7 @@ class GeometryModuleTests(unittest.TestCase):
     """Verify the extracted geometry.py works as a standalone module."""
 
     def test_geometry_import_standalone(self) -> None:
-        from geometry import (
+        from validate_svg import (
             parse_path, path_bounds, Bounds, Point, polygons_intersect,
             segment_crosses_polygon, rect_outline, ellipse_outline,
         )
@@ -982,7 +985,9 @@ class GeometryModuleTests(unittest.TestCase):
         d.branch(center, leaf_below, family="terracotta")
         rendered = d.render()
         # Should have 3 bezier paths (the branches)
-        self.assertEqual(rendered.count("<path d=\"M "), 3)
+        branches = [element for element in ET.fromstring(rendered)
+                    if element.get("data-role") == "connector"]
+        self.assertEqual(len(branches), 3)
         # No markers on branches by default
         self.assertNotIn('marker-end=', rendered.split("<path")[1])
 

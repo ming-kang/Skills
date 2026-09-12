@@ -9,29 +9,29 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="760" height="640" fill="#FFFFFF"/>
+  <rect data-role="background" width="760" height="640" fill="#FFFFFF"/>
   <rect data-role="container" x="40" y="288" width="680" height="136" rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
   <text data-role="container-label" x="60" y="314" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Services</text>
-  <line x1="380" y1="152" x2="380" y2="208" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M380 264 L380 316" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M152 316 L608 316" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="152" y1="316" x2="152" y2="340" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="380" y1="316" x2="380" y2="340" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="608" y1="316" x2="608" y2="340" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M152 396 L152 448" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M380 396 L380 448" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M152 448 L380 448" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="266" y1="448" x2="266" y2="480" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="608" y1="396" x2="608" y2="480" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="292" y="96" width="176" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="292" y="208" width="176" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="64" y="340" width="176" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="292" y="340" width="176" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="520" y="340" width="176" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <path d="M 162 489 A 104 9 0 0 1 370 489 L 370 537 A 104 9 0 0 1 162 537 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <ellipse cx="266" cy="489" rx="104" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <path d="M 504 489 A 104 9 0 0 1 712 489 L 712 537 A 104 9 0 0 1 504 537 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <ellipse cx="608" cy="489" rx="104" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <line data-role="connector" x1="380" y1="152" x2="380" y2="208" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M380 264 L380 316" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M152 316 L608 316" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="152" y1="316" x2="152" y2="340" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="380" y1="316" x2="380" y2="340" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="608" y1="316" x2="608" y2="340" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M152 396 L152 448" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M380 396 L380 448" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M152 448 L380 448" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="266" y1="448" x2="266" y2="480" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="608" y1="396" x2="608" y2="480" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect data-role="node" x="292" y="96" width="176" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="292" y="208" width="176" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="64" y="340" width="176" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="292" y="340" width="176" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="520" y="340" width="176" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <path data-role="node" d="M 162 489 A 104 9 0 0 1 370 489 L 370 537 A 104 9 0 0 1 162 537 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <ellipse data-role="node-part" cx="266" cy="489" rx="104" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <path data-role="node" d="M 504 489 A 104 9 0 0 1 712 489 L 712 537 A 104 9 0 0 1 504 537 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <ellipse data-role="node-part" cx="608" cy="489" rx="104" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <text data-role="node-text" x="380" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Client</text>
   <text data-role="node-text" x="380" y="133" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">web + mobile</text>
   <text data-role="node-text" x="380" y="228" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">API gateway</text>

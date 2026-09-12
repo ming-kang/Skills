@@ -4,7 +4,8 @@
   "scripts": {
     "visualize:build": "python tools/visualize/build_gallery.py",
     "visualize:render": "node tools/visualize/render_gallery.mjs",
-    "visualize:test": "python tools/visualize/test_visualize.py",
+    "visualize:test": "python -B -m unittest discover -s tools/visualize -p test_*.py",
+    "visualize:validate": "python -B visualize/scripts/validate_svg.py --strict -q visualize/assets",
     "visualize:palette": "python tools/visualize/check_palette.py"
   },
   "engines": {

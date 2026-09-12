@@ -9,15 +9,15 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="760" height="272" fill="#FFFFFF"/>
-  <line x1="168" y1="148" x2="224" y2="148" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="352" y1="148" x2="408" y2="148" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="536" y1="148" x2="592" y2="148" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="40" y="120" width="128" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="224" y="120" width="128" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <path d="M 408 121 A 64 9 0 0 1 536 121 L 536 175 A 64 9 0 0 1 408 175 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <ellipse cx="472" cy="121" rx="64" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="592" y="120" width="128" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <rect data-role="background" width="760" height="272" fill="#FFFFFF"/>
+  <line data-role="connector" x1="168" y1="148" x2="224" y2="148" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="352" y1="148" x2="408" y2="148" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="536" y1="148" x2="592" y2="148" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect data-role="node" x="40" y="120" width="128" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="224" y="120" width="128" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <path data-role="node" d="M 408 121 A 64 9 0 0 1 536 121 L 536 175 A 64 9 0 0 1 408 175 Z" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <ellipse data-role="node-part" cx="472" cy="121" rx="64" ry="9" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="592" y="120" width="128" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
   <text data-role="node-text" x="104" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Kafka</text>
   <text data-role="node-text" x="104" y="157" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">event stream</text>
   <text data-role="node-text" x="288" y="140" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">Spark</text>

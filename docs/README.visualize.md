@@ -24,7 +24,7 @@ The agent identifies the diagram type, opens the matching reference from `assets
 
 Visualize writes SVG by default. The SVG is editable, scalable, and can be opened directly in a browser or embedded in documentation.
 
-When Python 3 is available, the skill uses the included `svgkit` helper to size boxes from their text, anchor arrows on box edges, and keep the SVG structure valid. If Python is not available, the agent can still write the SVG directly.
+When Python 3.10+ is available, the skill uses the included `svgkit` helper to size boxes from their text, anchor arrows on box edges, and keep the SVG structure valid. If Python is not available, the agent can still write the SVG directly.
 
 No dependencies are installed by this skill.
 
@@ -45,9 +45,12 @@ The same validator runs standalone over any SVG, including several at once:
 
 ```bash
 python3 visualize/scripts/validate_svg.py -q diagram.svg other.svg
+python3 visualize/scripts/validate_svg.py --strict --json ./diagrams
 ```
 
 `-q` / `--quiet` emits nothing when every file is clean. It prints only warnings and failures otherwise; warnings alone still exit 0, while any hard failure makes the multi-file command exit 1.
+
+Directories are searched recursively; quoted globs are accepted and duplicate paths are checked once. `--strict` also fails on warnings. `--json` reports each file's findings and a batch summary. Missing files, empty directories, and unmatched patterns fail. See [validation coverage and limits](../visualize/references/validation.md).
 
 Checks cover:
 
@@ -121,7 +124,7 @@ visualize/
 ├── scripts/
 │   ├── svgkit.py                    # Default zero-dependency SVG helper (self-checks on save)
 │   ├── validate_svg.py              # SVG quality validator
-│   └── geometry.py                  # Shared geometry implementation
+│   └── svg_runtime/                 # Shared style, geometry, CSS, and validation implementation
 └── assets/
     ├── gallery/                     # Reference diagrams by type
     └── samples/                     # Showcase examples
@@ -159,6 +162,7 @@ npm run visualize:build
 npm run visualize:render -- --output .artifacts/visualize/after --compare .artifacts/visualize/before
 npm run visualize:build -- --check
 npm run visualize:test
+npm run visualize:validate
 npm run visualize:palette
 git diff --check
 ```

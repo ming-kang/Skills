@@ -9,7 +9,7 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="800" height="504" fill="#FFFFFF"/>
+  <rect data-role="background" width="800" height="504" fill="#FFFFFF"/>
 <line x1="200" y1="112" x2="200" y2="368" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
 <line x1="288" y1="112" x2="288" y2="368" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
 <line x1="376" y1="112" x2="376" y2="368" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
@@ -18,12 +18,12 @@
 <line x1="640" y1="112" x2="640" y2="368" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
 <line x1="728" y1="112" x2="728" y2="368" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
 <line x1="40" y1="112" x2="760" y2="112" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="200" y="144" width="176" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="288" y="208" width="264" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="464" y="272" width="176" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="640" y="336" width="88" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <polygon points="376,400 384,408 376,416 368,408" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <polygon points="728,400 736,408 728,416 720,408" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect data-role="data-mark" x="200" y="144" width="176" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="data-mark" x="288" y="208" width="264" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="data-mark" x="464" y="272" width="176" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="data-mark" x="640" y="336" width="88" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <polygon data-role="node" points="376,400 384,408 376,416 368,408" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <polygon data-role="node" points="728,400 736,408 728,416 720,408" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
   <text data-role="node-text" x="288" y="158" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Prototype</text>
   <text data-role="node-text" x="420" y="222" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Build + integrate</text>
   <text data-role="node-text" x="552" y="286" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Verify</text>

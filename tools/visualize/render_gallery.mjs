@@ -128,9 +128,22 @@ try {
   const page = await context.newPage();
   for (const filename of files) {
     await page.goto(pathToFileURL(filename).href);
-    const size = await page.locator('svg').evaluate((svg) => {
+    const size = await page.locator(':root').evaluate((svg) => {
+      const viewBox = svg.viewBox.baseVal;
+      const fixedLength = (name) => {
+        if (!svg.hasAttribute(name)) return 0;
+        const length = svg[name].baseVal;
+        return length.unitType !== SVGLength.SVG_LENGTHTYPE_PERCENTAGE && length.value > 0
+          ? length.value : 0;
+      };
+      let width = fixedLength('width'), height = fixedLength('height');
+      if (viewBox.width > 0 && viewBox.height > 0) {
+        if (width && !height) height = width * viewBox.height / viewBox.width;
+        else if (height && !width) width = height * viewBox.width / viewBox.height;
+        else if (!width && !height) ({ width, height } = viewBox);
+      }
       const rect = svg.getBoundingClientRect();
-      return { width: Math.ceil(rect.width), height: Math.ceil(rect.height) };
+      return { width: Math.ceil(width || rect.width), height: Math.ceil(height || rect.height) };
     });
     await page.setViewportSize(size);
     await page.evaluate(() => document.fonts.ready);
@@ -138,7 +151,7 @@ try {
     const name = path.relative(assetDir, filename).split(path.sep).join('/');
     const png = `${name.slice(0, -4).replaceAll('/', '--')}.png`;
     const svg = png.replace(/\.png$/, '.svg');
-    await page.locator('svg').screenshot({ path: path.join(outputDir, png), animations: 'disabled' });
+    await page.locator(':root').screenshot({ path: path.join(outputDir, png), animations: 'disabled' });
     await writeFile(path.join(outputDir, svg), await readFile(filename));
     records.push({
       name, ...size, ...inspection, png, svg,

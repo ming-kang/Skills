@@ -9,11 +9,11 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="520" height="316" fill="#FFFFFF"/>
-  <rect x="172" y="124" width="144" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="336" y="124" width="144" height="40" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <rect x="172" y="180" width="144" height="40" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <rect x="336" y="180" width="144" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="background" width="520" height="316" fill="#FFFFFF"/>
+  <rect data-role="data-mark" x="172" y="124" width="144" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="data-mark" x="336" y="124" width="144" height="40" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect data-role="data-mark" x="172" y="180" width="144" height="40" rx="6" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect data-role="data-mark" x="336" y="180" width="144" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <text data-role="node-text" x="244" y="144" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56">Good</text>
   <text data-role="node-text" x="408" y="144" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">Limited</text>
   <text data-role="node-text" x="244" y="200" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#993C1D">Limited</text>

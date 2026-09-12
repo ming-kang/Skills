@@ -9,20 +9,20 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="900" height="636" fill="#FFFFFF"/>
+  <rect data-role="background" width="900" height="636" fill="#FFFFFF"/>
   <rect data-role="container" x="160" y="96" width="580" height="420" rx="14" fill="none" stroke="rgba(31,30,29,0.3)" stroke-width="0.5" stroke-dasharray="4 3"/>
   <text data-role="container-label" x="180" y="122" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">E-commerce system</text>
   <text data-role="container-label" x="180" y="140" dominant-baseline="central" font-size="12" fill="#3D3D3A">online store</text>
-<path d="M100 300 L128 300" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M128 206 L128 330" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="128" y1="206" x2="196" y2="206" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="128" y1="330" x2="196" y2="330" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M800 300 L772 300" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M772 206 L772 450" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="772" y1="206" x2="696" y2="206" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="772" y1="450" x2="696" y2="450" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="380" y1="330" x2="512" y2="330" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
-  <path d="M604 420 L604 392 L288 392 L288 360" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M100 300 L128 300" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M128 206 L128 330" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="128" y1="206" x2="196" y2="206" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="128" y1="330" x2="196" y2="330" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M800 300 L772 300" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M772 206 L772 450" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="772" y1="206" x2="696" y2="206" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="772" y1="450" x2="696" y2="450" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="380" y1="330" x2="512" y2="330" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M604 420 L604 392 L288 392 L288 360" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
   <g stroke="#73726C" stroke-width="1.5" fill="none" stroke-linecap="round">
     <circle cx="80" cy="276" r="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
     <line x1="80" y1="284" x2="80" y2="308"/>
@@ -37,11 +37,11 @@
     <line x1="820" y1="308" x2="812" y2="322"/>
     <line x1="820" y1="308" x2="828" y2="322"/>
   </g>
-  <ellipse cx="288" cy="206" rx="92" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <ellipse cx="288" cy="330" rx="92" ry="30" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <ellipse cx="604" cy="206" rx="92" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <ellipse cx="604" cy="330" rx="92" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <ellipse cx="604" cy="450" rx="92" ry="30" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <ellipse data-role="node" cx="288" cy="206" rx="92" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <ellipse data-role="node" cx="288" cy="330" rx="92" ry="30" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <ellipse data-role="node" cx="604" cy="206" rx="92" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <ellipse data-role="node" cx="604" cy="330" rx="92" ry="30" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <ellipse data-role="node" cx="604" cy="450" rx="92" ry="30" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
   <text data-role="node-text" x="80" y="336" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Customer</text>
   <text data-role="node-text" x="820" y="336" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Admin</text>
   <text data-role="node-text" x="288" y="206" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Browse products</text>

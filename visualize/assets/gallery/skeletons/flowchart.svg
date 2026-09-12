@@ -9,17 +9,17 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="560" height="560" fill="#FFFFFF"/>
-  <line x1="264" y1="128" x2="264" y2="184" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="264" y1="240" x2="264" y2="296" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M192 336 L144 336 L144 432" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M336 336 L416 336 L416 432" fill="none" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M496 452 L520 452 L520 212 L344 212" fill="none" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="184" y="88" width="160" height="40" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="184" y="184" width="160" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <polygon points="264,296 336,336 264,376 192,336" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="64" y="432" width="160" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="336" y="432" width="160" height="40" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect data-role="background" width="560" height="560" fill="#FFFFFF"/>
+  <line data-role="connector" x1="264" y1="128" x2="264" y2="184" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="264" y1="240" x2="264" y2="296" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M192 336 L144 336 L144 432" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M336 336 L416 336 L416 432" fill="none" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M496 452 L520 452 L520 212 L344 212" fill="none" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect data-role="node" x="184" y="88" width="160" height="40" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="184" y="184" width="160" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <polygon data-role="node" points="264,296 336,336 264,376 192,336" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect data-role="node" x="64" y="432" width="160" height="40" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="336" y="432" width="160" height="40" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
   <text data-role="node-text" x="264" y="108" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Start</text>
   <text data-role="node-text" x="264" y="204" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Process</text>
   <text data-role="node-text" x="264" y="221" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">do work</text>

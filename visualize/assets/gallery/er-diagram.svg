@@ -9,19 +9,19 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="760" height="440" fill="#FFFFFF"/>
-  <path d="M128 186 L128 298 L192 298" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M312 298 L350 298 L350 186" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M410 186 L410 298 L448 298" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M584 298 L632 298 L632 186" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="40" y="96" width="176" height="90" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="background" width="760" height="440" fill="#FFFFFF"/>
+  <path data-role="connector" d="M128 186 L128 298 L192 298" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M312 298 L350 298 L350 186" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M410 186 L410 298 L448 298" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M584 298 L632 298 L632 186" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect data-role="node" x="40" y="96" width="176" height="90" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <line x1="40" y1="124" x2="216" y2="124" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="292" y="96" width="176" height="90" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="292" y="96" width="176" height="90" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <line x1="292" y1="124" x2="468" y2="124" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="544" y="96" width="176" height="90" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="544" y="96" width="176" height="90" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <line x1="544" y1="124" x2="720" y2="124" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <polygon points="252,260 312,298 252,336 192,298" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <polygon points="516,260 584,298 516,336 448,298" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <polygon data-role="node" points="252,260 312,298 252,336 192,298" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <polygon data-role="node" points="516,260 584,298 516,336 448,298" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
   <text data-role="node-text" x="128" y="110" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041">User</text>
   <text data-role="node-text" x="52" y="138" dominant-baseline="central" font-size="12" fill="#0F6E56">id (PK)</text>
   <text data-role="node-text" x="52" y="156" dominant-baseline="central" font-size="12" fill="#0F6E56">email</text>

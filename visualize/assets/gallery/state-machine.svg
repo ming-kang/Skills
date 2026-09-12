@@ -9,19 +9,19 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="720" height="632" fill="#FFFFFF"/>
-  <line x1="88" y1="124" x2="144" y2="124" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="312" y1="124" x2="424" y2="124" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="532" y1="152" x2="532" y2="220" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M444 264 L240 264 L240 380" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="532" y1="308" x2="532" y2="380" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="240" y1="436" x2="240" y2="520" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect data-role="background" width="720" height="632" fill="#FFFFFF"/>
+  <line data-role="connector" x1="88" y1="124" x2="144" y2="124" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="312" y1="124" x2="424" y2="124" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="532" y1="152" x2="532" y2="220" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path data-role="connector" d="M444 264 L240 264 L240 380" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="532" y1="308" x2="532" y2="380" stroke="#C75B38" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="240" y1="436" x2="240" y2="520" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <circle cx="80" cy="124" r="8" fill="#141413"/>
-  <rect x="144" y="96" width="168" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="424" y="96" width="216" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <polygon points="532,220 620,264 532,308 444,264" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <rect x="156" y="380" width="168" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="448" y="380" width="168" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <rect data-role="node" x="144" y="96" width="168" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="424" y="96" width="216" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <polygon data-role="node" points="532,220 620,264 532,308 444,264" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <rect data-role="node" x="156" y="380" width="168" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="448" y="380" width="168" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
   <circle cx="240" cy="532" r="12" fill="none" stroke="#141413" stroke-width="1.5"/>
   <circle cx="240" cy="532" r="8" fill="#141413"/>
   <text data-role="node-text" x="228" y="116" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Idle</text>

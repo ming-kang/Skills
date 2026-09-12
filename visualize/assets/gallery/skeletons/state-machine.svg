@@ -9,11 +9,11 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="520" height="208" fill="#FFFFFF"/>
-  <line x1="72" y1="132" x2="180" y2="132" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="340" y1="132" x2="444" y2="132" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect data-role="background" width="520" height="208" fill="#FFFFFF"/>
+  <line data-role="connector" x1="72" y1="132" x2="180" y2="132" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="340" y1="132" x2="444" y2="132" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
   <circle cx="64" cy="132" r="8" fill="#141413"/>
-  <rect x="180" y="104" width="160" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="180" y="104" width="160" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
   <circle cx="456" cy="132" r="12" fill="none" stroke="#141413" stroke-width="1.5"/>
   <circle cx="456" cy="132" r="8" fill="#141413"/>
   <text data-role="node-text" x="260" y="124" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Active</text>

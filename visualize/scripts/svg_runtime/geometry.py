@@ -143,6 +143,8 @@ def parse_path(d: str | None) -> PathData:
     """
     if not d:
         return PathData([], {}, set())
+    if re.sub(_PATH_TOKEN_RE, "", d).strip(" ,\t\r\n"):
+        raise ValueError("path contains unknown commands or invalid numbers")
     tokens = _PATH_TOKEN_RE.findall(d.replace(",", " "))
     if not tokens:
         return PathData([], {}, set())
@@ -163,6 +165,8 @@ def parse_path(d: str | None) -> PathData:
         if index + count > len(tokens) or any(_is_command(t) for t in tokens[index:index + count]):
             raise ValueError(f"path command {command!r} is missing parameters")
         values = [float(t) for t in tokens[index:index + count]]
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError("path coordinates must be finite")
         index += count
         return values
 

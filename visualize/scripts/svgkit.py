@@ -26,11 +26,11 @@ Standard library only. No third-party packages, ever.
 Quick start
 -----------
 >>> from svgkit import Diagram
->>> d = Diagram(680, 220, title="RAG pipeline", desc="Query to grounded answer.")
->>> q = d.node(40, 90, "Query", "user question")
->>> r = d.node(d.right_of(q, 60), 90, "Retriever", "top-k", family="green")
->>> d.arrow(q.right, r.left, label="embed")
->>> d.save("rag.svg")
+>>> d = Diagram(680, 220, title="Import records", desc="A parser reads an uploaded file.")
+>>> source = d.node(40, 90, "File", "uploaded records")
+>>> parser = d.node(d.right_of(source, 80), 90, "Parser", "read records", family="green")
+>>> d.arrow(source.right, parser.left, label="bytes")
+>>> d.save("import-records.svg")
 """
 
 from __future__ import annotations
@@ -39,7 +39,6 @@ import hashlib
 import importlib.util
 import math
 import sys
-import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -111,24 +110,37 @@ def _load_validator_module() -> ModuleType:
 # Keep them byte-for-byte in sync with that file.
 # --------------------------------------------------------------------------- #
 
-FAMILIES: dict[str, dict[str, str]] = {
-    # meaning            FILL       STROKE                 TITLE      SUB        LINE
-    "neutral":   dict(fill="#F5F4ED", stroke="rgba(31,30,29,0.3)", title="#141413", sub="#3D3D3A", line="#73726C"),
-    "green":     dict(fill="#E1F5EE", stroke="#0F6E56",            title="#085041", sub="#0F6E56", line="#1D9E75"),
-    "purple":    dict(fill="#EEEDFE", stroke="#534AB7",            title="#3C3489", sub="#534AB7", line="#7F77DD"),
-    "terracotta":dict(fill="#FAECE7", stroke="#993C1D",            title="#712B13", sub="#993C1D", line="#C75B38"),
-    "amber":     dict(fill="#FAEEDA", stroke="#854F0B",            title="#633806", sub="#854F0B", line="#EF9F27"),
-}
+def _runtime_module(name: str):
+    """Load this copy of the runtime without trusting caller-specific sys.path."""
+    directory = Path(__file__).resolve().parent / "svg_runtime"
+    digest = hashlib.sha256(str(directory).encode("utf-8")).hexdigest()[:16]
+    package_name = f"_visualize_runtime_{digest}"
+    if package_name not in sys.modules:
+        spec = importlib.util.spec_from_file_location(
+            package_name, directory / "__init__.py",
+            submodule_search_locations=[str(directory)],
+        )
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load SVG runtime from {directory}")
+        package = importlib.util.module_from_spec(spec)
+        sys.modules[package_name] = package
+        try:
+            spec.loader.exec_module(package)
+        except Exception:
+            sys.modules.pop(package_name, None)
+            raise
+    return importlib.import_module(f"{package_name}.{name}")
 
-BG = "#FFFFFF"
-NEUTRAL_LINE = FAMILIES["neutral"]["line"]
-CAPTION = "#3D3D3A"
-CONTAINER_TITLE = "#141413"
-CONTAINER_SUB = "#3D3D3A"
-
-FONT_STACK = ("'Anthropic Sans', -apple-system, BlinkMacSystemFont, "
-              "'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', "
-              "'Noto Sans CJK SC', sans-serif")
+_style = _runtime_module("style")
+FAMILIES = _style.FAMILIES
+BG = _style.BG
+NEUTRAL_LINE = _style.NEUTRAL_LINE
+CAPTION = _style.CAPTION
+CONTAINER_TITLE = _style.CONTAINER_TITLE
+CONTAINER_SUB = _style.CONTAINER_SUB
+FONT_STACK = _style.FONT_STACK
+text_width = _style.text_width
+box_width = _style.box_width
 
 # The one marker. The open chevron recolors itself per line via context-stroke.
 _MARKER = (
@@ -150,39 +162,6 @@ _LAYERS = ("containers", "arrows", "plates", "boxes", "box_text", "labels", "leg
 _DASH = ' stroke-dasharray="4 3"'
 
 Point = tuple[float, float]
-
-
-# --------------------------------------------------------------------------- #
-# The boring math, done in code
-# --------------------------------------------------------------------------- #
-
-def _is_wide(ch: str) -> bool:
-    """True for CJK / full-width glyphs (~2x the width of a Latin letter)."""
-    return unicodedata.east_asian_width(ch) in ("W", "F")
-
-
-def text_width(s: str, size: int = 14) -> float:
-    """Estimate rendered width of ``s`` in px at the given font ``size``.
-
-    Latin / digit / punctuation ~= 8px and CJK ~= 15px at the 14px title size;
-    both scale linearly with size (so ~7 / ~13 at 12px). The estimate errs wide
-    on purpose so text never clips.
-    """
-    latin = size * 8 / 14
-    wide = size * 15 / 14
-    return sum(wide if _is_wide(ch) else latin for ch in s)
-
-
-def box_width(*lines: str | None, sizes: tuple[int, ...] = (14, 12)) -> int:
-    """Width that fits every line: max(line widths) + 32, min 120, rounded up to x4."""
-    widest = 0.0
-    for i, line in enumerate(lines):
-        if not line:
-            continue
-        size = sizes[i] if i < len(sizes) else sizes[-1]
-        widest = max(widest, text_width(line, size))
-    raw = max(widest + 32, 120)
-    return int(math.ceil(raw / 4) * 4)
 
 
 def _esc(s: str) -> str:
@@ -362,7 +341,7 @@ class Diagram:
                 h = 56 if sub else 40
         cx = x + w / 2
         self._layers["boxes"].append(
-            f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
+            f'  <rect data-role="node" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
         if lines is not None:
@@ -413,13 +392,16 @@ class Diagram:
         """
         fam = FAMILIES[family]
         if hw is None:
-            hw = max(text_width(title, 14) / 2 + 16, 50)
+            if title and hh <= 10:
+                raise ValueError("diamond height is too small for a 14px label")
+            available = 1 - 8.75 / hh if title else 1
+            hw = max(math.ceil((text_width(title, 14) / 2 + 16) / available), 50)
         cx, cy = x + hw, y + hh
         w, h = hw * 2, hh * 2
         pts = f"{snap(cx)},{snap(cy - hh)} {snap(cx + hw)},{snap(cy)} " \
               f"{snap(cx)},{snap(cy + hh)} {snap(cx - hw)},{snap(cy)}"
         self._layers["boxes"].append(
-            f'  <polygon points="{pts}" fill="{fam["fill"]}" stroke="{fam["stroke"]}" '
+            f'  <polygon data-role="node" points="{pts}" fill="{fam["fill"]}" stroke="{fam["stroke"]}" '
             f'stroke-width="0.5"/>'
         )
         self._layers["box_text"].append(
@@ -445,7 +427,7 @@ class Diagram:
         rx, ry = w / 2, h / 2
         cx, cy = x + rx, y + ry
         self._layers["boxes"].append(
-            f'  <ellipse cx="{snap(cx)}" cy="{snap(cy)}" rx="{snap(rx)}" ry="{snap(ry)}" '
+            f'  <ellipse data-role="node" cx="{snap(cx)}" cy="{snap(cy)}" rx="{snap(rx)}" ry="{snap(ry)}" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
         self._layers["box_text"].append(
@@ -508,13 +490,13 @@ class Diagram:
         top = y + ry
         body_h = h
         self._layers["boxes"].append(
-            f'  <path d="M {snap(x)} {snap(top)} A {snap(rx)} {snap(ry)} 0 0 1 {snap(x + w)} '
+            f'  <path data-role="node" d="M {snap(x)} {snap(top)} A {snap(rx)} {snap(ry)} 0 0 1 {snap(x + w)} '
             f'{snap(top)} L {snap(x + w)} {snap(top + body_h)} A {snap(rx)} {snap(ry)} 0 0 1 '
             f'{snap(x)} {snap(top + body_h)} Z" fill="{fam["fill"]}" stroke="{fam["stroke"]}" '
             f'stroke-width="0.5"/>'
         )
         self._layers["boxes"].append(
-            f'  <ellipse cx="{snap(cx)}" cy="{snap(top)}" rx="{snap(rx)}" ry="{snap(ry)}" '
+            f'  <ellipse data-role="node-part" cx="{snap(cx)}" cy="{snap(top)}" rx="{snap(rx)}" ry="{snap(ry)}" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
         total_h = body_h + ry * 2
@@ -578,7 +560,7 @@ class Diagram:
             w = max(box_width(name), max((box_width(a, sizes=(12,)) for a in attrs), default=120))
         h = header_h + len(attrs) * line_h + 8
         self._layers["boxes"].append(
-            f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
+            f'  <rect data-role="node" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
         self._layers["boxes"].append(
@@ -631,7 +613,7 @@ class Diagram:
             cand.extend(box_width(m, sizes=(12,)) for m in methods)
             w = max(cand)
         self._layers["boxes"].append(
-            f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
+            f'  <rect data-role="node" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
         self._layers["boxes"].append(
@@ -695,12 +677,12 @@ class Diagram:
                           text_width(sub, 12) if sub else 0)
             w = max(int(math.ceil((content + 60) / 4) * 4), 150)  # 44 badge + 16 pad
         self._layers["boxes"].append(
-            f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
+            f'  <rect data-role="node" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="8" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
         bx, by = x + 22, y + h / 2
         self._layers["boxes"].append(
-            f'  <circle cx="{snap(bx)}" cy="{snap(by)}" r="11" fill="#F1EFE8" '
+            f'  <circle data-role="node-part" cx="{snap(bx)}" cy="{snap(by)}" r="11" fill="#F1EFE8" '
             f'stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
         self._layers["box_text"].append(
@@ -738,7 +720,7 @@ class Diagram:
         """
         fam = FAMILIES[family]
         self._layers["boxes"].append(
-            f'  <rect x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="6" '
+            f'  <rect data-role="data-mark" x="{snap(x)}" y="{snap(y)}" width="{snap(w)}" height="{snap(h)}" rx="6" '
             f'fill="{fam["fill"]}" stroke="{fam["stroke"]}" stroke-width="0.5"/>'
         )
         self._layers["box_text"].append(
@@ -1064,7 +1046,7 @@ class Diagram:
         out.append(f'  <desc>{_esc(self.desc)}</desc>')
         out.append(f'  <style>text {{ font-family: {FONT_STACK}; }}</style>')
         out.append(_MARKER)
-        out.append(f'  <rect width="{w}" height="{h}" fill="{BG}"/>')
+        out.append(f'  <rect data-role="background" width="{w}" height="{h}" fill="{BG}"/>')
         role_by_layer = {
             "containers": "container-label",
             "box_text": "node-text",
@@ -1074,6 +1056,9 @@ class Diagram:
         for name in _LAYERS:
             role = role_by_layer.get(name)
             for fragment in self._layers[name]:
+                if name == "arrows":
+                    for tag in ("line", "polyline", "path"):
+                        fragment = _ensure_data_role(fragment, tag, "connector")
                 out.append(_ensure_data_role(fragment, "text", role) if role else fragment)
         out.append('</svg>')
         return "\n".join(out) + "\n"

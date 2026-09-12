@@ -9,25 +9,25 @@
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="1000" height="528" fill="#FFFFFF"/>
-  <line x1="176" y1="256" x2="240" y2="256" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M432 256 L472 256" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M472 148 L472 364" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="472" y1="148" x2="512" y2="148" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M696 148 L752 148" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="472" y1="364" x2="512" y2="364" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M696 364 L752 364" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M752 148 L752 364" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="752" y1="256" x2="800" y2="256" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <line x1="880" y1="284" x2="880" y2="384" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <rect x="40" y="228" width="136" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="240" y="228" width="192" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <path d="M 512 121 A 92 9 0 0 1 696 121 L 696 175 A 92 9 0 0 1 512 175 Z" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <ellipse cx="604" cy="121" rx="92" ry="9" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <path d="M 512 337 A 92 9 0 0 1 696 337 L 696 391 A 92 9 0 0 1 512 391 Z" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <ellipse cx="604" cy="337" rx="92" ry="9" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
-  <rect x="800" y="228" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <rect x="800" y="384" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="background" width="1000" height="528" fill="#FFFFFF"/>
+  <line data-role="connector" x1="176" y1="256" x2="240" y2="256" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M432 256 L472 256" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M472 148 L472 364" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="472" y1="148" x2="512" y2="148" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M696 148 L752 148" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="472" y1="364" x2="512" y2="364" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M696 364 L752 364" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path data-role="connector" d="M752 148 L752 364" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line data-role="connector" x1="752" y1="256" x2="800" y2="256" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <line data-role="connector" x1="880" y1="284" x2="880" y2="384" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <rect data-role="node" x="40" y="228" width="136" height="56" rx="8" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="240" y="228" width="192" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <path data-role="node" d="M 512 121 A 92 9 0 0 1 696 121 L 696 175 A 92 9 0 0 1 512 175 Z" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <ellipse data-role="node-part" cx="604" cy="121" rx="92" ry="9" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <path data-role="node" d="M 512 337 A 92 9 0 0 1 696 337 L 696 391 A 92 9 0 0 1 512 391 Z" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <ellipse data-role="node-part" cx="604" cy="337" rx="92" ry="9" fill="#F5F4ED" stroke="rgba(31,30,29,0.3)" stroke-width="0.5"/>
+  <rect data-role="node" x="800" y="228" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <rect data-role="node" x="800" y="384" width="160" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
   <text data-role="node-text" x="108" y="248" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#141413">Input</text>
   <text data-role="node-text" x="108" y="265" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3D3D3A">new message</text>
   <text data-role="node-text" x="336" y="248" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489">Memory manager</text>
