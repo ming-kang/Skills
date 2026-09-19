@@ -1,6 +1,6 @@
 # PPTD Format Specification
 
-PPTD (PPT-DSL) is a YAML abstraction layer for PowerPoint presentations, used to describe, generate, and edit slides in an AI-friendly way, with lossless bidirectional conversion to and from PPTX
+PPTD (PPT-DSL) is a YAML abstraction layer for PowerPoint presentations, used to describe, generate, and edit slides in an AI-friendly way, and exported one-way to PPTX (this skill ships no PPTX reader)
 
 ---
 
@@ -155,7 +155,7 @@ project/
    - Image paths in `.page`: `media/image1.jpg`
 3. **Media supports URLs**: `Image.src`, and the [ImageFill](#fill).src of `background` / `fill`, may be `https://...` (only jpg/jpeg/png/gif supported)
 
-**Main entry is required:** everything must be loaded through the `.pptd` main entry file; a `.page` cannot be passed alone to the `convert`/`check` commands
+**Main entry is required:** everything must be loaded through the `.pptd` main entry file; a `.page` cannot be passed alone to `scripts/export_pptx.py` or `scripts/export_images.py`
 
 ---
 

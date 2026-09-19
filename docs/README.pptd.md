@@ -28,12 +28,12 @@ Just describe what you want to the agent. Both deliverables are produced unless 
 Make an 8-page deck introducing the Xiaomi YU7, use photos as backgrounds, find the material online.
 Make an iPhone 17 Pro intro deck using the pine-green-strategy theme.
 Replicate this PDF report into a pptd deck, 1:1 as close as possible.
-Convert this .pptx to pptd and fix the section divider pages.
+Open my deck.pptd project and redo the section divider pages.
 ```
 
 Prompt tips for stable quality:
 
-- Name a style (e.g. "dark tech launch style", "editorial magazine layout"), a preset theme, or attach a reference PPTX — the agent then works against concrete constraints instead of guessing.
+- Name a style (e.g. "dark tech launch style", "editorial magazine layout"), a preset theme, or attach a reference PDF / page images — the agent then works against concrete constraints instead of guessing.
 - Say "with element entrance animations" if the deck is for live presentation; they are off by default.
 - Page count, language, and audience are all worth stating up front.
 
@@ -56,7 +56,7 @@ deck/
 - **PPTX fidelity**: text boxes and shapes stay editable in PowerPoint / WPS / Keynote. Font embedding is applied on the browser export path; the default WASM path prioritizes reliability.
 - **Transitions**: every slide gets a fade page transition by default (separate from per-element animations).
 - **Visual QA**: before exporting, a multimodal model renders every page, stitches an overview image, and checks distortion, occlusion, out-of-bounds elements, contrast, alignment, and text overflow — fixing pages until they pass.
-- **Round-trip**: existing PPTX files can be converted to PPTD for editing.
+- **Export is one-way**: PPTD → PPTX only. There is no PPTX reader — to work from an existing `.pptx`, export it to PDF or page images and let the agent replicate those pages as PPTD.
 
 ## The Local Editor
 

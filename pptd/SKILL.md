@@ -1,6 +1,6 @@
 ---
 name: pptd
-description: "Create, edit, and export presentations as PPTD projects and .pptx files. Use whenever a slide deck, PowerPoint, PPT/PPTX, infographic, or poster is involved — created from a topic or document, replicated from images or PDF, edited from an existing .pptx, or exported. Default deliverables are BOTH a self-contained PPTD project folder and a locally generated .pptx with fade slide transitions."
+description: "Create, edit, and export presentations as PPTD projects and .pptx files. Use whenever a slide deck, PowerPoint, PPT/PPTX, infographic, or poster is involved — created from a topic or document, replicated from images or PDF, edited from an existing PPTD project, or exported. Default deliverables are BOTH a self-contained PPTD project folder and a locally generated .pptx with fade slide transitions."
 ---
 
 # Definition
@@ -13,7 +13,7 @@ Paths below are relative to this skill folder. Resolve the installed folder befo
 1. the complete editable PPTD project directory (`.pptd` + `pages/` + `media/` and other referenced dependencies);
 2. the matching locally generated `.pptx`, with fade slide transitions applied by default. Font embedding is only available on the optional `--browser` export path (see step5); do not describe the default WASM export as having embedded fonts.
 
-Existing PPTX files may also be converted into PPTD for editing, after which both outputs are delivered again.
+**PPTX import is not supported.** The exporter is one-way (PPTD → PPTX); this skill ships no pptx reader. To work from an existing `.pptx`, ask the user to export it to PDF or page images first, then rebuild it through the replicate path (see step3).
 
 ## The pptd format
 The .pptd format is a simplified abstraction layer over OOXML that follows basic YAML syntax. This abstraction preserves the core content of OOXML (theme, page layout, element positions and definitions, etc.) while removing complex nesting logic such as Masters; every page is self-contained — what you see is what you get. Read references/pptd.md for the complete definition of this DSL.
@@ -35,8 +35,8 @@ Read **all files uploaded by the user**, the provided URLs, and the pptd format 
 Understand the user's requirements based on the context:
 1. First determine the purpose of the request
   - Create a PPT: create a new presentation (from scratch, or from an existing pptx template)
-  - Edit a PPT: edit the user's uploaded PPT (local modifications, single-page beautification, etc.)
-  - Replicate a PPT: replicate a presentation from a non-pptx format (images, PDF, etc.) into pptd format
+  - Edit a PPT: edit an existing PPTD project (local modifications, single-page beautification, etc.)
+  - Replicate a PPT: replicate a presentation from a non-pptd format (images, PDF, etc.) into pptd format — this is also the only route for an existing `.pptx`
 
 2. Then determine the design direction
   - Self-directed design: no preference, or only simple style constraints given; you need to fill in or create the design
@@ -77,10 +77,9 @@ Before generating, first read `references/pptd.md` to understand the pptd format
 - Replicate simple content in the image with elements; icons may be approximated with icons provided by Font Awesome. For content that cannot be approximated with icons or shapes, such as photos and avatars, use tools such as bash or python to crop and split the original image, then add the resulting image elements to the presentation
 
 #### Editing a PPT
-- Convert the user's uploaded pptx file to .pptd format
-- Review the converted pages (structure and key visual details). Read a few key pages individually afterwards.
+- Editing applies to an existing PPTD project. Review it first (the `.pptd` manifest, the page structure, and key visual details), then read a few key pages individually.
 - Locate the pages to edit, and be careful not to affect parts outside the intended scope.
-> Conversion from pptx to pptd is not perfectly lossless. If the user later reports format errors, garbled content, etc., compare against the original pptx and repair the pptd with reference to the comparison
+> A `.pptx` cannot be imported. When the user uploads one and asks for edits, say so plainly and offer the replicate path: they export the deck to PDF or page images, and you rebuild those pages as PPTD.
 
 #### Generating a PPT
 When generating a PPT, adopt different production approaches for different user [design directions]
@@ -98,8 +97,8 @@ When generating a PPT, adopt different production approaches for different user 
 4. Do not auto-pick a preset during self-directed design; only use `references/design_system/` when a preset is explicitly specified
 
 ##### Using a template
-1. Convert the user's uploaded pptx file into pptd form
-2. Review the converted pages to understand the template's visual style (color scheme, font style, element characteristics, layout characteristics, content density, etc.)
+1. Accept the template as an existing PPTD project, or as images / PDF of the template deck. A `.pptx` template cannot be imported — ask the user to export it to PDF or page images first, then treat those pages as the reference
+2. Review the template pages to understand the template's visual style (color scheme, font style, element characteristics, layout characteristics, content density, etc.)
 3. Identify page types; focus on reading special pages such as the cover, summary pages, and section dividers (single-page screenshots, .page files), extracting their page layouts, content structures, reusable components (icons, shapes, smartart, reusable body layout schemes, etc.), and element styles (e.g., whitespace/line/card separators, square/rounded corners, etc.)
 4. Produce the presentation using the template
 
