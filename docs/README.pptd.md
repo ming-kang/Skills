@@ -3,7 +3,7 @@
 PPT Design is an unofficial agent Skill for creating, editing, replicating, reading, and exporting presentations. For every task it delivers **two artifacts by default**:
 
 1. a self-contained, editable **PPTD project** (a YAML-based intermediate format over OOXML — every page is self-contained);
-2. the matching **.pptx**, with embedded fonts and a fade slide transition.
+2. the matching **.pptx**, with a fade slide transition on every slide.
 
 It ships an offline local browser editor (a patched mirror of the Kimi neo-ppt frontend) plus a local WASM PPTX writer, so creation, editing, QA, and export all run without any cloud service. Works with any agent that supports SKILL.md skills — Claude Code, Codex, Cursor, WorkBuddy, and others.
 

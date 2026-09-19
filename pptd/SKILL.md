@@ -11,7 +11,7 @@ Paths below are relative to this skill folder. Resolve the installed folder befo
 **The default output is not PPTD-only.** Unless the user explicitly opts out, always produce both:
 
 1. the complete editable PPTD project directory (`.pptd` + `pages/` + `media/` and other referenced dependencies);
-2. the matching locally generated `.pptx`, with font embedding enabled and fade slide transitions applied by default.
+2. the matching locally generated `.pptx`, with fade slide transitions applied by default. Font embedding is only available on the optional `--browser` export path (see step5); do not describe the default WASM export as having embedded fonts.
 
 Existing PPTX files may also be converted into PPTD for editing, after which both outputs are delivered again.
 
