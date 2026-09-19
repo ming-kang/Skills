@@ -446,7 +446,7 @@ async function openDemo() {
         elementType: "text",
         bounds: [80, 192, 800, 50],
         content: {
-          text: '<p><span style="font-size:18px;color:#667085">点击左上角「打开 PPTD 文件夹」，选择包含 .pptd 清单与 pages/ 的项目目录</span></p>',
+          text: '<p><span style="font-size:18px;color:#667085">点击左上角「打开项目文件夹」，选择包含 .pptd 清单与 pages/ 的项目目录</span></p>',
         },
       },
       {
@@ -454,7 +454,7 @@ async function openDemo() {
         elementType: "text",
         bounds: [80, 268, 800, 190],
         content: {
-          text: '<p><span style="font-size:20px;color:#3a4251;line-height:2">①  打开 PPTD 项目文件夹（.pptd + pages/ + media/）</span></p><p><span style="font-size:20px;color:#3a4251;line-height:2">②  在画布中编辑页面、元素与样式</span></p><p><span style="font-size:20px;color:#3a4251;line-height:2">③  导出 PPTX 或页面图片</span></p>',
+          text: '<p><span style="font-size:20px;color:#3a4251;line-height:2">①  打开项目文件夹（.pptd + pages/ + media/）</span></p><p><span style="font-size:20px;color:#3a4251;line-height:2">②  在画布中编辑页面、元素与样式</span></p><p><span style="font-size:20px;color:#3a4251;line-height:2">③  导出 PPTX 或页面图片</span></p>',
         },
       },
     ],

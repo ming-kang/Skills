@@ -1,6 +1,6 @@
-# pptd
+# PPT Design
 
-pptd is an unofficial agent Skill for creating, editing, replicating, reading, and exporting presentations. For every task it delivers **two artifacts by default**:
+PPT Design is an unofficial agent Skill for creating, editing, replicating, reading, and exporting presentations. For every task it delivers **two artifacts by default**:
 
 1. a self-contained, editable **PPTD project** (a YAML-based intermediate format over OOXML — every page is self-contained);
 2. the matching **.pptx**, with embedded fonts and a fade slide transition.
@@ -12,19 +12,13 @@ It ships an offline local browser editor (a patched mirror of the Kimi neo-ppt f
 
 ## Install
 
-Requires **Node.js 18+** (local editor and the default WASM exporter) and **python3** (the exporter wrappers). Chromium is needed only for the image-QA and optional browser export paths.
-
-The skill is its folder — copy it into your agent's skills directory, no install step, no build:
+Install from the repository with any skills manager:
 
 ```bash
-# macOS / Linux
-cp -r pptd ~/.agents/skills/pptd
-
-# Windows (PowerShell)
-Copy-Item -Recurse pptd $env:USERPROFILE\.agents\kills\pptd
+npx skills add ming-kang/skills
 ```
 
-Most agents look in `~/.agents/skills`; agent-specific directories (`~/.codex/skills`, `~/.claude/skills`, `~/.cursor/skills`, `~/.workbuddy/skills`) also work. You can also install from this repository with any skills manager, e.g. `npx skills add ming-kang/skills`. To update, overwrite the folder with a newer copy — existing PPTD/PPTX projects are unaffected.
+Runtime requirements: **Node.js 18+** (local editor and the default WASM exporter) and **python3** (the exporter wrappers). A Chromium-based browser is only needed for the image-QA and optional browser export paths.
 
 ## How To Use
 
@@ -76,7 +70,7 @@ node scripts/serve.mjs --port 56000
 
 Open the URL, authorize the complete PPTD project folder, and edit in the browser UI — saves write back to `.pptd`/`.page` files only. Use a Chromium-based browser for writable access; other browsers fall back to read-only upload.
 
-## What PPTD Is
+## What the PPTD Format Is
 
 PPTD is a YAML-based presentation DSL — a simplified abstraction over OOXML that keeps theme, layout, element positions and definitions while dropping Master nesting; every page is self-contained (WYSIWYG). The full format spec is at [`pptd/references/pptd.md`](../pptd/references/pptd.md).
 

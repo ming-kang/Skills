@@ -1,7 +1,6 @@
 ---
 name: code-quality-review
 description: Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth.
-disable-model-invocation: true
 ---
 
 # Code Quality Review

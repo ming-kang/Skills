@@ -1,7 +1,6 @@
 ---
 name: visualize
 description: Generate clean, self-contained SVG diagrams in one consistent house style.
-disable-model-invocation: true
 ---
 
 # Visualize
