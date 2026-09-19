@@ -1,6 +1,6 @@
 ---
 name: code-quality-review
-description: Run an unusually strict structural code-quality review — not a correctness review. Use when the user wants a diff, commit, PR, or codebase judged on form: abstraction quality, giant files, spaghetti conditionals, and whether a restructuring could delete complexity while preserving behavior.
+description: "Run an unusually strict structural code-quality review — not a correctness review. Use when the user wants a diff, commit, PR, or codebase reviewed for structure and maintainability: abstraction quality, giant files, spaghetti conditionals, and whether a restructuring could delete complexity while preserving behavior."
 ---
 
 # Code Quality Review
