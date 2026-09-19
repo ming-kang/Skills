@@ -23,7 +23,9 @@ test("serves the PPTD editor and its JavaScript modules", async () => {
     assert.equal(index.status, 200);
     assert.match(index.headers.get("content-type"), /^text\/html/);
     const html = await index.text();
-    assert.match(html, /打开 PPTD 文件夹/);
+    // Anchor on the stable element id, not the button label: the visible text
+    // is branding copy and has been renamed before.
+    assert.match(html, /id="nd-open"/);
     assert.match(html, /local-bridge\.js/);
 
     const bridge = await fetch(`${url}/local-bridge.js`);

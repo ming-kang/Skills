@@ -22,9 +22,10 @@ node --test "tools/pptd/tests-node/*.test.js"
 python -B -m unittest discover -s tools/pptd/tests -p "test_*.py"
 ```
 
-Note: the python suite upgrades the global `agent-browser` to >= 0.33.2 when
-an older version is present. That is expected behavior of the runtime path,
-not a test side effect to guard against.
+Note: the suites have no system side effects. `agent-browser` upgrade and
+Node.js probing are fully mocked (`unittest.mock.patch` in
+`tests/test_export_pptx.py`); the `[pptd] agent-browser upgraded …` lines in the
+test output come from the mocked code path, not a real global npm install.
 
 ## Invariants
 
