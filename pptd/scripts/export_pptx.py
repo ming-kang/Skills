@@ -15,11 +15,12 @@ from __future__ import annotations
 
 import argparse
 import base64
+import importlib
 import json
-import mimetypes
 import os
 import re
 import shutil
+import site
 import socket
 import subprocess
 import sys
@@ -63,6 +64,15 @@ EDITOR_MISSING_HINT = (
 
 class ExportError(RuntimeError):
     pass
+
+
+class LocalExportUnavailable(ExportError):
+    """The local WASM toolchain itself is missing.
+
+    Only this narrow class is allowed to trigger the browser fallback: a
+    malformed deck or an existing output file must surface as-is instead of
+    quietly pulling in agent-browser and a Chromium download.
+    """
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -144,7 +154,20 @@ def default_downloads_dir() -> Path:
     return home / "Downloads"
 
 
+_YAML: Any = None
+
+
 def ensure_pyyaml() -> Any:
+    """Import PyYAML, installing it on demand.
+
+    Lazy on purpose: importing this module must not run pip. After a --user
+    install the new site directory is usually absent from sys.path (CPython
+    only adds it when it exists at startup), so register it explicitly before
+    retrying the import.
+    """
+    global _YAML
+    if _YAML is not None:
+        return _YAML
     try:
         import yaml
     except ImportError:
@@ -159,11 +182,22 @@ def ensure_pyyaml() -> Any:
                 f"{process.stdout[-2000:]}\n"
                 "Install it manually with: python3 -m pip install --user pyyaml"
             )
-        import yaml
+        try:
+            user_site = site.getusersitepackages()
+        except AttributeError:  # pragma: no cover - non-standard site module
+            user_site = None
+        if isinstance(user_site, str) and os.path.isdir(user_site):
+            site.addsitedir(user_site)
+        importlib.invalidate_caches()
+        try:
+            import yaml
+        except ImportError as exc:
+            raise ExportError(
+                "PyYAML was installed but is still not importable; "
+                f"restart the export or install it into {sys.executable} manually"
+            ) from exc
+    _YAML = yaml
     return yaml
-
-
-yaml = ensure_pyyaml()
 
 
 def parse_version(output: str) -> Tuple[int, int, int]:
@@ -394,6 +428,12 @@ def ensure_debug_chrome() -> Optional[int]:
         log(f"AGENT_BROWSER_CDP={explicit} is not answering; starting a debug browser instead")
 
     port = DEBUG_CHROME_PORT
+    override = os.environ.get("PPTD_DEBUG_CHROME_PORT")
+    if override:
+        try:
+            port = int(override)
+        except ValueError:
+            log(f"ignoring invalid PPTD_DEBUG_CHROME_PORT={override!r}")
     if cdp_alive(port):
         return port
     with socket.socket() as probe:
@@ -428,6 +468,10 @@ def ensure_debug_chrome() -> Optional[int]:
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         if cdp_alive(port):
+            log(
+                f"debug browser stays running on 127.0.0.1:{port} for reuse; "
+                "close that window to stop it (override with PPTD_DEBUG_CHROME_PORT)"
+            )
             return port
         time.sleep(0.5)
     raise ExportError(f"debug browser did not open CDP port {port} within 20s")
@@ -453,6 +497,7 @@ def find_manifest(source: Path) -> Path:
 
 
 def read_yaml_mapping(path: Path) -> Tuple[str, Dict[str, Any]]:
+    yaml = ensure_pyyaml()
     text = path.read_text(encoding="utf-8")
     try:
         value = yaml.safe_load(text)
@@ -474,23 +519,71 @@ def safe_project_path(root: Path, relative: str) -> Path:
     return candidate
 
 
-def build_image_map(root: Path) -> Dict[str, str]:
+def collect_image_sources(pages_data: Iterable[Dict[str, Any]]) -> List[str]:
+    """Local image sources actually referenced by the deck, in first-seen order.
+
+    Scanning the project directory instead would sweep up unrelated files —
+    notably the page renders under .qa-images/, which the visual-QA loop writes
+    into the project root and regenerates on every round.
+    """
+    sources: List[str] = []
+    seen = set()
+
+    def visit(holder: Any) -> None:
+        if not isinstance(holder, dict):
+            return
+        src = holder.get("src")
+        if not isinstance(src, str) or not src.strip():
+            return
+        if re.match(r"^(https?://|data:)", src, re.IGNORECASE):
+            return
+        if src in seen:
+            return
+        seen.add(src)
+        sources.append(src)
+
+    for page in pages_data:
+        if not isinstance(page, dict):
+            continue
+        background = page.get("background")
+        if isinstance(background, dict) and background.get("type") == "image":
+            visit(background)
+        elements = page.get("elements")
+        if not isinstance(elements, list):
+            continue
+        for element in elements:
+            if not isinstance(element, dict):
+                continue
+            if element.get("elementType") == "image":
+                visit(element)
+            fill = element.get("fill")
+            if isinstance(fill, dict) and fill.get("type") == "image":
+                visit(fill)
+    return sources
+
+
+def build_image_map(root: Path, pages_data: Iterable[Dict[str, Any]]) -> Dict[str, str]:
     image_map: Dict[str, str] = {}
     total = 0
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in IMAGE_MIME:
+    for src in collect_image_sources(pages_data):
+        path = safe_project_path(root, re.sub(r"^file://+", "", src))
+        if not path.is_file():
+            log(f"skip missing local image: {src}")
+            continue
+        suffix = path.suffix.lower()
+        if suffix not in IMAGE_MIME:
+            log(f"skip unsupported image type: {src}")
             continue
         size = path.stat().st_size
         if size > MAX_IMAGE_BYTES:
-            log(f"skip local image over 20 MiB: {path.relative_to(root)}")
+            log(f"skip local image over 20 MiB: {src}")
             continue
         if total + size > MAX_EMBEDDED_MEDIA_BYTES:
             raise ExportError(
                 "local image payload exceeds 200 MiB; reduce media size or use remote URLs"
             )
         data = base64.b64encode(path.read_bytes()).decode("ascii")
-        rel = path.relative_to(root).as_posix()
-        image_map[rel] = f"data:{IMAGE_MIME[path.suffix.lower()]};base64,{data}"
+        image_map[src] = f"data:{IMAGE_MIME[suffix]};base64,{data}"
         total += size
     if image_map:
         log(f"prepared {len(image_map)} local image resource(s), {total} bytes")
@@ -507,6 +600,7 @@ def build_payload(manifest: Path) -> Dict[str, Any]:
 
     root = manifest.parent.resolve()
     pages: List[Dict[str, str]] = []
+    pages_data: List[Dict[str, Any]] = []
     for entry in page_paths:
         page_path = safe_project_path(root, entry)
         if not page_path.is_file():
@@ -515,6 +609,7 @@ def build_payload(manifest: Path) -> Dict[str, Any]:
         if not isinstance(page_data.get("elements"), list):
             raise ExportError(f"page elements must be an array: {entry}")
         pages.append({"path": str(entry), "content": page_text})
+        pages_data.append(page_data)
 
     title = str(manifest_data.get("title") or manifest.stem)
     return {
@@ -523,7 +618,38 @@ def build_payload(manifest: Path) -> Dict[str, Any]:
         "manifestPath": manifest.name,
         "manifestContent": manifest_text,
         "pages": pages,
-        "imageMap": build_image_map(root),
+        "imageMap": build_image_map(root, pages_data),
+    }
+
+
+def build_local_project(manifest: Path) -> Dict[str, Any]:
+    """Pre-parsed project for the local WASM exporter (`export-pptd.mjs --json`).
+
+    The Node side has no guaranteed YAML package next to the skill, so the
+    parsing happens here, where PyYAML is already a hard dependency.
+    """
+    _, manifest_data = read_yaml_mapping(manifest)
+    if manifest_data.get("version") != "v2":
+        raise ExportError("local PPTX export currently requires PPTD version: v2")
+    page_paths = manifest_data.get("pages")
+    if not isinstance(page_paths, list) or not page_paths:
+        raise ExportError("PPTD manifest must contain a non-empty pages list")
+
+    root = manifest.parent.resolve()
+    pages: List[Dict[str, Any]] = []
+    for entry in page_paths:
+        page_path = safe_project_path(root, entry)
+        if not page_path.is_file():
+            raise ExportError(f"missing page file: {entry}")
+        _, page_data = read_yaml_mapping(page_path)
+        if not isinstance(page_data.get("elements"), list):
+            raise ExportError(f"page elements must be an array: {entry}")
+        pages.append({"path": str(entry), "data": page_data})
+
+    return {
+        "manifestPath": str(manifest),
+        "manifest": manifest_data,
+        "pages": pages,
     }
 
 
@@ -838,22 +964,6 @@ def resolve_editor_root() -> Path:
     return SKILL_DIR / "assets" / "editor"
 
 
-def serve(
-    directory: Path,
-    *,
-    entry: str = "index.html",
-) -> Tuple[ThreadingHTTPServer, threading.Thread, str]:
-    """Legacy static serve (tests / callers). Prefer serve_local_editor for exports."""
-    handler = lambda *args, **kwargs: QuietHandler(  # noqa: E731
-        *args, directory=str(directory), **kwargs
-    )
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    host, port = server.server_address
-    return server, thread, f"http://{host}:{port}/{entry.lstrip('/')}"
-
-
 def serve_local_editor(
     payload: Dict[str, Any],
 ) -> Tuple[ThreadingHTTPServer, threading.Thread, str]:
@@ -873,9 +983,10 @@ def serve_local_editor(
             if self._is_payload():
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
+                # No CORS header: the editor page is same-origin, and the
+                # payload carries the whole deck including base64 media.
                 self.send_header("Content-Length", str(len(payload_bytes)))
                 self.send_header("Cache-Control", "no-store")
-                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(payload_bytes)
                 return
@@ -910,7 +1021,7 @@ def resolve_local_wasm() -> Path:
     candidate = SKILL_DIR / "assets" / "editor" / "neo-ppt" / "assets" / CANONICAL_WASM_NAME
     if candidate.is_file():
         return candidate
-    raise ExportError(
+    raise LocalExportUnavailable(
         "patched WASM not found. Expected "
         f"assets/editor/neo-ppt/assets/{CANONICAL_WASM_NAME} inside the skill; "
         "the skill folder is incomplete."
@@ -925,11 +1036,11 @@ def export_pptx_local(
 ) -> Dict[str, Any]:
     """Export via local patched official WASM (no cookie / no browser UI)."""
     if not LOCAL_EXPORT_MJS.is_file():
-        raise ExportError(f"local exporter missing: {LOCAL_EXPORT_MJS}")
+        raise LocalExportUnavailable(f"local exporter missing: {LOCAL_EXPORT_MJS}")
     wasm_path = resolve_local_wasm()
     node = shutil.which("node")
     if not node:
-        raise ExportError("node is required for local WASM export")
+        raise LocalExportUnavailable("node is required for local WASM export")
 
     manifest = find_manifest(source)
     output = output.expanduser().resolve()
@@ -940,23 +1051,34 @@ def export_pptx_local(
     log(f"local WASM export: {manifest} → {output}")
     log(f"defaults: transition={transition} (offline)")
 
-    # Pass project directory so media paths resolve relative to the deck root.
-    project_dir = manifest.parent if manifest.is_file() else source
-    cmd = [
-        node,
-        str(LOCAL_EXPORT_MJS),
-        str(project_dir),
-        "-o",
-        str(output),
-        "--transition",
-        transition if transition in ("fade", "none") else "fade",
-        "--wasm",
-        str(wasm_path),
-    ]
+    # Parse here and hand over JSON: the Node side has no guaranteed YAML
+    # package next to the skill, and its python fallback is not portable.
+    project = build_local_project(manifest)
+    handle, project_json = tempfile.mkstemp(prefix="pptd-project-", suffix=".json")
+    os.close(handle)
+    project_path = Path(project_json)
+    try:
+        project_path.write_text(
+            json.dumps(project, ensure_ascii=False), encoding="utf-8"
+        )
+        cmd = [
+            node,
+            str(LOCAL_EXPORT_MJS),
+            "--json",
+            str(project_path),
+            "-o",
+            str(output),
+            "--transition",
+            transition if transition in ("fade", "none") else "fade",
+            "--wasm",
+            str(wasm_path),
+        ]
 
-    # run_command captures via a UTF-8 temp file: text=True + PIPE would
-    # decode node's UTF-8 output with the GBK locale on zh-CN Windows.
-    process = run_command(cmd, timeout=300)
+        # run_command captures via a UTF-8 temp file: text=True + PIPE would
+        # decode node's UTF-8 output with the GBK locale on zh-CN Windows.
+        process = run_command(cmd, timeout=300)
+    finally:
+        project_path.unlink(missing_ok=True)
     if process.returncode != 0:
         raise ExportError(
             f"local WASM export failed ({process.returncode}):\n{process.stdout[-4000:]}"
@@ -979,12 +1101,26 @@ def export_pptx(
     force: bool = False,
     prefer_local: bool = True,
 ) -> Dict[str, Any]:
-    """Prefer local patched WASM; fall back to local neo-ppt browser UI."""
+    """Prefer local patched WASM; fall back to local neo-ppt browser UI.
+
+    The fallback is reserved for a missing local toolchain. Deck and output
+    errors propagate, so a broken deck is reported instead of silently
+    escalating to the browser path (which may install agent-browser and
+    download a Chromium).
+    """
     if prefer_local:
+        if embed_fonts:
+            log(
+                "note: the local WASM path does not embed fonts; "
+                "pass --browser if you need font embedding"
+            )
         try:
             return export_pptx_local(source, output, transition, force=force)
-        except ExportError as exc:
-            log(f"local WASM export unavailable ({exc}); falling back to local browser editor")
+        except LocalExportUnavailable as exc:
+            log(
+                f"local WASM toolchain unavailable ({exc}); falling back to the local "
+                "browser editor — this path needs a Chromium-based browser"
+            )
 
     manifest = find_manifest(source)
     payload = build_payload(manifest)
@@ -1106,8 +1242,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     try:
-        manifest = find_manifest(args.input)
-        output = args.output or manifest.with_suffix(".pptx")
+        output = args.output or find_manifest(args.input).with_suffix(".pptx")
         summary = export_pptx(
             args.input,
             output,

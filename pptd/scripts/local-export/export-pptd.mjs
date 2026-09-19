@@ -25,7 +25,47 @@ import { createRequire } from 'node:module';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
-// ---------- minimal YAML (enough for PPTD) via dynamic import of yaml if present ----------
+// ---------- YAML (standalone use only) ----------
+// scripts/export_pptx.py never reaches this: it parses the project with PyYAML
+// and hands over --json. This chain only serves direct `node export-pptd.mjs`
+// invocations, where no npm package tree is guaranteed next to the skill.
+const PYTHON_CANDIDATES = [
+  process.env.PPTD_PYTHON,
+  'python3',
+  'python',
+  'py',
+].filter(Boolean);
+
+function pythonYamlParser() {
+  const { spawnSync } = require('node:child_process');
+  const script =
+    'import sys,yaml,json; print(json.dumps(yaml.safe_load(sys.stdin.read()), ensure_ascii=False))';
+  const failures = [];
+  for (const exe of PYTHON_CANDIDATES) {
+    const args = exe === 'py' ? ['-3', '-c', script] : ['-c', script];
+    const probe = spawnSync(exe, args, { input: '{}', encoding: 'utf8' });
+    if (probe.error || probe.status !== 0) {
+      failures.push(`${exe}: ${probe.error?.code || probe.stderr?.trim() || 'failed'}`);
+      continue;
+    }
+    return (text) => {
+      const r = spawnSync(exe, args, {
+        input: text,
+        encoding: 'utf8',
+        maxBuffer: 50 * 1024 * 1024,
+      });
+      if (r.status !== 0) throw new Error('python yaml failed: ' + (r.stderr || r.stdout));
+      return JSON.parse(r.stdout);
+    };
+  }
+  throw new Error(
+    'No YAML parser available. Install the npm "yaml" package next to this script, ' +
+      'or make a Python with PyYAML reachable (set PPTD_PYTHON), ' +
+      'or pass a pre-parsed project with --json.\nTried: ' +
+      failures.join('; '),
+  );
+}
+
 async function loadYaml() {
   try {
     const yaml = await import('yaml');
@@ -35,17 +75,7 @@ async function loadYaml() {
       const yaml = require('js-yaml');
       return (s) => yaml.load(s);
     } catch {
-      // fallback: python3 + PyYAML
-      return (text) => {
-        const { spawnSync } = require('node:child_process');
-        const r = spawnSync(
-          'python3',
-          ['-c', 'import sys,yaml,json; print(json.dumps(yaml.safe_load(sys.stdin.read()), ensure_ascii=False))'],
-          { input: text, encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 },
-        );
-        if (r.status !== 0) throw new Error('python yaml failed: ' + (r.stderr || r.stdout));
-        return JSON.parse(r.stdout);
-      };
+      return pythonYamlParser();
     }
   }
 }
@@ -68,12 +98,15 @@ function resolveDefaultWasmPath() {
 }
 
 // ---------- CLI ----------
+const TRANSITIONS = new Set(['fade', 'none']);
+
 function parseArgs(argv) {
   const args = {
     input: null,
     output: null,
     transition: 'fade',
     wasmPath: null,
+    json: null,
   };
   const a = [...argv];
   while (a.length) {
@@ -81,57 +114,111 @@ function parseArgs(argv) {
     if (x === '-o' || x === '--output') args.output = a.shift();
     else if (x === '--transition') args.transition = a.shift();
     else if (x === '--wasm') args.wasmPath = a.shift();
+    else if (x === '--json') args.json = a.shift();
     else if (x === '-h' || x === '--help') args.help = true;
     else if (!x.startsWith('-') && !args.input) args.input = x;
     else throw new Error(`Unknown arg: ${x}`);
   }
   if (!args.wasmPath) args.wasmPath = resolveDefaultWasmPath();
+  if (!args.help && !TRANSITIONS.has(args.transition)) {
+    throw new Error(
+      `--transition must be one of ${[...TRANSITIONS].join('|')}; got: ${args.transition}`,
+    );
+  }
   return args;
 }
 
 // ---------- PPTD project load ----------
 function findManifest(input) {
   const p = path.resolve(input);
-  if (fs.statSync(p).isFile() && p.endsWith('.pptd')) return p;
+  if (!fs.existsSync(p)) throw new Error(`Input does not exist: ${p}`);
+  if (fs.statSync(p).isFile()) {
+    if (!p.endsWith('.pptd')) {
+      throw new Error(`Input must be a .pptd file or a project directory: ${p}`);
+    }
+    return p;
+  }
   const files = fs.readdirSync(p).filter((f) => f.endsWith('.pptd'));
   if (files.length === 1) return path.join(p, files[0]);
   if (files.length === 0) throw new Error(`No .pptd in ${p}`);
   throw new Error(`Multiple .pptd in ${p}: ${files.join(', ')}`);
 }
 
-async function loadProject(manifestPath, parseYaml) {
-  const root = path.dirname(manifestPath);
-  const manifestText = fs.readFileSync(manifestPath, 'utf8');
-  const manifest = parseYaml(manifestText);
+/**
+ * PPTD spec: every referenced file lives inside the folder holding the .pptd,
+ * and paths are relative to it. Mirrors safe_project_path() in export_pptx.py.
+ */
+function safeJoin(root, relative) {
+  if (typeof relative !== 'string' || !relative.trim()) {
+    throw new Error('project path must be a non-empty string');
+  }
+  const base = path.resolve(root);
+  const target = path.resolve(base, relative.replace(/\\/g, '/'));
+  const prefix = base.endsWith(path.sep) ? base : base + path.sep;
+  if (target !== base && !target.startsWith(prefix)) {
+    throw new Error(`project path escapes the PPTD directory: ${relative}`);
+  }
+  return target;
+}
+
+/** Match official nt()/rt() shape: embed full page objects. */
+function buildProject(manifest, pages, manifestPath) {
+  return {
+    ...manifest,
+    version: 'v2',
+    pages: pages.map(({ rel, page }) => {
+      if (!page || !Array.isArray(page.elements)) {
+        throw new Error(`Invalid page elements: ${rel}`);
+      }
+      return {
+        ...page,
+        pagePath: String(rel).replace(/\\/g, '/'),
+        elements: page.elements.map(normalizeElement),
+      };
+    }),
+    pptdFileName: path.basename(manifestPath),
+  };
+}
+
+function assertManifest(manifest) {
   if (!manifest || manifest.version !== 'v2') {
     throw new Error('Only PPTD version: v2 is supported');
   }
   if (!Array.isArray(manifest.pages) || !manifest.pages.length) {
     throw new Error('manifest.pages must be a non-empty array');
   }
+}
 
-  const pages = [];
-  for (const rel of manifest.pages) {
-    const pagePath = path.join(root, rel);
+async function loadProject(manifestPath, parseYaml) {
+  const root = path.dirname(manifestPath);
+  const manifest = parseYaml(fs.readFileSync(manifestPath, 'utf8'));
+  assertManifest(manifest);
+
+  const pages = manifest.pages.map((rel) => {
+    const pagePath = safeJoin(root, rel);
     if (!fs.existsSync(pagePath)) throw new Error(`Missing page: ${rel}`);
-    const page = parseYaml(fs.readFileSync(pagePath, 'utf8'));
-    if (!page || !Array.isArray(page.elements)) {
-      throw new Error(`Invalid page elements: ${rel}`);
-    }
-    // Match official nt()/rt() shape: embed full page objects
-    pages.push({
-      ...page,
-      pagePath: rel.replace(/\\/g, '/'),
-      elements: page.elements.map(normalizeElement),
-    });
-  }
+    return { rel, page: parseYaml(fs.readFileSync(pagePath, 'utf8')) };
+  });
 
-  return {
-    ...manifest,
-    version: 'v2',
-    pages,
-    pptdFileName: path.basename(manifestPath),
-  };
+  return buildProject(manifest, pages, manifestPath);
+}
+
+/**
+ * Pre-parsed project handed over by export_pptx.py, which already has PyYAML.
+ * Shape: { manifestPath, manifest, pages: [{ path, data }] }
+ */
+function loadProjectFromJson(jsonPath) {
+  const payload = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+  const { manifestPath, manifest } = payload;
+  if (typeof manifestPath !== 'string' || !manifestPath) {
+    throw new Error('--json payload needs a manifestPath');
+  }
+  assertManifest(manifest);
+  if (!Array.isArray(payload.pages) || !payload.pages.length) {
+    throw new Error('--json payload needs a non-empty pages array');
+  }
+  const pages = payload.pages.map((entry) => ({ rel: entry.path, page: entry.data }));
+  return { project: buildProject(manifest, pages, manifestPath), manifestPath };
 }
 
 function normalizeElement(el) {
@@ -218,11 +305,8 @@ async function resolveImages(pptd, projectRoot) {
           bytes = Buffer.from(await res.arrayBuffer());
         }
       } else {
-        // local relative to project root
-        const local = path.join(
-          projectRoot,
-          src.replace(/^file:\/\/+/, '').replace(/\\/g, '/'),
-        );
+        // local, relative to the project root and required to stay inside it
+        const local = safeJoin(projectRoot, src.replace(/^file:\/\/+/, ''));
         if (!fs.existsSync(local)) {
           console.warn(`[warn] missing local image: ${src}`);
           return;
@@ -551,28 +635,39 @@ async function loadWasmExporter(wasmPath) {
 // ---------- main ----------
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  if (args.help || !args.input) {
+  if (args.help || (!args.input && !args.json)) {
     console.log(`Usage: node export-pptd.mjs <pptd|projectDir> -o out.pptx [options]
 
 Options:
   -o, --output PATH     output .pptx
   --transition fade|none
+  --json PATH           pre-parsed project JSON (skips YAML; used by
+                        scripts/export_pptx.py)
   --wasm PATH           path to patched pptd_wasm (default: the skill's
                         assets/editor copy)
   -h, --help            show this help
+
+Env:
+  PPTD_PYTHON           python executable used for the YAML fallback
 `);
     process.exit(args.help ? 0 : 1);
   }
 
-  const parseYaml = await loadYaml();
-  const manifestPath = findManifest(args.input);
+  let manifestPath;
+  let pptd;
+  if (args.json) {
+    ({ project: pptd, manifestPath } = loadProjectFromJson(args.json));
+    console.log('[1/5] load PPTD (pre-parsed)', manifestPath);
+  } else {
+    const parseYaml = await loadYaml();
+    manifestPath = findManifest(args.input);
+    console.log('[1/5] load PPTD', manifestPath);
+    pptd = await loadProject(manifestPath, parseYaml);
+  }
   const projectRoot = path.dirname(manifestPath);
   const output =
     args.output ||
     path.join(projectRoot, path.basename(manifestPath, '.pptd') + '.offline.pptx');
-
-  console.log('[1/5] load PPTD', manifestPath);
-  let pptd = await loadProject(manifestPath, parseYaml);
 
   console.log('[2/5] resolve images');
   // deep clone so we can rewrite src
@@ -599,7 +694,7 @@ Options:
     images,
     fileName: path.basename(output),
     slideTransition: {
-      effect: args.transition === 'none' ? 'none' : args.transition,
+      effect: args.transition,
       speed: 'fast',
     },
     chartImages: [],

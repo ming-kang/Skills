@@ -81,7 +81,9 @@ PPTD is a YAML-based presentation DSL — a simplified abstraction over OOXML th
 - Editing, PPTX export, and image QA all run against the **local** editor mirror and patched WASM — no network calls, no cookies, no login tokens, no cloud accounts. Remote images or fonts referenced by a deck may still be fetched from their hosts.
 - One optional environment variable: `PPTD_EDITOR_DIR` overrides the editor mirror directory (the bundled `assets/editor/` is used otherwise; rarely needed). The legacy alias `OPEN_KIMI_PPT_EDITOR` is still honored.
 
-Windows note: the browser paths (image QA, `--browser` export) drive one persistent debug browser via CDP, reused across exports. Machines without any Chromium-based browser get one provisioned automatically: the export scripts run `agent-browser install` once to download Chrome for Testing. To manage your own instance, start a browser with `--remote-debugging-port=<port>` and set `AGENT_BROWSER_CDP` to that port.
+- The default PPTX export needs no browser at all, and it does not silently switch to the browser path: a broken deck or an existing output file is reported as an error. The fallback only happens when the local toolchain itself is missing (no `node`, no exporter, no WASM).
+
+Windows note: the browser paths (image QA, `--browser` export) drive one persistent debug browser via CDP, reused across exports. It stays running after the export on purpose — close that window to stop it, or set `PPTD_DEBUG_CHROME_PORT` to move it off the default `9337`. Machines without any Chromium-based browser get one provisioned automatically: the export scripts run `agent-browser install` once to download Chrome for Testing. To manage your own instance, start a browser with `--remote-debugging-port=<port>` and set `AGENT_BROWSER_CDP` to that port.
 
 ## License and Attribution
 

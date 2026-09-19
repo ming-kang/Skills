@@ -290,6 +290,32 @@ def select_image_format(browser: BrowserSession) -> None:
     raise ExportError(f"image format was not activated; active option: {active!r}")
 
 
+def assert_disposable_output(output: Path) -> None:
+    """Refuse to wipe anything that is not our own QA output directory.
+
+    export_images replaces the output directory wholesale, and --output takes an
+    arbitrary path; pointing it at the project itself must not delete the deck.
+    """
+    if not output.exists():
+        return
+    if not output.is_dir():
+        raise ExportError(f"output must be a directory, not a file: {output}")
+    # A .pptd manifest is the definitive marker; a pages/ directory only counts
+    # when it holds .page files, since our own output also has pages/.
+    protected = sorted(
+        entry.name
+        for entry in output.iterdir()
+        if entry.suffix.lower() == ".pptd"
+        or (entry.is_dir() and entry.name == "pages" and any(entry.glob("*.page")))
+    )
+    if protected:
+        raise ExportError(
+            f"refusing to replace {output}: it looks like a PPTD project "
+            f"(contains {', '.join(protected)}). Point --output at a separate "
+            "QA directory such as <project>/.qa-images"
+        )
+
+
 def export_images(
     source: Path,
     output: Path,
@@ -298,6 +324,7 @@ def export_images(
     manifest = find_manifest(source)
     payload = build_payload(manifest)
     output = output.expanduser().resolve()
+    assert_disposable_output(output)
     if output.exists() and any(output.iterdir()) and not force:
         raise ExportError(
             f"output directory already exists (pass --force to replace it): {output}"
@@ -367,11 +394,19 @@ def export_images(
     mapping = [
         {
             "index": index,
+            # Label drawn on the stitched overview; read images by this path,
+            # the file names come from the editor's ZIP and are not <n>.jpeg.
+            "overviewLabel": f"P{index}",
             "image": f"pages/{path.name}",
             "page": page_paths[index - 1] if index - 1 < len(page_paths) else None,
         }
         for index, path in enumerate(images, start=1)
     ]
+    if len(images) != len(page_paths):
+        log(
+            f"warning: {len(images)} rendered image(s) for {len(page_paths)} page(s); "
+            "the image → .page mapping may be off"
+        )
     return {
         "pages": len(images),
         "overview": str(overview),

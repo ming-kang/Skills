@@ -220,6 +220,63 @@ class ExportPptxTests(unittest.TestCase):
             self.assertEqual(MODULE.ensure_debug_chrome(), 9444)
         cdp_alive.assert_called_once_with(9444)
 
+    def test_image_map_only_embeds_referenced_media(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / "media").mkdir()
+            (root / "media" / "used.png").write_bytes(b"\x89PNG\r\n\x1a\n used")
+            (root / "media" / "orphan.png").write_bytes(b"\x89PNG\r\n\x1a\n orphan")
+            # The visual-QA loop writes page renders here, inside the project.
+            (root / ".qa-images" / "pages").mkdir(parents=True)
+            (root / ".qa-images" / "pages" / "1.jpeg").write_bytes(b"\xff\xd8\xff qa")
+
+            pages = [{
+                "elements": [
+                    {"elementType": "image", "src": "media/used.png"},
+                    {"elementType": "shape", "fill": {"type": "image", "src": "media/used.png"}},
+                    {"elementType": "image", "src": "https://example.com/remote.png"},
+                ],
+            }]
+            image_map = MODULE.build_image_map(root, pages)
+
+        self.assertEqual(list(image_map), ["media/used.png"])
+        self.assertTrue(image_map["media/used.png"].startswith("data:image/png;base64,"))
+
+    def test_image_map_rejects_paths_outside_the_project(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            pages = [{"elements": [{"elementType": "image", "src": "../secret.png"}]}]
+            with self.assertRaisesRegex(MODULE.ExportError, "escapes the PPTD directory"):
+                MODULE.build_image_map(root, pages)
+
+    def test_deck_errors_do_not_fall_back_to_the_browser(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / "deck.pptd").write_text(
+                "version: v2\npages:\n  - pages/missing.page\n", encoding="utf-8"
+            )
+            with patch.object(MODULE, "ensure_agent_browser") as agent_browser:
+                with self.assertRaisesRegex(MODULE.ExportError, "missing page file"):
+                    MODULE.export_pptx(
+                        root, root / "out.pptx", "fade", False, prefer_local=True
+                    )
+            agent_browser.assert_not_called()
+
+    def test_missing_local_toolchain_still_falls_back(self):
+        self.assertTrue(issubclass(MODULE.LocalExportUnavailable, MODULE.ExportError))
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            with patch.object(MODULE, "export_pptx_local") as local, \
+                    patch.object(MODULE, "build_payload", return_value={}), \
+                    patch.object(MODULE, "find_manifest", return_value=root / "d.pptd"), \
+                    patch.object(MODULE, "ensure_agent_browser") as agent_browser:
+                local.side_effect = MODULE.LocalExportUnavailable("node missing")
+                agent_browser.side_effect = RuntimeError("reached the browser path")
+                with self.assertRaisesRegex(RuntimeError, "reached the browser path"):
+                    MODULE.export_pptx(
+                        root, root / "out.pptx", "fade", False, prefer_local=True
+                    )
+
     def test_browser_session_exports_cdp_port_to_env(self):
         with patch.dict(MODULE.os.environ, {}, clear=False):
             MODULE.os.environ.pop("AGENT_BROWSER_CDP", None)
@@ -231,6 +288,31 @@ class ExportPptxTests(unittest.TestCase):
                 "/bin/agent-browser", "s", Path("."), Path("/tmp/d")
             )
             self.assertNotIn("AGENT_BROWSER_CDP", without_port.env)
+
+
+class LocalExportEndToEndTests(unittest.TestCase):
+    """Exercises the real Node + patched-WASM path, including the --json handoff."""
+
+    FIXTURE = Path(__file__).resolve().parent / "fixtures" / "minimal"
+
+    @unittest.skipUnless(MODULE.shutil.which("node"), "node is required")
+    def test_exports_a_pptx_without_a_node_yaml_package(self):
+        with tempfile.TemporaryDirectory() as name:
+            output = Path(name) / "deck.pptx"
+            summary = MODULE.export_pptx_local(self.FIXTURE, output, "fade")
+            self.assertTrue(output.is_file())
+            self.assertEqual(summary["exporter"], "local-wasm-patched")
+            self.assertEqual(summary["slides"], summary["fadeTransitions"])
+            with zipfile.ZipFile(output) as archive:
+                self.assertIn("ppt/presentation.xml", archive.namelist())
+
+    def test_build_local_project_shape(self):
+        project = MODULE.build_local_project(self.FIXTURE / "minimal.pptd")
+        self.assertEqual(project["manifest"]["version"], "v2")
+        self.assertTrue(project["pages"])
+        for page in project["pages"]:
+            self.assertIsInstance(page["path"], str)
+            self.assertIsInstance(page["data"]["elements"], list)
 
 
 if __name__ == "__main__":

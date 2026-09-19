@@ -97,5 +97,33 @@ class ExportImagesTests(unittest.TestCase):
                 self.assertEqual(result.height, rows * cell + (rows + 1) * MODULE.OVERVIEW_GAP)
 
 
+class DisposableOutputTests(unittest.TestCase):
+    def test_refuses_to_replace_a_pptd_project(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / "deck.pptd").write_text("version: v2\n", encoding="utf-8")
+            (root / "pages").mkdir()
+            with self.assertRaisesRegex(MODULE.ExportError, "looks like a PPTD project"):
+                MODULE.assert_disposable_output(root)
+
+    def test_rejects_a_file_output(self):
+        with tempfile.TemporaryDirectory() as name:
+            target = Path(name) / "overview.jpg"
+            target.write_bytes(b"x")
+            with self.assertRaisesRegex(MODULE.ExportError, "must be a directory"):
+                MODULE.assert_disposable_output(target)
+
+    def test_allows_a_qa_directory(self):
+        with tempfile.TemporaryDirectory() as name:
+            qa = Path(name) / ".qa-images"
+            (qa / "pages").mkdir(parents=True)
+            (qa / "overview.jpg").write_bytes(b"x")
+            MODULE.assert_disposable_output(qa)  # must not raise
+
+    def test_allows_a_missing_directory(self):
+        with tempfile.TemporaryDirectory() as name:
+            MODULE.assert_disposable_output(Path(name) / "nope")
+
+
 if __name__ == "__main__":
     unittest.main()

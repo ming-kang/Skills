@@ -133,7 +133,7 @@ When generating a PPT, adopt different production approaches for different user 
        --output /abs/path/project/.qa-images
      ```
 
-     The script prints a JSON summary mapping each stitched label (`P1`…`Pn`, 1-based page order) to its `.page` file.
+     The script prints a JSON summary whose `images` array maps, per page, the stitched label (`overviewLabel`: `P1`…`Pn`, 1-based page order), the rendered image path (`image`), and the source `.page` file (`page`). Use `--output` outside the deck (the default `<project>/.qa-images` is fine); the script refuses to overwrite a directory that holds a `.pptd` manifest or `.page` files.
    - Read the stitched overview image (`.qa-images/overview.jpg`) and check every page against this list:
      1. 图片是否清晰、不变形（无拉伸、压缩、模糊）
      2. 文字是否压在关键画面（人脸、产品主体、Logo 等）上
@@ -142,7 +142,7 @@ When generating a PPT, adopt different production approaches for different user 
      5. 排版是否统一（对齐、间距、字号层级、页边距）
      6. 文字是否可能溢出文本框（文本过长、行距过密、字号过大）
      7. 内容是否被上层元素遮挡
-   - For any suspicious page, read its full-resolution image (`.qa-images/pages/<n>.jpeg`) to confirm the problem before editing.
+   - For any suspicious page, read its full-resolution image to confirm the problem before editing. Take the path from the JSON summary (`images[].image`, relative to the output directory) — the file names come from the editor's ZIP, so do not assume `<n>.jpeg`.
    - Fix issues in the corresponding `.page` file, then re-run `scripts/export_images.py --force` and review the new overview; repeat until every page passes.
    - Do not export the PPTX until the visual review passes. `.qa-images/` is an intermediate QA artifact and may be deleted after delivery.
 3. When the model cannot read images, fall back to a structural review of the generated pages (bounds, overflow-prone long text, contrast, hierarchy, layout density) over multiple rounds, and state that image-based visual QA was skipped.
@@ -188,10 +188,12 @@ When generating a PPT, adopt different production approaches for different user 
    A project directory may be passed instead of the manifest only when it contains exactly one `.pptd` file.
    Existing output files are not overwritten unless `--force` is passed.
 7. Offline model (本地编辑器 + 本地导出):
-   - **PPTX export (default)**: local patched WASM via `scripts/local-export/export-pptd.mjs`. Canonical binary: `assets/editor/neo-ppt/assets/pptd_wasm_bg-DPPWdROu.wasm`, shipped inside the skill; `--wasm` can override. Requires **Node.js 18+** only.
+   - **PPTX export (default)**: local patched WASM via `scripts/local-export/export-pptd.mjs`. Canonical binary: `assets/editor/neo-ppt/assets/pptd_wasm_bg-DPPWdROu.wasm`, shipped inside the skill; `--wasm` can override. Requires **Node.js 18+** only — `export_pptx.py` parses the project with PyYAML and hands the Node side a pre-parsed `--json` payload, so no npm packages are needed next to the skill.
+   - The browser fallback only triggers when the local toolchain itself is missing (no `node`, no exporter, no WASM). Deck errors, validation failures, and an existing output file are reported as-is and never escalate to the browser path.
    - **Image QA / visual review**: `scripts/export_images.py` drives the **local** neo-ppt editor via agent-browser (Chromium required).
    - **Manual edit / preview**: `node scripts/serve.mjs` serves the same offline neo-ppt mirror.
    - Browser PPTX path (`--browser`) uses the same local editor host; auto-installs `agent-browser@latest` when missing/outdated; **PyYAML** auto-installed with `pip --user` when missing; image QA additionally auto-installs Pillow and websocket-client.
+   - On Windows the browser paths start a dedicated debug Chrome on `127.0.0.1:9337` (override with `PPTD_DEBUG_CHROME_PORT`) and **leave it running** so repeated exports reuse one instance. Mention this when the user asks, and tell them to close that window to stop it.
    - Local PNG/JPEG/GIF/SVG files inside the PPTD project are resolved by the local exporter / injected as data URLs for the editor host.
    - Do not claim PowerPoint/WPS/Keynote playback compatibility solely because ZIP validation succeeds.
 8. After export, verify that the output exists and report the generated path. Confirm that every slide has exactly one root-level fade transition in valid CT_Slide order (`cSld`, optional `clrMapOvr`, `transition`, optional `timing/extLst`) and that the PPTX ZIP passes integrity checks. A byte-string search for `<p:fade>` is insufficient because Office ignores transitions nested inside `cSld`. For higher-risk decks, additionally inspect font parts and representative rendered/opened pages as appropriate.
