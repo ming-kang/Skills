@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Export a PPTD project as page images through the local neo-ppt mirror for visual QA.
 
-Reuses the localhost local-editor host from export_pptx.py (no www.kimi.com), chooses
+Reuses the localhost local-editor host from export_pptx.py, chooses
 图片 in the export dialog, captures the images ZIP, unzips it, and stitches all pages
 into a single overview image that a multimodal model can review.
 """
@@ -47,7 +47,7 @@ PAGE_URL_HINT = "127.0.0.1"
 
 # The export dialog's 图片 format option is a plain <div class="radio-group-item">
 # without an ARIA role, so agent-browser's interactive snapshot never exposes it.
-# Local editor is same-origin (no kimi iframe); CDP Runtime.evaluate on the page works.
+# Local editor is same-origin (no iframe); CDP Runtime.evaluate on the page works.
 IMAGE_FORMAT_CLICK_JS = """
 (() => {
   const items = [...document.querySelectorAll('.radio-group-item')];
@@ -306,12 +306,12 @@ def export_images(
     image_cls, draw_cls, image_font = ensure_pillow()
 
     log(f"manifest: {manifest}")
-    with temporary_directory(prefix="open-kimi-ppt-images-") as temp_name:
+    with temporary_directory(prefix="pptd-images-") as temp_name:
         temp_dir = Path(temp_name)
         download_dir = temp_dir / "downloads"
         download_dir.mkdir()
         server, thread, url = serve_local_editor(payload)
-        session = f"open-kimi-ppt-images-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+        session = f"pptd-images-{os.getpid()}-{uuid.uuid4().hex[:8]}"
         browser = BrowserSession(agent_browser, session, temp_dir, download_dir)
         downloads = default_downloads_dir()
         try:
@@ -410,7 +410,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         output = args.output or manifest.parent / ".qa-images"
         summary = export_images(args.input, output, args.force)
     except (ExportError, OSError, subprocess.SubprocessError) as exc:
-        print(f"open-kimi-ppt image export failed: {exc}", file=sys.stderr)
+        print(f"pptd image export failed: {exc}", file=sys.stderr)
         return 1
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0

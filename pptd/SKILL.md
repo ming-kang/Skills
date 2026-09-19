@@ -25,8 +25,8 @@ Default delivery includes PPTX export (and optional `node scripts/serve.mjs`), w
 
 1. **Node.js 18+**: run `node --version`. If `node` is missing or the major version is below 18, **stop immediately**, tell the user to install Node.js 18+ from https://nodejs.org (or their OS package manager), and do not continue with PPTX export until it is available. Only continue with PPTD-only output when the user explicitly opts out of PPTX.
 2. **python3**: run `python3 --version` (on Windows, `python` may be the correct command). Needed for `scripts/export_pptx.py` / `scripts/export_images.py`.
-3. **Chrome / Chromium / Edge**: needed by `agent-browser` for **image QA** (`scripts/export_images.py`) and optional `--browser` PPTX path. Default PPTX export uses local WASM and does **not** require a browser. If image QA later fails with a browser-launch error, ask the user to install a Chromium-based browser.
-4. Soft deps are auto-handled by the scripts when missing: **PyYAML**, **agent-browser** (≥0.33.2 via npm, only for browser/image paths), and for image QA **Pillow** + **websocket-client**. **PPTX / image export / manual edit are offline** against the local neo-ppt mirror + patched WASM. Network is only needed if the deck references remote images/fonts.
+3. **Chrome / Chromium / Edge**: needed by `agent-browser` for **image QA** (`scripts/export_images.py`) and optional `--browser` PPTX path. Default PPTX export uses local WASM and does **not** require a browser. If the machine has no Chromium-based browser at all, the scripts automatically run `agent-browser install` once to download a private Chrome for Testing; only if that also fails, ask the user to install a Chromium-based browser.
+4. Soft deps are auto-handled by the scripts when missing: **PyYAML**, **agent-browser** (≥0.33.2 via npm, only for browser/image paths; `agent-browser install` additionally provisions Chrome for Testing when the machine has no Chromium-based browser), and for image QA **Pillow** + **websocket-client**. **PPTX / image export / manual edit are offline** against the local neo-ppt mirror + patched WASM. Network is only needed if the deck references remote images/fonts.
 
 ### step1. Read the context thoroughly
 Read **all files uploaded by the user**, the provided URLs, and the pptd format guide `references/pptd.md` to fully understand the user's requirements.
@@ -126,7 +126,7 @@ When generating a PPT, adopt different production approaches for different user 
 ### step4. PPT validation
 1. Validate the generated pptd against the format definition in `references/pptd.md` (required fields, types, bounds, theme tokens, resource paths, etc.) and repair issues over multiple rounds
 2. Visual review with exported page images — **required before PPTX export when the model supports image input (multimodal)**:
-   - Run `scripts/export_images.py`. It loads the deck into the **local neo-ppt editor** (same offline mirror as `serve`), chooses 导出 → 图片, downloads the images ZIP, unzips it, and stitches all pages into one overview image. Needs Chromium via `agent-browser`, but **does not** call `www.kimi.com`.
+   - Run `scripts/export_images.py`. It loads the deck into the **local neo-ppt editor** (same offline mirror as `serve`), chooses 导出 → 图片, downloads the images ZIP, unzips it, and stitches all pages into one overview image. Needs Chromium via `agent-browser`; runs entirely against the local editor.
 
      ```bash
      python3 scripts/export_images.py \
@@ -167,7 +167,7 @@ When generating a PPT, adopt different production approaches for different user 
    - the `.pptd` manifest;
    - the `pages/` directory and `media/` directory when present;
    - the generated `.pptx` file.
-4. PPTX conversion: use `scripts/export_pptx.py`. **Default path is the local patched WASM writer** (`scripts/local-export/export-pptd.mjs`): fully offline, no network, no browser. Optional `--browser` uses the **local** neo-ppt mirror (same as `serve`), still offline — not `www.kimi.com`.
+4. PPTX conversion: use `scripts/export_pptx.py`. **Default path is the local patched WASM writer** (`scripts/local-export/export-pptd.mjs`): fully offline, no network, no browser. Optional `--browser` uses the **local** neo-ppt mirror (same as `serve`), still fully offline.
 5. Default PPTX options:
    - page transition: `fade` (淡入淡出), written to every slide after export;
    - font embedding: available on the browser path; local WASM path prioritizes reliability over embed;
@@ -190,13 +190,13 @@ When generating a PPT, adopt different production approaches for different user 
    Existing output files are not overwritten unless `--force` is passed.
 7. Offline model (本地编辑器 + 本地导出):
    - **PPTX export (default)**: local patched WASM via `scripts/local-export/export-pptd.mjs`. Canonical binary: `assets/editor/neo-ppt/assets/pptd_wasm_bg-DPPWdROu.wasm`, shipped inside the skill; `--wasm` can override. Requires **Node.js 18+** only.
-   - **Image QA / visual review**: `scripts/export_images.py` drives the **local** neo-ppt editor via agent-browser (Chromium required; no `www.kimi.com`).
+   - **Image QA / visual review**: `scripts/export_images.py` drives the **local** neo-ppt editor via agent-browser (Chromium required).
    - **Manual edit / preview**: `node scripts/serve.mjs` serves the same offline neo-ppt mirror.
    - Browser PPTX path (`--browser`) uses the same local editor host; auto-installs `agent-browser@latest` when missing/outdated; **PyYAML** auto-installed with `pip --user` when missing; image QA additionally auto-installs Pillow and websocket-client.
    - Local PNG/JPEG/GIF/SVG files inside the PPTD project are resolved by the local exporter / injected as data URLs for the editor host.
    - Do not claim PowerPoint/WPS/Keynote playback compatibility solely because ZIP validation succeeds.
 8. After export, verify that the output exists and report the generated path. Confirm that every slide has exactly one root-level fade transition in valid CT_Slide order (`cSld`, optional `clrMapOvr`, `transition`, optional `timing/extLst`) and that the PPTX ZIP passes integrity checks. A byte-string search for `<p:fade>` is insufficient because Office ignores transitions nested inside `cSld`. For higher-risk decks, additionally inspect font parts and representative rendered/opened pages as appropriate.
-9. When the user wants to open, edit, save, or export a PPTD project manually, start the local browser editor with `node scripts/serve.mjs`. Ask the user to open `http://127.0.0.1:55173/` and authorize the complete PPTD project directory. Use a Chromium-based browser for writable access; folder-upload fallback is read-only. The host serves the **offline neo-ppt mirror** plus local patched WASM export — no `www.kimi.com`. Remote images or fonts referenced by the deck may still be fetched from their hosts.
+9. When the user wants to open, edit, save, or export a PPTD project manually, start the local browser editor with `node scripts/serve.mjs`. Ask the user to open `http://127.0.0.1:55173/` and authorize the complete PPTD project directory. Use a Chromium-based browser for writable access; folder-upload fallback is read-only. The host serves the **offline neo-ppt mirror** plus local patched WASM export — no network calls. Remote images or fonts referenced by the deck may still be fetched from their hosts.
 10. After completing and delivering any presentation, always end the final response with a concise optional next step telling the user that they can run `node scripts/serve.mjs` to view or edit the PPTD project, configure slide transition animations, and export PPTX manually. Keep this reminder in addition to, not instead of, the required project and file links.
 11. Element animations (`page.animations` in PPTD — entrance / emphasis / exit / motion-path; see `references/pptd.md` §6): use them only when the user explicitly requests animations, or when the deck is clearly intended for live presentation / slideshow playback and animation provides a clear benefit for staged disclosure, process demonstration, causal explanation, pacing, visual impact, or brand storytelling. By default, do not add element animations to reading-oriented, self-study, print, or primarily send-and-browse decks. Prefer 1–3 animation groups per page and simple effects such as fade, fly, and zoom. This is separate from the default PPTX slide-level fade page transition written by `export_pptx.py`.
 12. Speaker notes (`notes` on each `.page`): use them only when the user explicitly requests them; otherwise, do not add them.

@@ -1,39 +1,64 @@
-# NeoDeck Local（完全离线 · 无 iframe）
+# PPT Design — local offline editor
 
-夺舍官方 Kimi neo-ppt 前端镜像，单页运行：
+Single-page, fully offline mirror of the **Kimi neo-ppt editor** (the public Kimi
+Slides web frontend), saved from the live site and patched to run without any
+cloud service. Served by `pptd/scripts/serve.mjs`.
 
-- 无 iframe、无 www.kimi.com、无云同步 / 分享 / 云盘 / AI
-- 本地打开 PPTD 文件夹并自动保存
-- 官方编辑器内「导出」走本地 patched WASM
+- No iframe, no cloud sync / share / drive / AI endpoints — every legacy cloud
+  request is intercepted in `index.html` and answered with an offline stub
+- Open a local PPTD folder, edit in the official UI, save back automatically
+- In-editor export uses the local patched WASM
+  (`neo-ppt/assets/pptd_wasm_bg-DPPWdROu.wasm`, the single canonical copy)
 
-## 启动
+## Start
 
-在 pptd skill 根目录执行：
+From the `pptd/` skill folder:
 
 ```bash
-node scripts/serve.mjs            # 默认 127.0.0.1:55173
-node scripts/serve.mjs --open     # 同时打开浏览器
+node scripts/serve.mjs            # default 127.0.0.1:55173
+node scripts/serve.mjs --open     # also open the browser
 ```
 
-浏览器打开根路径即可（不要用 file://）。
+Open the root URL in the browser (not `file://`).
 
-## 使用
+## Use
 
-1. **打开 PPTD 文件夹**（Chromium 可读写；其它浏览器可退化为只读上传）
-2. 在官方编辑器 UI 中编辑
-3. 顶栏 **导出** → 下载 PPTX / 图片（无分享、无 Google 云盘）
+1. **Open a PPTD project folder** — Chromium-based browsers get read-write
+   access; other browsers fall back to read-only folder upload
+2. Edit in the official editor UI
+3. Top-bar **Export** → PPTX / images (no sharing, no Google Drive)
 
-## 结构
+## Structure
 
+```text
+index.html          # the only entry: official UI + local topbar shell
+favicon.ico         # neutral brand mark
+lib.js              # deck path / title helpers shared by the shell
+local-bridge.js     # local bridge that replaces the Penpal parent page
+local-shell.css     # topbar shell styles + offline chrome cleanup
+neo-ppt/            # upstream mirror (bundled assets + editor fonts)
 ```
-editor/
-  index.html          # 唯一入口（官方 UI + 本地顶栏）
-  local-bridge.js     # 取代 Penpal 父页面的本地桥
-  local-shell.css
-  neo-ppt/            # 官方前端镜像
-    assets/
-      pptd_wasm_bg-DPPWdROu.wasm   # 唯一一份 patched PPTX WASM（真源）
-      index_bg-*.wasm              # resvg（渲染用，勿与上者混淆）
-```
 
-Agent 侧 `scripts/local-export/export-pptd.mjs` 直接引用本目录下的 WASM 真源（`assets/editor/neo-ppt/assets/`，相对解析，`--wasm` 可覆盖）。
+## Provenance and local patches
+
+Source: the public Kimi neo-ppt editor frontend. Kimi / Moonshot is the upstream
+origin only — nothing in this folder talks to Kimi services at runtime.
+
+Local patches applied on top of the mirror:
+
+- **Offline interception** — cloud endpoints (`kimi.com`, `kimi.ai`,
+  `slides.kimi.*`, `volces.*`, Google APIs, telemetry) are intercepted in
+  `index.html` and answered with offline stubs
+- **Branding removed** — page title is `PPT Design`; favicon, comment
+  placeholders, feedback tips, font sample text, default deck names, document
+  title suffixes, version-history labels, and PPTX author/company metadata are
+  all neutral
+- **Functional identifiers intentionally unchanged** — the `KimiBridge` window
+  API, `KIMI_LOCALE` / `kimi-ppt-LOCALE` storage keys, `kimi-*` CSS classes,
+  `kimi-*.js` chunk filenames (they are import specifiers), icon registry keys,
+  and UA-sniffing regexes. Renaming any of these would break the bundle.
+- **Deleted** — the unused upstream entry `neo-ppt/index.html` (the served
+  entry is `index.html`); its meta tags still carried upstream branding.
+
+Development notes, test suites, and invariants: `../../../tools/pptd/README.md`
+(relative to this file, from the repository root).

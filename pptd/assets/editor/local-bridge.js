@@ -425,9 +425,9 @@ async function openDemo() {
   state.memoryFiles.clear();
   const manifest = JSON.stringify({
     version: "v2",
-    title: "NeoDeck Local",
+    title: "PPT Design",
     size: [960, 540],
-    pages: ["pages/01.page", "pages/02.page"],
+    pages: ["pages/01.page"],
   });
   const page1 = JSON.stringify({
     pageType: "content",
@@ -436,38 +436,31 @@ async function openDemo() {
       {
         elementId: "title",
         elementType: "text",
-        bounds: [80, 160, 800, 120],
+        bounds: [80, 96, 800, 80],
         content: {
-          text: '<p><span style="font-size:48px;color:#171923;font-weight:700">完全本地离线</span></p>',
+          text: '<p><span style="font-size:44px;color:#171923;font-weight:700">PPT Design</span></p>',
         },
       },
       {
         elementId: "sub",
         elementType: "text",
-        bounds: [80, 300, 720, 60],
+        bounds: [80, 192, 800, 50],
         content: {
-          text: '<p><span style="font-size:20px;color:#667085">官方编辑器镜像 · 无 iframe · 无云端接口</span></p>',
+          text: '<p><span style="font-size:18px;color:#667085">点击左上角「打开 PPTD 文件夹」，选择包含 .pptd 清单与 pages/ 的项目目录</span></p>',
         },
       },
-    ],
-  });
-  const page2 = JSON.stringify({
-    pageType: "content",
-    background: { color: "#171923" },
-    elements: [
       {
-        elementId: "t",
+        elementId: "steps",
         elementType: "text",
-        bounds: [80, 200, 800, 80],
+        bounds: [80, 268, 800, 190],
         content: {
-          text: '<p><span style="font-size:36px;color:#fff;font-weight:700">打开 PPTD 文件夹开始编辑</span></p>',
+          text: '<p><span style="font-size:20px;color:#3a4251;line-height:2">①  打开 PPTD 项目文件夹（.pptd + pages/ + media/）</span></p><p><span style="font-size:20px;color:#3a4251;line-height:2">②  在画布中编辑页面、元素与样式</span></p><p><span style="font-size:20px;color:#3a4251;line-height:2">③  导出 PPTX 或页面图片</span></p>',
         },
       },
     ],
   });
   state.memoryFiles.set("presentation.pptd", manifest);
   state.memoryFiles.set("pages/01.page", page1);
-  state.memoryFiles.set("pages/02.page", page2);
   state.fileIndex.clear();
   // synthetic index for demo
   for (const [path, content] of state.memoryFiles) {

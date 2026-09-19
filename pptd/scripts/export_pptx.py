@@ -6,7 +6,7 @@ Default path (preferred): local patched WASM writer
   → offline, no network, no browser.
 
 Optional --browser path: local neo-ppt editor mirror via agent-browser
-  (same UI as `node scripts/serve.mjs`, no www.kimi.com).
+  (same UI as `node scripts/serve.mjs`).
 
 Image QA (`export_images.py`) uses the same local editor host.
 """
@@ -56,7 +56,7 @@ MIN_NODE_MAJOR = 18
 NODE_INSTALL_HINT = "Install Node.js 18+ from https://nodejs.org, then retry."
 EDITOR_MISSING_HINT = (
     "local neo-ppt editor not found. The skill folder is incomplete "
-    "(expected assets/editor/ next to scripts/), or set OPEN_KIMI_PPT_EDITOR "
+    "(expected assets/editor/ next to scripts/), or set PPTD_EDITOR_DIR "
     "to the editor directory."
 )
 
@@ -71,7 +71,7 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 
 def log(message: str) -> None:
-    print(f"[open-kimi-ppt] {message}", file=sys.stderr, flush=True)
+    print(f"[pptd] {message}", file=sys.stderr, flush=True)
 
 
 def run_command(
@@ -88,7 +88,7 @@ def run_command(
     system locale (GBK on zh-CN Windows) can also raise UnicodeDecodeError.
     Writing to a UTF-8 file avoids both failures.
     """
-    handle, sink_path = tempfile.mkstemp(prefix="open-kimi-ppt-", suffix=".log")
+    handle, sink_path = tempfile.mkstemp(prefix="pptd-", suffix=".log")
     os.close(handle)
     sink = Path(sink_path)
     output = ""
@@ -264,6 +264,103 @@ CHROME_CANDIDATES = (
 )
 
 
+def agent_browser_has_chrome(executable: str) -> Optional[bool]:
+    """Ask agent-browser itself whether it can drive a browser.
+
+    agent-browser auto-detects system Chrome/Brave plus Playwright and Puppeteer
+    caches; replicating that detection here would be fragile, so `doctor` output
+    is the source of truth. Returns None when this CLI build has no `doctor`.
+    """
+    try:
+        process = run_command([executable, "doctor"], timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    text = process.stdout or ""
+    if "Unknown command" in text:
+        return None
+    if process.returncode != 0:
+        return None
+    in_chrome_section = False
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if not line.startswith(("pass", "info", "warn", "fail")):
+            in_chrome_section = line == "Chrome"
+            continue
+        if in_chrome_section and line.startswith("pass"):
+            return True
+    return False
+
+
+def host_has_browser_cache() -> bool:
+    """Broad fallback check used only when `agent-browser doctor` is unavailable."""
+    home = Path.home()
+    if os.name == "nt":
+        roots = [home / ".cache" / "puppeteer", home / "AppData" / "Local" / "ms-playwright"]
+        if any(Path(candidate).exists() for candidate in CHROME_CANDIDATES):
+            return True
+    elif sys.platform == "darwin":
+        roots = [
+            home / ".cache" / "puppeteer",
+            home / "Library" / "Caches" / "ms-playwright",
+        ]
+        if any(
+            Path(app).exists()
+            for app in (
+                "/Applications/Google Chrome.app",
+                "/Applications/Chromium.app",
+                "/Applications/Microsoft Edge.app",
+                "/Applications/Brave Browser.app",
+            )
+        ):
+            return True
+    else:
+        roots = [home / ".cache" / "ms-playwright", home / ".cache" / "puppeteer"]
+        if any(
+            shutil.which(name)
+            for name in (
+                "google-chrome",
+                "google-chrome-stable",
+                "chromium",
+                "chromium-browser",
+                "microsoft-edge",
+                "msedge",
+                "brave-browser",
+            )
+        ):
+            return True
+    return any(root.exists() and any(root.iterdir()) for root in roots)
+
+
+def ensure_chromium(executable: str) -> None:
+    """agent-browser drives Chrome over CDP. On a host with no usable browser at
+    all (e.g. a Firefox-only machine), provision one with `agent-browser install`
+    (Chrome for Testing, one-time download)."""
+    available = agent_browser_has_chrome(executable)
+    if available is None:
+        available = host_has_browser_cache()
+    if available:
+        return
+    log("agent-browser reports no usable browser; provisioning one via 'agent-browser install'")
+    process = run_command([executable, "install"], timeout=900)
+    if process.returncode != 0:
+        raise ExportError(
+            "agent-browser could not provision a browser (Chrome for Testing "
+            "download failed). Install a Chromium-based browser manually, or run "
+            "'agent-browser install' yourself.\n" + process.stdout[-4000:]
+        )
+    available = agent_browser_has_chrome(executable)
+    if available is None:
+        available = host_has_browser_cache()
+    if not available:
+        raise ExportError(
+            "agent-browser install completed but no usable browser is available; "
+            "install a Chromium-based browser manually."
+        )
+    log("agent-browser provisioned Chrome for Testing")
+
+
 def cdp_alive(port: int) -> bool:
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=2):
@@ -313,7 +410,7 @@ def ensure_debug_chrome() -> Optional[int]:
             "or start a browser with --remote-debugging-port yourself and set "
             "AGENT_BROWSER_CDP to that port"
         )
-    profile = Path(tempfile.gettempdir()) / "okp-cdp-profile"
+    profile = Path(tempfile.gettempdir()) / "pptd-cdp-profile"
     log(f"starting debug browser on port {port}: {executable}")
     subprocess.Popen(
         [
@@ -735,7 +832,7 @@ def verify_output(pptx: Path, transition: str, expect_fonts: bool) -> Dict[str, 
 
 def resolve_editor_root() -> Path:
     """Locate the offline neo-ppt mirror (env override, else in-skill assets/editor)."""
-    env = os.environ.get("OPEN_KIMI_PPT_EDITOR")
+    env = os.environ.get("PPTD_EDITOR_DIR") or os.environ.get("OPEN_KIMI_PPT_EDITOR")
     if env:
         return Path(env).expanduser().resolve()
     return SKILL_DIR / "assets" / "editor"
@@ -903,12 +1000,12 @@ def export_pptx(
         f"defaults: transition={transition}, embed_fonts={'on' if embed_fonts else 'off'}"
     )
 
-    with temporary_directory(prefix="open-kimi-ppt-export-") as temp_name:
+    with temporary_directory(prefix="pptd-export-") as temp_name:
         temp_dir = Path(temp_name)
         download_dir = temp_dir / "downloads"
         download_dir.mkdir()
         server, thread, url = serve_local_editor(payload)
-        session = f"open-kimi-ppt-export-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+        session = f"pptd-export-{os.getpid()}-{uuid.uuid4().hex[:8]}"
         browser = BrowserSession(agent_browser, session, temp_dir, download_dir, cdp_port)
         downloads = default_downloads_dir()
         try:
@@ -1020,7 +1117,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             prefer_local=not args.browser,
         )
     except (ExportError, OSError, subprocess.SubprocessError) as exc:
-        print(f"open-kimi-ppt export failed: {exc}", file=sys.stderr)
+        print(f"pptd export failed: {exc}", file=sys.stderr)
         return 1
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0

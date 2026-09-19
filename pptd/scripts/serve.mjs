@@ -7,7 +7,8 @@
  *   node scripts/serve.mjs [--port 55173] [--open]
  *
  * Env:
- *   OPEN_KIMI_PPT_EDITOR   override the editor directory (default: assets/editor)
+ *   PPTD_EDITOR_DIR        override the editor directory (default: assets/editor)
+ *                           (legacy alias OPEN_KIMI_PPT_EDITOR still honored)
  */
 
 import { spawn } from "node:child_process";
@@ -98,7 +99,7 @@ export function startEditorServer({
   port = DEFAULT_PORT,
   editorDirectory,
 } = {}) {
-  const directory = editorDirectory ?? process.env.OPEN_KIMI_PPT_EDITOR;
+  const directory = editorDirectory ?? process.env.PPTD_EDITOR_DIR ?? process.env.OPEN_KIMI_PPT_EDITOR;
   const server = createEditorServer(
     directory ? { editorDirectory: resolve(directory) } : {},
   );

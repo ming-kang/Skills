@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="color-scheme" content="light only" />
-    <title>NeoDeck Local</title>
-    <link rel="icon" href="./neo-ppt/favicon-kimi.ico" />
+    <title>PPT Design</title>
+    <link rel="icon" href="./favicon.ico" />
     <style>
       /* Avoid dark FOUC before Vue theme init (official default is system → OS dark). */
       html, body { background: #ffffff; color-scheme: light; }
@@ -22,7 +22,8 @@
         window.INJECT_ENV = Object.assign({}, window.INJECT_ENV, { theme: "light" });
         document.documentElement.classList.remove("dark");
         document.documentElement.classList.add("light");
-        // Completely offline: block cloud APIs early
+        // Completely offline: intercept legacy cloud endpoints (inherited from the
+        // upstream mirror) so no request ever leaves the machine.
         const blocked = [
           /\/apiv2\//,
           /www\.kimi\.com/,
@@ -89,7 +90,7 @@
 </head>
   <body class="neodeck-local">
     <header class="nd-topbar" id="nd-topbar">
-      <div class="nd-brand"><strong>NeoDeck</strong><small>LOCAL</small></div>
+      <div class="nd-brand"><strong>PPT Design</strong></div>
       <div class="nd-actions">
         <button type="button" class="nd-btn nd-btn-primary" id="nd-open">打开 PPTD 文件夹</button>
       </div>

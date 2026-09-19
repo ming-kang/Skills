@@ -32,10 +32,11 @@ not a test side effect to guard against.
   is the only copy. Every exporter resolves it relative to the skill root;
   never duplicate it into scripts/ or tools/, and never copy-on-install.
   (`--wasm` exists only as a user override.)
-- **One optional environment variable.** `OPEN_KIMI_PPT_EDITOR` overrides the
-  editor mirror directory; `AGENT_BROWSER_CDP` is internal. Do not add env
-  vars or network paths — PPTX export, image export, and editing must stay
-  offline. A deck may still fetch remote images/fonts it references.
+- **One optional environment variable.** `PPTD_EDITOR_DIR` overrides the
+  editor mirror directory (the legacy alias `OPEN_KIMI_PPT_EDITOR` is still
+  honored); `AGENT_BROWSER_CDP` is internal. Do not add env vars or network
+  paths — PPTX export, image export, and editing must stay offline. A deck may
+  still fetch remote images/fonts it references.
 - **SKILL.md paths are folder-relative only.** No absolute install paths, no
   `npx` commands. The skill is a plain directory copy.
 - **Skill self-containment.** Anything the skill needs at runtime lives inside

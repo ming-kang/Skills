@@ -40,12 +40,6 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   min-width: 96px;
 }
 .nd-brand strong { font-size: 14px; color: #171923; }
-.nd-brand small {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #5b4dff;
-}
 .nd-actions {
   display: flex;
   align-items: center;
@@ -65,12 +59,18 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   cursor: pointer;
 }
 .nd-btn:hover { background: #f7f8fb; }
+.nd-btn:focus-visible,
+.nd-btn-primary:focus-visible {
+  outline: 2px solid #171923;
+  outline-offset: 2px;
+}
+.nd-btn { transition: background-color 120ms ease, border-color 120ms ease; }
 .nd-btn-primary {
-  border-color: #6c5ce7;
-  background: #6c5ce7;
+  border-color: #171923;
+  background: #171923;
   color: #fff;
 }
-.nd-btn-primary:hover { background: #5b4dff; border-color: #5b4dff; }
+.nd-btn-primary:hover { background: #2b2f3a; border-color: #2b2f3a; }
 .nd-meta {
   display: flex;
   flex-direction: column;

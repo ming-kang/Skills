@@ -84,10 +84,10 @@ PPTD is a YAML-based presentation DSL — a simplified abstraction over OOXML th
 
 - The editor serves only `127.0.0.1` — never a LAN address.
 - The browser only reads a project directory after you explicitly authorize it; save callbacks are restricted to `.pptd`/`.page` files and reject absolute or `..` paths.
-- Editing, PPTX export, and image QA all run against the **local** editor mirror and patched WASM — no `www.kimi.com`, no cookies, no login tokens, no access to private Kimi documents. Remote images or fonts referenced by a deck may still be fetched from their hosts.
-- One optional environment variable: `OPEN_KIMI_PPT_EDITOR` overrides the editor mirror directory (the bundled `assets/editor/` is used otherwise; rarely needed).
+- Editing, PPTX export, and image QA all run against the **local** editor mirror and patched WASM — no network calls, no cookies, no login tokens, no cloud accounts. Remote images or fonts referenced by a deck may still be fetched from their hosts.
+- One optional environment variable: `PPTD_EDITOR_DIR` overrides the editor mirror directory (the bundled `assets/editor/` is used otherwise; rarely needed). The legacy alias `OPEN_KIMI_PPT_EDITOR` is still honored.
 
-Windows note: the browser paths (image QA, `--browser` export) start one persistent debug browser (Chrome, falling back to Edge) driven via CDP, reused across exports. To manage your own instance, start a browser with `--remote-debugging-port=<port>` and set `AGENT_BROWSER_CDP` to that port.
+Windows note: the browser paths (image QA, `--browser` export) drive one persistent debug browser via CDP, reused across exports. Machines without any Chromium-based browser get one provisioned automatically: the export scripts run `agent-browser install` once to download Chrome for Testing. To manage your own instance, start a browser with `--remote-debugging-port=<port>` and set `AGENT_BROWSER_CDP` to that port.
 
 ## License and Attribution
 
