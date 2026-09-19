@@ -4,6 +4,31 @@ PPTD (PPT-DSL) is a YAML abstraction layer for PowerPoint presentations, used to
 
 ---
 
+## How to Read This Document
+
+This file is long. Read it in two steps instead of front to back:
+
+1. **Always read first** — "Conventions in This Document", §1 Global Conventions (syntax, coordinate system, style priority, multi-file structure), §3 Main Entry File, §4 Page Files. These define the rules that every deck must satisfy.
+2. **Then read on demand** — the §2 shared types and the §5 element sections you actually use on the current deck, plus §6 only when adding animations.
+
+| Need | Section |
+|---|---|
+| Colors, fonts, alignment, borders, shadows, gradients, fills | §2 Shared Types (`Color`, `FontFamily`, `Alignment`, `LineStyle`, `Border`, `Shadow`, `ColorStop`, `ImageFit`/`ImageCrop`, `Fill`) |
+| Deck manifest, theme tokens, custom fonts | §3 (`Presentation`, `Theme`, `CustomFont`) |
+| Page-level fields, background, notes | §4 (`Page`) |
+| Text boxes and rich text | §5 `Text` |
+| Shapes and custom paths | §5 `Shape` (shape names: `shapes.md`) |
+| Lines and connectors | §5 `Line` |
+| Images, cropping, image fills | §5 `Image` |
+| Font Awesome icons | §5 `Icon` |
+| Tables | §5 `Table` |
+| Charts | §5 `Chart` |
+| Entrance / emphasis / exit / motion-path animations | §6 Animations |
+
+Available font families are listed in `fonts.md`; the 177 shape names and their `adjustments` in `shapes.md`.
+
+---
+
 ## Conventions in This Document
 - Uses **TS interfaces** to describe structures, with **field tables** and **minimal YAML examples** to aid understanding
 - **Default values** are annotated in TS end-of-line comments as `// default: X`. X may be a literal (`1` / `"top"` / `[0, 0]`) or a descriptive phrase (`not applied` / `not shown` / `falls back along the inheritance chain` / `auto-adapts to chart size`, etc.)

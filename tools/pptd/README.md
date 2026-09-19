@@ -42,6 +42,15 @@ test output come from the mocked code path, not a real global npm install.
   `npx` commands. The skill is a plain directory copy.
 - **Skill self-containment.** Anything the skill needs at runtime lives inside
   `pptd/`. Repo-only sources, tests, and browser tooling live here.
+- **No npm dependency next to the skill.** `export_pptx.py` parses the project
+  with PyYAML and passes `export-pptd.mjs --json`; the mjs YAML chain (npm
+  `yaml` → `js-yaml` → `PPTD_PYTHON`/`python3`/`python`/`py`) exists only for
+  direct `node export-pptd.mjs` use. Never make the default export path depend
+  on a node package — the skill ships as a plain directory with no
+  `node_modules`.
+- **Clean the tree before packaging.** Running the scripts leaves
+  `pptd/scripts/__pycache__/` behind. It is gitignored but still on disk, and a
+  directory-copy install would ship it; delete it before distributing.
 
 ## Working on the skill
 
@@ -53,6 +62,12 @@ test output come from the mocked code path, not a real global npm install.
   mirror, no iframe, no cloud APIs). The patched WASM above is the export
   "source of truth" it hosts. When refreshing the mirror, record the upstream
   origin, version/commit, and the applied patch list here.
+  - **Legacy bundle removed.** The upstream `*-legacy-*` chunks (ES5 fallback,
+    64 files / ~5 MB) were deleted: the served `index.html` has no `nomodule`
+    tag and nothing in the module graph references them, and the skill requires
+    a Chromium-based browser anyway. Verified by serving the mirror and
+    fetching every entry asset plus the main chunk's imports (all 200). Redo
+    that check after any mirror refresh before deleting them again.
 - **Docs**: user-facing changes go to `docs/README.pptd.md` and the root
   `README.md` entry; the root `AGENTS.md` stays a repository-wide guideline and
   is not the place for skill-specific constraints.

@@ -29,7 +29,7 @@ Default delivery includes PPTX export (and optional `node scripts/serve.mjs`), w
 4. Soft deps are auto-handled by the scripts when missing: **PyYAML**, **agent-browser** (≥0.33.2 via npm, only for browser/image paths; `agent-browser install` additionally provisions Chrome for Testing when the machine has no Chromium-based browser), and for image QA **Pillow** + **websocket-client**. **PPTX / image export / manual edit are offline** against the local neo-ppt mirror + patched WASM. Network is only needed if the deck references remote images/fonts.
 
 ### step1. Read the context thoroughly
-Read **all files uploaded by the user**, the provided URLs, and the pptd format guide `references/pptd.md` to fully understand the user's requirements.
+Read **all files uploaded by the user**, the provided URLs, and the pptd format guide `references/pptd.md` to fully understand the user's requirements. That guide is long: follow its "How to Read This Document" index — always read the conventions, §1, §3, §4, then load only the §2 shared types and §5 element sections this deck actually needs.
 
 ### step2. Understand the user's requirements
 Understand the user's requirements based on the context:
@@ -69,7 +69,7 @@ When any of the following situations arise, resolve them by asking the user (use
 
 ### step3. Generate the presentation based on the user's requirements
 
-Before generating, first read `references/pptd.md` to understand the pptd format definition and constraints.
+Before generating, first read `references/pptd.md` (per its "How to Read This Document" index) to understand the pptd format definition and constraints, loading the element sections this deck needs.
 
 #### Replicating a PPT
 - Analyze the images to estimate element positions, fonts and sizes, etc., and **replicate 1:1 as closely as possible**.
