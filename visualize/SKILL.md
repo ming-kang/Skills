@@ -1,6 +1,6 @@
 ---
 name: visualize
-description: Generate clean, self-contained SVG diagrams in one consistent house style.
+description: Generate clean, self-contained SVG technical diagrams in one consistent house style — architecture, flowchart, sequence, ER, network topology, and more. Use for any request to draw, visualize, explain, or edit a diagram, chart, graph, or SVG.
 ---
 
 # Visualize

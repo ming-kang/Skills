@@ -1,6 +1,6 @@
 ---
 name: pptd
-description: Create, edit, replicate, read, and export presentations in the PPTD format. For every PPT task, the default deliverables are BOTH (1) a self-contained PPTD project folder containing the .pptd manifest plus pages/media dependencies and (2) a locally generated .pptx with embedded fonts and fade slide transitions. Use for any presentation, PowerPoint, PPT/PPTX, slide deck, PPTD, infographic, or poster task unless the user explicitly requests another format. Deliver with normal local file/folder links using absolute paths.
+description: Create, edit, and export presentations as PPTD projects and .pptx files. Use whenever a slide deck is involved — created, replicated from PPT/PPTX/PDF, edited, or exported. Default deliverables are BOTH a self-contained PPTD project folder and a locally generated .pptx with embedded fonts and fade transitions.
 ---
 
 # Definition
