@@ -168,7 +168,7 @@ Edit the corresponding layout under `tools/visualize/gallery/`, then regenerate 
 npm run visualize:build
 npm run visualize:render -- --output .artifacts/visualize/after --compare .artifacts/visualize/before
 npm run visualize:build -- --check
-npm run visualize:test
+npm run test:visualize
 npm run visualize:validate
 npm run visualize:palette
 git diff --check

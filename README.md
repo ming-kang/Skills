@@ -24,6 +24,12 @@ An extremely strict maintainability review — over a diff, a commit, uncommitte
 
 → [docs/README.code-quality-review.md](docs/README.code-quality-review.md)
 
+### pptd
+
+Create, edit, replicate, and export presentations. Every task delivers both an editable PPTD project and a matching .pptx with embedded fonts and fade transitions, with an offline local editor, WASM exporter, 44 design-system presets, and image-based visual QA before export.
+
+→ [docs/README.pptd.md](docs/README.pptd.md)
+
 ## License
 
 [MIT](LICENSE)
