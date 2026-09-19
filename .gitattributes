@@ -1,0 +1,2 @@
+# Normalize line endings: store and check out LF everywhere, no CRLF conversion.
+* text=auto eol=lf
