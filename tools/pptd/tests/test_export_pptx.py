@@ -25,6 +25,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 import pptd_common  # noqa: E402  (path set up above)
 import pptd_deck  # noqa: E402  (path set up above)
+import pptd_pptx  # noqa: E402  (path set up above)
 
 SCRIPT = SCRIPTS_DIR / "export_pptx.py"
 SPEC = importlib.util.spec_from_file_location("export_pptx", SCRIPT)
@@ -93,26 +94,26 @@ class ExportPptxTests(unittest.TestCase):
             b'<p:sld xmlns:p="urn:test"><p:cSld><p:spTree><p:extLst/>'
             b'</p:spTree></p:cSld><p:clrMapOvr/><p:timing/><p:extLst/></p:sld>'
         )
-        result_bytes = MODULE.replace_transition(source, "fade")
+        result_bytes = pptd_pptx.replace_transition(source, "fade")
         result = result_bytes.decode("utf-8")
         self.assertIn("<p:transition", result)
         self.assertIn("<p:fade/>", result)
         self.assertGreater(result.index("<p:transition"), result.index("<p:clrMapOvr"))
         self.assertLess(result.index("<p:transition"), result.index("<p:timing"))
-        MODULE.validate_transition_order(result_bytes, "fade")
+        pptd_pptx.validate_transition_order(pptd_pptx.slide_transition_facts(result_bytes), "fade")
 
     def test_existing_transition_is_replaced_or_removed(self):
         source = (
             b'<p:sld xmlns:p="urn:test"><p:cSld/>'
             b'<p:transition><p:wipe/></p:transition><p:extLst/></p:sld>'
         )
-        faded = MODULE.replace_transition(source, "fade").decode("utf-8")
+        faded = pptd_pptx.replace_transition(source, "fade").decode("utf-8")
         self.assertNotIn("p:wipe", faded)
         self.assertEqual(faded.count("<p:transition"), 1)
-        MODULE.validate_transition_order(faded.encode("utf-8"), "fade")
-        cleared = MODULE.replace_transition(source, "none").decode("utf-8")
+        pptd_pptx.validate_transition_order(pptd_pptx.slide_transition_facts(faded.encode("utf-8")), "fade")
+        cleared = pptd_pptx.replace_transition(source, "none").decode("utf-8")
         self.assertNotIn("p:transition", cleared)
-        MODULE.validate_transition_order(cleared.encode("utf-8"), "none")
+        pptd_pptx.validate_transition_order(pptd_pptx.slide_transition_facts(cleared.encode("utf-8")), "none")
 
     def test_nested_transition_is_relocated_to_slide_root(self):
         source = (
@@ -120,9 +121,10 @@ class ExportPptxTests(unittest.TestCase):
             b'<p:transition><p:fade/></p:transition><p:extLst/>'
             b'</p:spTree></p:cSld><p:clrMapOvr/><p:extLst/></p:sld>'
         )
-        result = MODULE.replace_transition(source, "fade")
-        MODULE.validate_transition_order(result, "fade")
-        self.assertEqual(MODULE.root_child_names(result), [
+        result = pptd_pptx.replace_transition(source, "fade")
+        facts = pptd_pptx.slide_transition_facts(result)
+        pptd_pptx.validate_transition_order(facts, "fade")
+        self.assertEqual(facts.names, [
             "cSld", "clrMapOvr", "transition", "extLst"
         ])
 
@@ -134,14 +136,14 @@ class ExportPptxTests(unittest.TestCase):
                     "[Content_Types].xml",
                     '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
                     '<Override PartName="/ppt/presentation.xml" '
-                    f'ContentType="{MODULE.PPTX_CONTENT_TYPE}"/></Types>',
+                    f'ContentType="{pptd_pptx.PPTX_CONTENT_TYPE}"/></Types>',
                 )
                 archive.writestr("ppt/presentation.xml", "<p:presentation xmlns:p=\"urn:test\"/>")
                 archive.writestr(
                     "ppt/slides/slide1.xml",
                     '<p:sld xmlns:p="urn:test"><p:cSld/></p:sld>',
                 )
-            self.assertEqual(MODULE.patch_transitions(deck, "fade"), 1)
+            self.assertEqual(pptd_pptx.patch_transitions(deck, "fade"), 1)
             with zipfile.ZipFile(deck) as archive:
                 self.assertIsNone(archive.testzip())
                 slide = archive.read("ppt/slides/slide1.xml")
@@ -170,7 +172,7 @@ class ExportPptxTests(unittest.TestCase):
                         "[Content_Types].xml",
                         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
                         '<Override PartName="/ppt/presentation.xml" '
-                        f'ContentType="{MODULE.PPTX_CONTENT_TYPE}"/></Types>',
+                        f'ContentType="{pptd_pptx.PPTX_CONTENT_TYPE}"/></Types>',
                     )
                     archive.writestr("ppt/presentation.xml", "<p:presentation/>")
 
@@ -191,7 +193,7 @@ class ExportPptxTests(unittest.TestCase):
                     "[Content_Types].xml",
                     '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
                     '<Override PartName="/ppt/presentation.xml" '
-                    f'ContentType="{MODULE.PPTX_CONTENT_TYPE}"/></Types>',
+                    f'ContentType="{pptd_pptx.PPTX_CONTENT_TYPE}"/></Types>',
                 )
                 archive.writestr("ppt/presentation.xml", "<p:presentation/>")
             ghost = root / "ghost.crdownload"
