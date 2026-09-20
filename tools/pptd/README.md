@@ -14,6 +14,29 @@ tools/pptd/
   smoke_editor.mjs # manual browser check of the --project preview mode
 ```
 
+## `pptd/scripts/` module map
+
+The export scripts are flat sibling modules (no package: the skill ships as a
+plain directory copy, and `python3 scripts/export_pptx.py` must work from any
+cwd). Each module owns one layer:
+
+| module | owns |
+|---|---|
+| `export_pptx.py` | CLI + the two export paths' orchestration (local WASM, browser) |
+| `export_images.py` | the image-QA pipeline (dialog → ZIP → rename → stitch) |
+| `clean_processes.py` | reclaiming the editor host and debug browser by hand |
+| `pptd_common.py` | process running, temp dirs, `ensure_module()` (the one pip-install helper), `SKILL_DIR`, the canonical proxy env list |
+| `pptd_deck.py` | manifest/pages reading + validation, payload.json, image maps |
+| `pptd_browser.py` | agent-browser bootstrap, Windows debug-browser lifecycle, CDP, `EditorExportSession` (the shared drive flow) |
+| `pptd_editor_host.py` | the local editor HTTP host + media mount (`EditorHost`) |
+| `pptd_pptx.py` | slide-transition patching and output verification |
+| `serve.mjs` | the interactive editor host (leases, idle watchdog, project mount) |
+| `local-export/export-pptd.mjs` | the offline WASM writer |
+
+Tests import these modules directly (they are the unit under test); the
+orchestration tests load `export_pptx` via `importlib` and patch the module
+that owns the function they exercise.
+
 ## Running tests
 
 ```bash
