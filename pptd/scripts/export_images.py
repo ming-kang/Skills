@@ -9,6 +9,7 @@ into a single overview image that a multimodal model can review.
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import math
 import re
@@ -19,6 +20,7 @@ import tempfile
 import time
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from pptd_browser import (
@@ -69,11 +71,17 @@ ACTIVE_FORMAT_JS = """
 """.strip()
 
 
-def ensure_pillow() -> Tuple[Any, Any, Any]:
+@functools.lru_cache(maxsize=1)
+def pillow() -> Any:
+    """The lazily imported Pillow surface (Image, ImageDraw, ImageFont).
+
+    One call site for the optional dependency, instead of threading the three
+    classes through every function that draws.
+    """
     ensure_module("PIL", "pillow", "Pillow is required for stitching")
     from PIL import Image, ImageDraw, ImageFont
 
-    return Image, ImageDraw, ImageFont
+    return SimpleNamespace(Image=Image, Draw=ImageDraw, ImageFont=ImageFont)
 
 
 def is_image_zip(path: Path) -> bool:
@@ -149,23 +157,17 @@ def canonical_page_names(images: Sequence[Path]) -> List[Tuple[Path, str]]:
     return list(zip(targets, editor_names))
 
 
-def label_font(image_font: Any) -> Any:
+def label_font() -> Any:
     try:
-        return image_font.load_default(size=18)
+        return pillow().ImageFont.load_default(size=18)
     except TypeError:  # older Pillow without the size argument
-        return image_font.load_default()
+        return pillow().ImageFont.load_default()
 
 
-def stitch_overview(
-    images: Sequence[Path],
-    output: Path,
-    image_cls: Any,
-    draw_cls: Any,
-    image_font: Any,
-) -> Path:
+def stitch_overview(images: Sequence[Path], output: Path) -> Path:
     thumbs: List[Tuple[str, Any]] = []
     for index, path in enumerate(images, start=1):
-        with image_cls.open(path) as opened:
+        with pillow().Image.open(path) as opened:
             frame = opened.convert("RGB")
             ratio = OVERVIEW_THUMB_WIDTH / frame.width
             thumb = frame.resize(
@@ -179,9 +181,9 @@ def stitch_overview(
     width = columns * OVERVIEW_THUMB_WIDTH + (columns + 1) * OVERVIEW_GAP
     height = rows * cell_height + (rows + 1) * OVERVIEW_GAP
 
-    overview = image_cls.new("RGB", (width, height), "#e5e7eb")
-    draw = draw_cls.Draw(overview)
-    font = label_font(image_font)
+    overview = pillow().Image.new("RGB", (width, height), "#e5e7eb")
+    draw = pillow().Draw.Draw(overview)
+    font = label_font()
     for position, (label, thumb) in enumerate(thumbs):
         column = position % columns
         row = position // columns
@@ -298,7 +300,6 @@ def export_images(
     # cannot launch Chrome itself there, so image QA drives the same
     # registered, self-reclaiming browser instead of failing to start one.
     cdp_port = ensure_debug_chrome()
-    image_cls, draw_cls, image_font = ensure_pillow()
 
     log(f"manifest: {manifest}")
     # One call so the payload and the host agree on how media is delivered.
@@ -339,9 +340,7 @@ def export_images(
                 downloaded.unlink(missing_ok=True)
         except OSError:
             pass
-        overview = stitch_overview(
-            images, output / "overview.jpg", image_cls, draw_cls, image_font
-        )
+        overview = stitch_overview(images, output / "overview.jpg")
 
     mapping = [
         {

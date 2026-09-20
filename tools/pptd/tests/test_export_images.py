@@ -124,7 +124,7 @@ class ExportImagesTests(unittest.TestCase):
 
     def test_stitch_overview_grid(self):
         try:
-            image_cls, draw_cls, image_font = MODULE.ensure_pillow()
+            pil = MODULE.pillow()
         except MODULE.ExportError:
             self.skipTest("Pillow is not available")
         with tempfile.TemporaryDirectory() as name:
@@ -132,14 +132,12 @@ class ExportImagesTests(unittest.TestCase):
             images = []
             for index in range(1, 5):
                 path = root / f"{index}.jpeg"
-                image = image_cls.new("RGB", (320, 180), (index * 40 % 255, 30, 60))
+                image = pil.Image.new("RGB", (320, 180), (index * 40 % 255, 30, 60))
                 image.save(path, "JPEG")
                 images.append(path)
-            overview = MODULE.stitch_overview(
-                images, root / "overview.jpg", image_cls, draw_cls, image_font
-            )
+            overview = MODULE.stitch_overview(images, root / "overview.jpg")
             self.assertTrue(overview.is_file())
-            with image_cls.open(overview) as result:
+            with pil.Image.open(overview) as result:
                 self.assertEqual(
                     result.width,
                     3 * MODULE.OVERVIEW_THUMB_WIDTH + 4 * MODULE.OVERVIEW_GAP,
