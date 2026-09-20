@@ -236,7 +236,7 @@ class ExportImagesEndToEndTests(unittest.TestCase):
                 stderr=subprocess.DEVNULL,
             )
             try:
-                from export_pptx import cdp_alive, find_debug_chrome_pid, process_image_name
+                from pptd_browser import cdp_alive, find_debug_chrome_pid, process_image_name
 
                 deadline = time.monotonic() + 30
                 while time.monotonic() < deadline and not cdp_alive(port):
@@ -249,7 +249,7 @@ class ExportImagesEndToEndTests(unittest.TestCase):
                     output = root / "qa"
                     summary = MODULE.export_images(self.DECK, output, force=True)
 
-                from export_pptx import build_payload
+                from pptd_deck import build_payload
 
                 pages = [entry["path"] for entry in build_payload(self.DECK)["pages"]]
                 self.assertEqual(summary["pages"], len(pages))

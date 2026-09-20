@@ -24,6 +24,7 @@ SCRIPTS_DIR = SKILL_ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import pptd_common  # noqa: E402  (path set up above)
+import pptd_browser  # noqa: E402  (path set up above)
 import pptd_deck  # noqa: E402  (path set up above)
 import pptd_pptx  # noqa: E402  (path set up above)
 
@@ -35,12 +36,15 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ExportPptxTests(unittest.TestCase):
-    def test_parse_agent_browser_version(self):
-        self.assertEqual(MODULE.parse_version("agent-browser 0.33.2"), (0, 33, 2))
-        self.assertEqual(MODULE.parse_version("v1.4.0-beta.1"), (1, 4, 0))
+    def test_parse_version_handles_both_probes(self):
+        # agent-browser prints "agent-browser 0.33.2"; Node prints "v22.11.0".
+        self.assertEqual(pptd_browser.parse_version("agent-browser 0.33.2"), (0, 33, 2))
+        self.assertEqual(pptd_browser.parse_version("v1.4.0-beta.1"), (1, 4, 0))
+        self.assertEqual(pptd_browser.parse_version("v22.11.0"), (22, 11, 0))
+        self.assertEqual(pptd_browser.parse_version("18.20.4"), (18, 20, 4))
 
-    @patch.object(MODULE, "run_command")
-    @patch.object(MODULE.shutil, "which")
+    @patch.object(pptd_browser, "run_command")
+    @patch.object(pptd_browser.shutil, "which")
     def test_old_agent_browser_is_upgraded(self, which, run_command):
         which.side_effect = [
             "/bin/node",
@@ -55,38 +59,34 @@ class ExportPptxTests(unittest.TestCase):
             MODULE.subprocess.CompletedProcess([], 0, "changed 1 package\n"),
             MODULE.subprocess.CompletedProcess([], 0, "agent-browser 0.33.2\n"),
         ]
-        self.assertEqual(MODULE.ensure_agent_browser(), "/bin/agent-browser")
+        self.assertEqual(pptd_browser.ensure_agent_browser(), "/bin/agent-browser")
         self.assertEqual(run_command.call_args_list[2].args[0], [
             "/bin/npm", "install", "-g", "agent-browser@latest"
         ])
 
-    @patch.object(MODULE, "run_command")
-    @patch.object(MODULE.shutil, "which")
+    @patch.object(pptd_browser, "run_command")
+    @patch.object(pptd_browser.shutil, "which")
     def test_missing_nodejs_raises_clear_error(self, which, run_command):
         which.return_value = None
         with self.assertRaisesRegex(MODULE.ExportError, "Node.js is not installed"):
-            MODULE.ensure_nodejs()
+            pptd_browser.ensure_nodejs()
         run_command.assert_not_called()
 
-    @patch.object(MODULE, "run_command")
-    @patch.object(MODULE.shutil, "which")
+    @patch.object(pptd_browser, "run_command")
+    @patch.object(pptd_browser.shutil, "which")
     def test_old_nodejs_raises_clear_error(self, which, run_command):
         which.return_value = "/bin/node"
         run_command.return_value = MODULE.subprocess.CompletedProcess([], 0, "v16.20.2\n")
         with self.assertRaisesRegex(MODULE.ExportError, "Node.js 18\\+ is required"):
-            MODULE.ensure_nodejs()
+            pptd_browser.ensure_nodejs()
 
-    @patch.object(MODULE, "run_command")
-    @patch.object(MODULE.shutil, "which")
+    @patch.object(pptd_browser, "run_command")
+    @patch.object(pptd_browser.shutil, "which")
     def test_missing_npm_raises_clear_error(self, which, run_command):
         which.side_effect = ["/bin/node", None]
         run_command.return_value = MODULE.subprocess.CompletedProcess([], 0, "v22.11.0\n")
         with self.assertRaisesRegex(MODULE.ExportError, "npm is not installed"):
-            MODULE.ensure_nodejs()
-
-    def test_parse_node_version(self):
-        self.assertEqual(MODULE.parse_node_version("v22.11.0"), (22, 11, 0))
-        self.assertEqual(MODULE.parse_node_version("18.20.4"), (18, 20, 4))
+            pptd_browser.ensure_nodejs()
 
     def test_fade_is_inserted_before_timing(self):
         source = (
@@ -179,7 +179,7 @@ class ExportPptxTests(unittest.TestCase):
             older = time.time() - 60
             os.utime(old, (older, older))
             since = time.time() - 5
-            found = MODULE.find_download([root], timeout=2.0, since=since)
+            found = pptd_browser.find_download([root], timeout=2.0, since=since)
             self.assertEqual(found.resolve(), new.resolve())
 
     def test_find_download_survives_files_vanishing_mid_scan(self):
@@ -210,11 +210,11 @@ class ExportPptxTests(unittest.TestCase):
                 return real_stat(self, **kwargs)
 
             with patch.object(Path, "stat", racy_stat):
-                found = MODULE.find_download([root], timeout=2.0)
+                found = pptd_browser.find_download([root], timeout=2.0)
             self.assertEqual(found.resolve(), deck.resolve())
 
     def test_browser_open_does_not_pass_download_path(self):
-        session = MODULE.BrowserSession(
+        session = pptd_browser.BrowserSession(
             "/bin/agent-browser",
             "test-session",
             Path("."),
@@ -228,14 +228,14 @@ class ExportPptxTests(unittest.TestCase):
         )
 
     def test_ensure_debug_chrome_is_windows_only(self):
-        with patch.object(MODULE.sys, "platform", "linux"):
-            self.assertIsNone(MODULE.ensure_debug_chrome())
+        with patch.object(pptd_browser.sys, "platform", "linux"):
+            self.assertIsNone(pptd_browser.ensure_debug_chrome())
 
-    @patch.object(MODULE, "cdp_alive", return_value=True)
+    @patch.object(pptd_browser, "cdp_alive", return_value=True)
     def test_ensure_debug_chrome_prefers_working_explicit_port(self, cdp_alive):
-        with patch.object(MODULE.sys, "platform", "win32"), \
-                patch.dict(MODULE.os.environ, {"AGENT_BROWSER_CDP": "9444"}):
-            self.assertEqual(MODULE.ensure_debug_chrome(), 9444)
+        with patch.object(pptd_browser.sys, "platform", "win32"), \
+                patch.dict(pptd_browser.os.environ, {"AGENT_BROWSER_CDP": "9444"}):
+            self.assertEqual(pptd_browser.ensure_debug_chrome(), 9444)
         cdp_alive.assert_called_once_with(9444)
 
     def test_image_map_only_embeds_referenced_media(self):
@@ -296,13 +296,13 @@ class ExportPptxTests(unittest.TestCase):
                     )
 
     def test_browser_session_exports_cdp_port_to_env(self):
-        with patch.dict(MODULE.os.environ, {}, clear=False):
-            MODULE.os.environ.pop("AGENT_BROWSER_CDP", None)
-            with_port = MODULE.BrowserSession(
+        with patch.dict(pptd_browser.os.environ, {}, clear=False):
+            pptd_browser.os.environ.pop("AGENT_BROWSER_CDP", None)
+            with_port = pptd_browser.BrowserSession(
                 "/bin/agent-browser", "s", Path("."), Path("/tmp/d"), cdp_port=9337
             )
             self.assertEqual(with_port.env["AGENT_BROWSER_CDP"], "9337")
-            without_port = MODULE.BrowserSession(
+            without_port = pptd_browser.BrowserSession(
                 "/bin/agent-browser", "s", Path("."), Path("/tmp/d")
             )
             self.assertNotIn("AGENT_BROWSER_CDP", without_port.env)
@@ -448,39 +448,39 @@ class DebugChromeRegistryTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.registry = Path(temporary.name) / "pptd-cdp.json"
-        patcher = patch.object(MODULE, "CDP_REGISTRY_PATH", self.registry)
+        patcher = patch.object(pptd_browser, "CDP_REGISTRY_PATH", self.registry)
         patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_register_touch_and_read_back(self):
-        MODULE.write_cdp_registry(
+        pptd_browser.write_cdp_registry(
             [
                 {
                     "port": 9337,
                     "pid": 4242,
-                    "profile": str(MODULE.DEBUG_CHROME_PROFILE),
+                    "profile": str(pptd_browser.DEBUG_CHROME_PROFILE),
                     "startedAt": 10.0,
                     "lastUsedAt": 20.0,
                 }
             ]
         )
-        entry = MODULE.registered_debug_chrome(9337)
+        entry = pptd_browser.registered_debug_chrome(9337)
         self.assertEqual(entry["pid"], 4242)
-        MODULE.touch_cdp_registry(9337)
-        self.assertGreater(MODULE.registered_debug_chrome(9337)["lastUsedAt"], 20.0)
-        self.assertIsNone(MODULE.registered_debug_chrome(9444))
+        pptd_browser.touch_cdp_registry(9337)
+        self.assertGreater(pptd_browser.registered_debug_chrome(9337)["lastUsedAt"], 20.0)
+        self.assertIsNone(pptd_browser.registered_debug_chrome(9444))
 
     def test_signature_rejects_foreign_or_recycled_pids(self):
-        profile = str(MODULE.DEBUG_CHROME_PROFILE)
+        profile = str(pptd_browser.DEBUG_CHROME_PROFILE)
         # Our own python pid: it is not a browser, so the signature fails early.
-        self.assertIsNone(MODULE.process_image_name(os.getpid()))
-        self.assertFalse(MODULE.debug_chrome_is_ours({"pid": os.getpid(), "profile": profile}))
+        self.assertIsNone(pptd_browser.process_image_name(os.getpid()))
+        self.assertFalse(pptd_browser.debug_chrome_is_ours({"pid": os.getpid(), "profile": profile}))
         # A browser the user started by hand: different profile.
-        self.assertFalse(MODULE.debug_chrome_is_ours({"pid": os.getpid(), "profile": "/tmp/somewhere-else"}))
-        self.assertIsNone(MODULE.process_image_name(None))
+        self.assertFalse(pptd_browser.debug_chrome_is_ours({"pid": os.getpid(), "profile": "/tmp/somewhere-else"}))
+        self.assertIsNone(pptd_browser.process_image_name(None))
 
     def test_signature_requires_our_command_line(self):
-        profile = str(MODULE.DEBUG_CHROME_PROFILE)
+        profile = str(pptd_browser.DEBUG_CHROME_PROFILE)
         entry = {"pid": 4321, "profile": profile}
         # Chrome relaunches itself with the path quoted; we spawn it unquoted.
         ours = (
@@ -489,24 +489,24 @@ class DebugChromeRegistryTests(unittest.TestCase):
         )
         # A recycled pid now owned by somebody else's browser, and an empty line.
         theirs = ('chrome.exe --user-data-dir="C:/Users/someone/else"', "")
-        with patch.object(MODULE, "process_image_name", return_value="chrome.exe"):
+        with patch.object(pptd_browser, "process_image_name", return_value="chrome.exe"):
             for command in ours:
-                with patch.object(MODULE, "process_command_line", return_value=command):
-                    self.assertTrue(MODULE.debug_chrome_is_ours(entry), command)
+                with patch.object(pptd_browser, "process_command_line", return_value=command):
+                    self.assertTrue(pptd_browser.debug_chrome_is_ours(entry), command)
             for command in theirs:
-                with patch.object(MODULE, "process_command_line", return_value=command):
-                    self.assertFalse(MODULE.debug_chrome_is_ours(entry), command)
+                with patch.object(pptd_browser, "process_command_line", return_value=command):
+                    self.assertFalse(pptd_browser.debug_chrome_is_ours(entry), command)
             # Unreadable command line: leave it alone instead of guessing.
-            with patch.object(MODULE, "process_command_line", return_value=None):
-                self.assertFalse(MODULE.debug_chrome_is_ours(entry))
+            with patch.object(pptd_browser, "process_command_line", return_value=None):
+                self.assertFalse(pptd_browser.debug_chrome_is_ours(entry))
 
     def test_reap_reclaims_only_signed_idle_instances(self):
-        MODULE.write_cdp_registry(
+        pptd_browser.write_cdp_registry(
             [
                 {
                     "port": 9337,
                     "pid": 111,
-                    "profile": str(MODULE.DEBUG_CHROME_PROFILE),
+                    "profile": str(pptd_browser.DEBUG_CHROME_PROFILE),
                     "startedAt": 0,
                     "lastUsedAt": 0,
                 },
@@ -520,55 +520,55 @@ class DebugChromeRegistryTests(unittest.TestCase):
             # The real kill_debug_chrome decides by signature; mirror that here.
             return os.path.basename(str(entry.get("profile", ""))) == "pptd-cdp-profile"
 
-        with patch.object(MODULE, "cdp_alive", return_value=True), \
-                patch.object(MODULE, "kill_debug_chrome", side_effect=fake_kill):
-            reaped = MODULE.reap_idle_debug_chrome(idle_minutes=1)
+        with patch.object(pptd_browser, "cdp_alive", return_value=True), \
+                patch.object(pptd_browser, "kill_debug_chrome", side_effect=fake_kill):
+            reaped = pptd_browser.reap_idle_debug_chrome(idle_minutes=1)
 
         self.assertEqual(attempted, [9337, 9444])
         self.assertEqual([entry["port"] for entry in reaped], [9337])
-        self.assertEqual([entry["port"] for entry in MODULE.read_cdp_registry()], [9444])
+        self.assertEqual([entry["port"] for entry in pptd_browser.read_cdp_registry()], [9444])
 
     def test_reap_keeps_recently_used_instances(self):
         now = time.time()
-        MODULE.write_cdp_registry(
+        pptd_browser.write_cdp_registry(
             [
                 {
                     "port": 9337,
                     "pid": 111,
-                    "profile": str(MODULE.DEBUG_CHROME_PROFILE),
+                    "profile": str(pptd_browser.DEBUG_CHROME_PROFILE),
                     "startedAt": now,
                     "lastUsedAt": now - 30,
                 }
             ]
         )
-        with patch.object(MODULE, "cdp_alive", return_value=True), \
-                patch.object(MODULE, "kill_debug_chrome") as kill:
-            self.assertEqual(MODULE.reap_idle_debug_chrome(idle_minutes=60), [])
+        with patch.object(pptd_browser, "cdp_alive", return_value=True), \
+                patch.object(pptd_browser, "kill_debug_chrome") as kill:
+            self.assertEqual(pptd_browser.reap_idle_debug_chrome(idle_minutes=60), [])
         kill.assert_not_called()
 
     def test_reap_can_be_disabled(self):
-        MODULE.write_cdp_registry(
+        pptd_browser.write_cdp_registry(
             [
                 {
                     "port": 9337,
                     "pid": 111,
-                    "profile": str(MODULE.DEBUG_CHROME_PROFILE),
+                    "profile": str(pptd_browser.DEBUG_CHROME_PROFILE),
                     "startedAt": 0,
                     "lastUsedAt": 0,
                 }
             ]
         )
-        with patch.object(MODULE, "cdp_alive", return_value=True), \
-                patch.object(MODULE, "kill_debug_chrome") as kill:
-            self.assertEqual(MODULE.reap_idle_debug_chrome(idle_minutes=0), [])
+        with patch.object(pptd_browser, "cdp_alive", return_value=True), \
+                patch.object(pptd_browser, "kill_debug_chrome") as kill:
+            self.assertEqual(pptd_browser.reap_idle_debug_chrome(idle_minutes=0), [])
         kill.assert_not_called()
 
     def test_missing_registry_is_not_an_error(self):
-        self.assertEqual(MODULE.read_cdp_registry(), [])
-        self.assertEqual(MODULE.reap_idle_debug_chrome(idle_minutes=1), [])
+        self.assertEqual(pptd_browser.read_cdp_registry(), [])
+        self.assertEqual(pptd_browser.reap_idle_debug_chrome(idle_minutes=1), [])
 
 
-@unittest.skipUnless(MODULE.sys.platform == "win32", "the debug browser path is Windows-only")
+@unittest.skipUnless(pptd_browser.sys.platform == "win32", "the debug browser path is Windows-only")
 class DebugChromeLifecycleTests(unittest.TestCase):
     """Drive the real spawn → register → reuse → reclaim cycle."""
 
@@ -578,7 +578,7 @@ class DebugChromeLifecycleTests(unittest.TestCase):
     def chromium() -> Optional[str]:
         override = os.environ.get("PPTD_TEST_CHROMIUM")
         candidates = [override] if override else []
-        candidates.extend(MODULE.CHROME_CANDIDATES)
+        candidates.extend(pptd_browser.CHROME_CANDIDATES)
         candidates.extend(
             str(path)
             for path in sorted(Path.home().glob("AppData/Local/ms-playwright/chromium-*/chrome-win64/chrome.exe"))
@@ -596,37 +596,37 @@ class DebugChromeLifecycleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as name:
             registry = Path(name) / "pptd-cdp.json"
             profile = Path(name) / "pptd-cdp-profile"
-            with patch.object(MODULE, "CDP_REGISTRY_PATH", registry), \
-                    patch.object(MODULE, "DEBUG_CHROME_PROFILE", profile), \
-                    patch.object(MODULE, "CHROME_CANDIDATES", (chromium,)), \
+            with patch.object(pptd_browser, "CDP_REGISTRY_PATH", registry), \
+                    patch.object(pptd_browser, "DEBUG_CHROME_PROFILE", profile), \
+                    patch.object(pptd_browser, "CHROME_CANDIDATES", (chromium,)), \
                     patch.dict(
-                        MODULE.os.environ,
+                        pptd_browser.os.environ,
                         {"PPTD_DEBUG_CHROME_PORT": str(self.PORT), "PPTD_DEBUG_CHROME_IDLE_MINUTES": "60"},
                     ):
                 try:
-                    self.assertEqual(MODULE.ensure_debug_chrome(), self.PORT)
-                    self.assertTrue(MODULE.cdp_alive(self.PORT))
-                    entry = MODULE.registered_debug_chrome(self.PORT)
+                    self.assertEqual(pptd_browser.ensure_debug_chrome(), self.PORT)
+                    self.assertTrue(pptd_browser.cdp_alive(self.PORT))
+                    entry = pptd_browser.registered_debug_chrome(self.PORT)
                     self.assertIsNotNone(entry, "a browser we start must be registered")
                     self.assertEqual(entry["profile"], str(profile))
                     self.assertIsNotNone(entry["pid"])
                     self.assertIsNotNone(
-                        MODULE.process_image_name(entry["pid"]),
+                        pptd_browser.process_image_name(entry["pid"]),
                         "the registered pid must look like a browser",
                     )
                     pid = entry["pid"]
 
                     # Reuse: same port, same process, no second browser.
-                    self.assertEqual(MODULE.ensure_debug_chrome(), self.PORT)
-                    self.assertEqual(MODULE.registered_debug_chrome(self.PORT)["pid"], pid)
+                    self.assertEqual(pptd_browser.ensure_debug_chrome(), self.PORT)
+                    self.assertEqual(pptd_browser.registered_debug_chrome(self.PORT)["pid"], pid)
 
                     # Reclaim: force ignores the idle age.
-                    reaped = MODULE.reap_idle_debug_chrome(force=True)
+                    reaped = pptd_browser.reap_idle_debug_chrome(force=True)
                     self.assertEqual([item["port"] for item in reaped], [self.PORT])
-                    self.assertFalse(MODULE.cdp_alive(self.PORT))
-                    self.assertIsNone(MODULE.registered_debug_chrome(self.PORT))
+                    self.assertFalse(pptd_browser.cdp_alive(self.PORT))
+                    self.assertIsNone(pptd_browser.registered_debug_chrome(self.PORT))
                 finally:
-                    MODULE.reap_idle_debug_chrome(force=True)
+                    pptd_browser.reap_idle_debug_chrome(force=True)
 
 
 def free_port() -> int:
@@ -635,7 +635,7 @@ def free_port() -> int:
         return probe.getsockname()[1]
 
 
-@unittest.skipUnless(MODULE.sys.platform == "win32", "the debug browser path is Windows-only")
+@unittest.skipUnless(pptd_browser.sys.platform == "win32", "the debug browser path is Windows-only")
 class DownloadRedirectTests(unittest.TestCase):
     """The export ZIP must land in our directory, not in the user's Downloads."""
 
@@ -643,7 +643,7 @@ class DownloadRedirectTests(unittest.TestCase):
     def chromium() -> Optional[str]:
         override = os.environ.get("PPTD_TEST_CHROMIUM")
         candidates = [override] if override else []
-        candidates.extend(MODULE.CHROME_CANDIDATES)
+        candidates.extend(pptd_browser.CHROME_CANDIDATES)
         candidates.extend(
             str(path)
             for path in sorted(Path.home().glob("AppData/Local/ms-playwright/chromium-*/chrome-win64/chrome.exe"))
@@ -691,9 +691,9 @@ class DownloadRedirectTests(unittest.TestCase):
             )
             try:
                 deadline = time.monotonic() + 30
-                while time.monotonic() < deadline and not MODULE.cdp_alive(port):
+                while time.monotonic() < deadline and not pptd_browser.cdp_alive(port):
                     time.sleep(0.5)
-                self.assertTrue(MODULE.cdp_alive(port), "browser did not open a CDP port")
+                self.assertTrue(pptd_browser.cdp_alive(port), "browser did not open a CDP port")
 
                 version = json.loads(
                     urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=10).read()
@@ -701,7 +701,7 @@ class DownloadRedirectTests(unittest.TestCase):
                 debugger_url = version["webSocketDebuggerUrl"]
 
                 # A BrowserSession stand-in: only browser_cdp_url() is needed.
-                browser = MODULE.BrowserSession.__new__(MODULE.BrowserSession)
+                browser = pptd_browser.BrowserSession.__new__(pptd_browser.BrowserSession)
                 browser.executable = ""
                 browser.session = "test"
                 browser.cwd = root
@@ -710,7 +710,7 @@ class DownloadRedirectTests(unittest.TestCase):
                 browser.run = lambda args, **kwargs: subprocess.CompletedProcess(
                     args, 0, "cdp-url: " + debugger_url + "\n", ""
                 )
-                redirect = MODULE.set_download_behavior(browser, downloads)
+                redirect = pptd_browser.set_download_behavior(browser, downloads)
                 self.assertIsNotNone(
                     redirect,
                     "the download redirect should succeed against a live CDP browser",
@@ -718,16 +718,16 @@ class DownloadRedirectTests(unittest.TestCase):
                 # The redirect lives on this socket: closing it drops the setting.
                 self.addCleanup(redirect.close)
 
-                cdp_socket = MODULE.cdp_connect(debugger_url)
+                cdp_socket = pptd_browser.cdp_connect(debugger_url)
                 try:
-                    targets = MODULE.cdp_call(cdp_socket, 1, "Target.getTargets", {}).get("targetInfos", [])
+                    targets = pptd_browser.cdp_call(cdp_socket, 1, "Target.getTargets", {}).get("targetInfos", [])
                     page = next((t for t in targets if t.get("type") == "page"), None)
                     self.assertIsNotNone(page, "browser exposed no page target")
-                    attached = MODULE.cdp_call(
+                    attached = pptd_browser.cdp_call(
                         cdp_socket, 2, "Target.attachToTarget", {"targetId": page["targetId"], "flatten": True}
                     )
                     session = attached["sessionId"]
-                    MODULE.cdp_call(
+                    pptd_browser.cdp_call(
                         cdp_socket,
                         3,
                         "Page.navigate",
@@ -737,7 +737,7 @@ class DownloadRedirectTests(unittest.TestCase):
                     # Wait for the link to exist before clicking: Page.navigate
                     # resolves when the navigation starts, not when it finishes.
                     def anchor_ready() -> bool:
-                        result = MODULE.cdp_call(
+                        result = pptd_browser.cdp_call(
                             cdp_socket,
                             4,
                             "Runtime.evaluate",
@@ -753,7 +753,7 @@ class DownloadRedirectTests(unittest.TestCase):
                     while time.monotonic() < deadline and not anchor_ready():
                         time.sleep(0.3)
                     self.assertTrue(anchor_ready(), "the test page never became interactive")
-                    MODULE.cdp_call(
+                    pptd_browser.cdp_call(
                         cdp_socket,
                         5,
                         "Runtime.evaluate",
@@ -773,7 +773,7 @@ class DownloadRedirectTests(unittest.TestCase):
                 self.assertIsNotNone(downloaded, f"nothing arrived in {downloads}")
                 self.assertEqual(downloaded.read_text(encoding="utf-8"), "pptd-download-redirect")
             finally:
-                for pid in (process.pid, MODULE.find_debug_chrome_pid(port)):
+                for pid in (process.pid, pptd_browser.find_debug_chrome_pid(port)):
                     if pid:
                         subprocess.run(
                             ["taskkill", "/pid", str(pid), "/T", "/F"],
@@ -784,8 +784,8 @@ class DownloadRedirectTests(unittest.TestCase):
                 # The profile lives inside the temp dir: let the browser release
                 # its files before the directory is removed.
                 deadline = time.monotonic() + 15
-                cdp_pid = MODULE.find_debug_chrome_pid(port)
-                while time.monotonic() < deadline and cdp_pid and MODULE.process_image_name(cdp_pid) is not None:
+                cdp_pid = pptd_browser.find_debug_chrome_pid(port)
+                while time.monotonic() < deadline and cdp_pid and pptd_browser.process_image_name(cdp_pid) is not None:
                     time.sleep(0.5)
                 process.poll()
 

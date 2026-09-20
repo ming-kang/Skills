@@ -23,28 +23,29 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from pptd_common import ensure_module
-
-from pptd_deck import find_manifest
-
-from export_pptx import (
+from pptd_browser import (
     BrowserSession,
-    ExportError,
     browser_cdp_url,
     cdp_call,
     cdp_connect,
-    default_downloads_dir,
     ensure_agent_browser,
     find_download,
-    log,
     open_export_dialog,
-    open_local_editor,
     ref_by_name,
     set_download_behavior,
-    temporary_directory,
-    wait_for_editor_media,
     wait_for_export_dialog,
+    wait_for_editor_media,
 )
+from pptd_common import (
+    ExportError,
+    default_downloads_dir,
+    ensure_module,
+    log,
+    temporary_directory,
+)
+from pptd_deck import find_manifest
+
+from export_pptx import open_local_editor
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 OVERVIEW_COLUMNS = 3

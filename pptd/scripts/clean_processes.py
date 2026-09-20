@@ -34,14 +34,14 @@ from typing import Any, Dict, List, Optional
 # Reuse the registry helpers so both entry points agree on what "ours" means.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from export_pptx import (  # noqa: E402  (path set up above)
+from pptd_browser import (  # noqa: E402  (path set up above)
     CDP_REGISTRY_PATH,
     debug_chrome_is_ours,
     kill_debug_chrome,
-    log,
     read_cdp_registry,
     write_cdp_registry,
 )
+from pptd_common import log  # noqa: E402  (path set up above)
 
 SERVE_LEASE_DIRECTORY = Path(
     os.environ.get("TEMP") or os.environ.get("TMP") or tempfile.gettempdir()
