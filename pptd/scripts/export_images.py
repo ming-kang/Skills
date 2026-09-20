@@ -26,6 +26,9 @@ from export_pptx import (
     BrowserSession,
     ExportError,
     build_payload,
+    browser_cdp_url,
+    cdp_call,
+    cdp_connect,
     default_downloads_dir,
     ensure_agent_browser,
     find_download,
@@ -34,6 +37,7 @@ from export_pptx import (
     ref_by_name,
     run_command,
     serve_local_editor,
+    set_download_behavior,
     temporary_directory,
     wait_for_export_dialog,
 )
@@ -102,12 +106,13 @@ def is_image_zip(path: Path) -> bool:
         return False
 
 
-def page_sort_key(path: Path) -> Tuple[int, str]:
-    match = re.match(r"(\d+)", path.stem)
-    return (int(match.group(1)) if match else sys.maxsize, path.name)
-
-
 def unzip_images(archive_path: Path, pages_dir: Path) -> List[Path]:
+    """Extract the page images **in ZIP entry order**.
+
+    The editor writes one entry per page in page order. Guessing page order from
+    file names ("2.jpeg" vs "10.jpeg", covers mixed in) produced silently wrong
+    image → .page mappings, so the entry order is the contract instead.
+    """
     pages_dir.mkdir(parents=True, exist_ok=True)
     images: List[Path] = []
     with zipfile.ZipFile(archive_path) as archive:
@@ -121,7 +126,6 @@ def unzip_images(archive_path: Path, pages_dir: Path) -> List[Path]:
             with archive.open(info) as source, target.open("wb") as out:
                 shutil.copyfileobj(source, out)
             images.append(target)
-    images.sort(key=page_sort_key)
     if not images:
         raise ExportError(f"no page images found in: {archive_path}")
     return images
@@ -176,57 +180,10 @@ def stitch_overview(
     return output
 
 
-def ensure_websocket() -> Any:
-    try:
-        import websocket
-
-        return websocket
-    except ImportError:
-        log("websocket-client is required for dialog automation; installing with pip --user")
-        process = run_command(
-            [sys.executable, "-m", "pip", "install", "--user", "websocket-client"],
-            timeout=300,
-        )
-        if process.returncode != 0:
-            raise ExportError(f"failed to install websocket-client:\n{process.stdout[-2000:]}")
-        import websocket
-
-        return websocket
-
-
-def browser_cdp_url(browser: BrowserSession) -> str:
-    process = browser.run(["get", "cdp-url"], timeout=30)
-    match = re.search(r"ws://\S+", process.stdout)
-    if not match:
-        raise ExportError(
-            f"could not determine the browser CDP URL:\n{process.stdout[-500:]}"
-        )
-    return match.group(0)
-
-
 def evaluate_in_page(cdp_url: str, url_hint: str, expression: str) -> Any:
-    websocket = ensure_websocket()
-
-    def call(socket: Any, request_id: int, method: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        socket.send(json.dumps({"id": request_id, "method": method, "params": params}))
-        while True:
-            message = json.loads(socket.recv())
-            if message.get("id") != request_id:
-                continue
-            if "error" in message:
-                raise ExportError(f"CDP {method} failed: {message['error']}")
-            return message.get("result", {})
-
-    # websocket-client honors http_proxy env vars; the CDP endpoint is local,
-    # so strip proxy settings instead of tunneling localhost through the proxy.
-    proxy_env = ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY")
-    saved_proxy = {name: os.environ.pop(name) for name in proxy_env if name in os.environ}
+    socket = cdp_connect(cdp_url)
     try:
-        socket = websocket.create_connection(cdp_url, timeout=30, suppress_origin=True)
-    finally:
-        os.environ.update(saved_proxy)
-    try:
-        targets = call(socket, 1, "Target.getTargets", {}).get("targetInfos", [])
+        targets = cdp_call(socket, 1, "Target.getTargets", {}).get("targetInfos", [])
         page_targets = [
             item
             for item in targets
@@ -243,34 +200,24 @@ def evaluate_in_page(cdp_url: str, url_hint: str, expression: str) -> Any:
             raise ExportError(
                 f"no browser target matches {url_hint!r}; observed: {visible}"
             )
-        attached = call(
+        attached = cdp_call(
             socket,
             2,
             "Target.attachToTarget",
             {"targetId": target["targetId"], "flatten": True},
         )
         session_id = attached["sessionId"]
-        socket.send(
-            json.dumps(
-                {
-                    "id": 3,
-                    "sessionId": session_id,
-                    "method": "Runtime.evaluate",
-                    "params": {"expression": expression, "returnByValue": True},
-                }
-            )
+        result = cdp_call(
+            socket,
+            3,
+            "Runtime.evaluate",
+            {"expression": expression, "returnByValue": True},
+            session_id,
         )
-        while True:
-            message = json.loads(socket.recv())
-            if message.get("id") != 3:
-                continue
-            if "error" in message:
-                raise ExportError(f"CDP Runtime.evaluate failed: {message['error']}")
-            result = message.get("result", {})
-            if result.get("exceptionDetails"):
-                details = result["exceptionDetails"]
-                raise ExportError(f"page script failed: {details.get('text')}")
-            return result.get("result", {}).get("value")
+        if result.get("exceptionDetails"):
+            details = result["exceptionDetails"]
+            raise ExportError(f"page script failed: {details.get('text')}")
+        return result.get("result", {}).get("value")
     finally:
         socket.close()
 
@@ -341,9 +288,13 @@ def export_images(
         session = f"pptd-images-{os.getpid()}-{uuid.uuid4().hex[:8]}"
         browser = BrowserSession(agent_browser, session, temp_dir, download_dir)
         downloads = default_downloads_dir()
+        download_redirect = None
         try:
             log("opening the local neo-ppt editor")
             browser.open(url)
+            # Keep the export ZIP out of the user's Downloads folder; the socket
+            # must stay open until the download has finished (see docstring).
+            download_redirect = set_download_behavior(browser, download_dir)
             browser.run(
                 [
                     "wait",
@@ -373,6 +324,11 @@ def export_images(
             )
         finally:
             browser.close()
+            if download_redirect is not None:
+                try:
+                    download_redirect.close()
+                except Exception:  # noqa: BLE001 - the export is already done
+                    pass
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)
@@ -381,6 +337,14 @@ def export_images(
             shutil.rmtree(output)
         output.mkdir(parents=True)
         images = unzip_images(downloaded, output / "pages")
+        page_paths = [entry["path"] for entry in payload["pages"]]
+        if len(images) != len(page_paths):
+            # The images are the QA input: a wrong image → .page mapping would
+            # send the review in circles, so stop instead of warning.
+            raise ExportError(
+                f"the editor exported {len(images)} page image(s) for "
+                f"{len(page_paths)} page(s); refusing to guess the mapping"
+            )
         try:
             if downloaded.resolve().parent == downloads.resolve():
                 downloaded.unlink(missing_ok=True)
@@ -390,7 +354,6 @@ def export_images(
             images, output / "overview.jpg", image_cls, draw_cls, image_font
         )
 
-    page_paths = [entry["path"] for entry in payload["pages"]]
     mapping = [
         {
             "index": index,
@@ -398,15 +361,10 @@ def export_images(
             # the file names come from the editor's ZIP and are not <n>.jpeg.
             "overviewLabel": f"P{index}",
             "image": f"pages/{path.name}",
-            "page": page_paths[index - 1] if index - 1 < len(page_paths) else None,
+            "page": page_paths[index - 1],
         }
         for index, path in enumerate(images, start=1)
     ]
-    if len(images) != len(page_paths):
-        log(
-            f"warning: {len(images)} rendered image(s) for {len(page_paths)} page(s); "
-            "the image → .page mapping may be off"
-        )
     return {
         "pages": len(images),
         "overview": str(overview),

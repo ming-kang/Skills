@@ -1,0 +1,21 @@
+pageType: content
+background: {type: solid, color: "#F7F8FC"}
+elements:
+  - elementId: title
+    elementType: text
+    bounds: [80, 90, 800, 70]
+    content:
+      align: [left, middle]
+      text: |
+        <p><span style="font-size:40px;color:#111827;font-weight:700">QA 冒烟页 2</span></p>
+  - elementId: body
+    elementType: text
+    bounds: [80, 190, 520, 220]
+    content:
+      text: |
+        <p><span style="font-size:18px;color:#3A4251;line-height:1.6">这一页用于验证图片走查链路：服务注入、导出对话框、图片格式切换、ZIP 下载与长图拼接。</span></p>
+  - elementId: shot
+    elementType: image
+    bounds: [640, 200, 220, 140]
+    src: media/pixel.png
+    fit: {mode: contain}

@@ -20,6 +20,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import site
 import socket
 import subprocess
@@ -296,6 +297,15 @@ CHROME_CANDIDATES = (
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
     r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
 )
+# Process names we are allowed to kill when reclaiming our own debug browser.
+CDP_IMAGE_NAMES = ("chrome.exe", "msedge.exe", "chrome", "chromium", "chromium-browser", "google-chrome")
+# One debug browser is reused across exports; after this much idle time the next
+# run reclaims it so an interrupted export cannot leave one behind forever.
+CDP_IDLE_MINUTES = float(os.environ.get("PPTD_DEBUG_CHROME_IDLE_MINUTES") or 60)
+CDP_REGISTRY_PATH = Path(tempfile.gettempdir()) / "pptd-cdp.json"
+# Fixed profile so relaunching joins the running browser instead of forking a
+# second one. Also the signature `debug_chrome_is_ours` checks before reclaiming.
+DEBUG_CHROME_PROFILE = Path(tempfile.gettempdir()) / "pptd-cdp-profile"
 
 
 def agent_browser_has_chrome(executable: str) -> Optional[bool]:
@@ -395,6 +405,229 @@ def ensure_chromium(executable: str) -> None:
     log("agent-browser provisioned Chrome for Testing")
 
 
+def process_image_name(pid: Optional[int]) -> Optional[str]:
+    """Image name of a pid, or None when it cannot be determined.
+
+    Used as a safety check before reclaiming a debug browser: a PID recorded in
+    the registry may since have been recycled by an unrelated process.
+    """
+    if not pid:
+        return None
+    if sys.platform == "win32":
+        try:
+            process = run_command(["tasklist", "/FI", f"PID eq {pid}", "/NH", "/FO", "CSV"], timeout=20)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        for line in (process.stdout or "").splitlines():
+            if not line.strip().startswith('"'):
+                continue
+            parts = [part.strip('"') for part in line.split('","')]
+            if parts and parts[0].lower() in CDP_IMAGE_NAMES:
+                return parts[0].lower()
+        return None
+    try:
+        process = run_command(["ps", "-o", "comm=", "-p", str(pid)], timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    name = (process.stdout or "").strip().lower()
+    return name if any(candidate in name for candidate in CDP_IMAGE_NAMES) else None
+
+
+def process_command_line(pid: Optional[int]) -> Optional[str]:
+    """Full command line of a pid, or None when it cannot be read.
+
+    The strongest available signature that a browser process is *ours*: only the
+    debug browser this skill started carries our `--user-data-dir`. A recycled
+    pid that now belongs to someone else's Chrome fails this check.
+    """
+    if not pid:
+        return None
+    if sys.platform == "win32":
+        query = (
+            "Get-CimInstance Win32_Process -Filter \"ProcessId="
+            f"{pid}\" | Select-Object -ExpandProperty CommandLine"
+        )
+        try:
+            process = run_command(["powershell", "-NoProfile", "-Command", query], timeout=60)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return (process.stdout or "").strip() or None
+    try:
+        process = run_command(["ps", "-o", "command=", "-p", str(pid)], timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return (process.stdout or "").strip() or None
+
+
+def read_cdp_registry() -> List[Dict[str, Any]]:
+    """Debug browsers this skill started (best effort; the file may be gone)."""
+    try:
+        value = json.loads(CDP_REGISTRY_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    entries = value.get("instances") if isinstance(value, dict) else value
+    if not isinstance(entries, list):
+        return []
+    return [entry for entry in entries if isinstance(entry, dict)]
+
+
+def write_cdp_registry(entries: Sequence[Dict[str, Any]]) -> None:
+    try:
+        CDP_REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
+        CDP_REGISTRY_PATH.write_text(
+            json.dumps({"instances": list(entries)}, indent=2), encoding="utf-8"
+        )
+    except OSError:
+        # The registry only exists so idle instances can be reclaimed later.
+        pass
+
+
+def registered_debug_chrome(port: int) -> Optional[Dict[str, Any]]:
+    for entry in read_cdp_registry():
+        if entry.get("port") == port and entry.get("pid"):
+            return entry
+    return None
+
+
+def debug_chrome_is_ours(entry: Dict[str, Any]) -> bool:
+    """Only reclaim browsers this skill started, with a matching signature.
+
+    Three checks: the registry entry carries the skill's own profile directory,
+    the pid still belongs to a browser process, and that process was launched
+    with our profile. A pid that has since been recycled by an unrelated
+    browser fails the last check, and a machine where the command line cannot
+    be read fails it too — reclaiming is best effort, so "cannot tell" means
+    "leave it alone" rather than "kill it".
+    """
+    pid = entry.get("pid")
+    profile = str(entry.get("profile") or "")
+    if not pid or os.path.basename(profile.rstrip("/\\")) != "pptd-cdp-profile":
+        return False
+    if process_image_name(pid) is None:
+        return False
+    command = process_command_line(pid)
+    if command is None:
+        return False
+    # We launch with an unquoted `--user-data-dir=<profile>`; Chrome may also
+    # quote the path when relaunching itself, so accept both spellings.
+    return f"--user-data-dir={profile}" in command or f'--user-data-dir="{profile}"' in command
+
+
+def kill_debug_chrome(entry: Dict[str, Any]) -> bool:
+    """Terminate a registered debug browser. Never touches foreign browsers."""
+    pid = entry.get("pid")
+    if not debug_chrome_is_ours(entry):
+        return False
+    if sys.platform == "win32":
+        run_command(["taskkill", "/pid", str(pid), "/T", "/F"], timeout=30)
+    else:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            return False
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        if process_image_name(pid) is None:
+            return True
+        time.sleep(0.3)
+    return process_image_name(pid) is None
+
+
+def register_cdp_instance(port: int, profile: Path) -> None:
+    """Record a debug browser we started so it can be reclaimed later."""
+    now = time.time()
+    entries = [entry for entry in read_cdp_registry() if entry.get("port") != port]
+    entries.append(
+        {
+            "port": port,
+            "pid": find_debug_chrome_pid(port),
+            "profile": str(profile),
+            "startedAt": now,
+            "lastUsedAt": now,
+        }
+    )
+    write_cdp_registry(entries)
+
+
+def find_debug_chrome_pid(port: int) -> Optional[int]:
+    """Best-effort pid of the browser listening on `port` (Windows only).
+
+    Chrome spawns a launcher that hands off to the real browser, so the pid we
+    need is the one owning the debugging socket, not the one we spawned.
+    `netstat` gives the owner without extra dependencies.
+    """
+    try:
+        process = run_command(["netstat", "-a", "-n", "-o"], timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    needle = f"127.0.0.1:{port}"
+    for line in (process.stdout or "").splitlines():
+        if "LISTENING" not in line or needle not in line:
+            continue
+        parts = line.split()
+        if parts:
+            try:
+                return int(parts[-1])
+            except ValueError:
+                continue
+    return None
+
+
+def touch_cdp_registry(port: int) -> None:
+    entries = read_cdp_registry()
+    changed = False
+    for entry in entries:
+        if entry.get("port") == port:
+            entry["lastUsedAt"] = time.time()
+            changed = True
+    if changed:
+        write_cdp_registry(entries)
+
+
+def reap_idle_debug_chrome(
+    idle_minutes: Optional[float] = None, force: bool = False
+) -> List[Dict[str, Any]]:
+    """Reclaim debug browsers that have been idle for too long.
+
+    The Windows export path keeps one debug browser alive so repeated exports
+    reuse it instead of piling up processes. When the exporting process is
+    killed, nothing closes it, so the next run reclaims whatever has been idle
+    longer than the limit. A browser the user pointed us at through
+    AGENT_BROWSER_CDP is never registered and therefore never reclaimed.
+
+    `idle_minutes=0` disables reaping; `force=True` reclaims regardless of age
+    (used by the explicit clean-up command).
+    """
+    limit = CDP_IDLE_MINUTES if idle_minutes is None else idle_minutes
+    if limit <= 0 and not force:
+        return []
+    entries = read_cdp_registry()
+    if not entries:
+        return []
+    now = time.time()
+    kept: List[Dict[str, Any]] = []
+    reaped: List[Dict[str, Any]] = []
+    for entry in entries:
+        try:
+            last_used = float(entry.get("lastUsedAt") or entry.get("startedAt") or 0)
+        except (TypeError, ValueError):
+            last_used = 0
+        idle_for = now - last_used
+        if (force or idle_for >= limit * 60) and cdp_alive(int(entry.get("port") or 0)):
+            if kill_debug_chrome(entry):
+                log(
+                    f"reclaimed idle debug browser on port {entry.get('port')} "
+                    f"(idle {idle_for / 60:.0f} min)"
+                )
+                reaped.append(entry)
+                continue
+        entry["lastUsedAt"] = now if cdp_alive(int(entry.get("port") or 0)) else last_used
+        kept.append(entry)
+    if reaped:
+        write_cdp_registry(kept)
+    return reaped
+
+
 def cdp_alive(port: int) -> bool:
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=2):
@@ -410,10 +643,12 @@ def ensure_debug_chrome() -> Optional[int]:
     process hands off to a child and exits, which agent-browser mistakes for a
     crash ("Chrome exited early without writing DevToolsActivePort"). The
     export therefore always drives an externally started browser. An
-    already-working AGENT_BROWSER_CDP wins; otherwise a dedicated debug
-    instance is started (or reused) on port 9337. The instance is left running
-    on purpose: relaunching with the same profile joins the existing browser,
-    so repeated exports reuse one instance instead of piling up processes.
+    already-working AGENT_BROWSER_CDP wins and is never managed by us;
+    otherwise a dedicated debug instance is started (or reused) on port 9337.
+    Reuse is intentional — relaunching with the same profile joins the existing
+    browser, so repeated exports reuse one instance instead of piling up
+    processes — but every instance we start is registered so that
+    `reap_idle_debug_chrome()` can reclaim one whose exporting process died.
     """
     if sys.platform != "win32":
         return None
@@ -434,8 +669,21 @@ def ensure_debug_chrome() -> Optional[int]:
             port = int(override)
         except ValueError:
             log(f"ignoring invalid PPTD_DEBUG_CHROME_PORT={override!r}")
-    if cdp_alive(port):
+
+    reap_idle_debug_chrome()
+
+    entry = registered_debug_chrome(port)
+    if entry and debug_chrome_is_ours(entry) and cdp_alive(port):
+        touch_cdp_registry(port)
+        log(f"reusing debug browser on 127.0.0.1:{port} (pid {entry.get('pid')})")
         return port
+
+    if cdp_alive(port):
+        # Something answers CDP here but is not ours (a browser the user started
+        # by hand): reuse it, never register and never reclaim it.
+        log(f"using the CDP browser already listening on 127.0.0.1:{port}")
+        return port
+
     with socket.socket() as probe:
         if probe.connect_ex(("127.0.0.1", port)) == 0:
             # Port taken by something that is not a CDP endpoint.
@@ -450,7 +698,7 @@ def ensure_debug_chrome() -> Optional[int]:
             "or start a browser with --remote-debugging-port yourself and set "
             "AGENT_BROWSER_CDP to that port"
         )
-    profile = Path(tempfile.gettempdir()) / "pptd-cdp-profile"
+    profile = DEBUG_CHROME_PROFILE
     log(f"starting debug browser on port {port}: {executable}")
     subprocess.Popen(
         [
@@ -468,9 +716,12 @@ def ensure_debug_chrome() -> Optional[int]:
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         if cdp_alive(port):
+            register_cdp_instance(port, profile)
             log(
                 f"debug browser stays running on 127.0.0.1:{port} for reuse; "
-                "close that window to stop it (override with PPTD_DEBUG_CHROME_PORT)"
+                f"it is reclaimed automatically after {CDP_IDLE_MINUTES:.0f} idle minutes "
+                "(close that window to stop it now; override with "
+                "PPTD_DEBUG_CHROME_PORT / PPTD_DEBUG_CHROME_IDLE_MINUTES)"
             )
             return port
         time.sleep(0.5)
@@ -665,6 +916,129 @@ def json_result(output: str) -> Dict[str, Any]:
         if isinstance(value, dict):
             return value
     raise ExportError(f"agent-browser returned no JSON object:\n{output[-2000:]}")
+
+
+def browser_cdp_url(browser: "BrowserSession") -> str:
+    process = browser.run(["get", "cdp-url"], timeout=30)
+    match = re.search(r"ws://\S+", process.stdout)
+    if not match:
+        raise ExportError(
+            f"could not determine the browser CDP URL:\n{process.stdout[-500:]}"
+        )
+    return match.group(0)
+
+
+def ensure_websocket() -> Any:
+    try:
+        import websocket
+
+        return websocket
+    except ImportError:
+        log("websocket-client is required for browser automation; installing with pip --user")
+        process = run_command(
+            [sys.executable, "-m", "pip", "install", "--user", "websocket-client"],
+            timeout=300,
+        )
+        if process.returncode != 0:
+            raise ExportError(f"failed to install websocket-client:\n{process.stdout[-2000:]}")
+        import websocket
+
+        return websocket
+
+
+# websocket-client honors http_proxy env vars; the CDP endpoint is local, so
+# strip proxy settings instead of tunneling localhost through a proxy.
+PROXY_ENV_KEYS = (
+    "http_proxy",
+    "https_proxy",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "all_proxy",
+    "ALL_PROXY",
+)
+
+
+def cdp_connect(cdp_url: str) -> Any:
+    websocket = ensure_websocket()
+    saved_proxy = {name: os.environ.pop(name) for name in PROXY_ENV_KEYS if name in os.environ}
+    try:
+        return websocket.create_connection(cdp_url, timeout=30, suppress_origin=True)
+    finally:
+        os.environ.update(saved_proxy)
+
+
+def cdp_call(
+    socket: Any,
+    request_id: int,
+    method: str,
+    params: Dict[str, Any],
+    session_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Send one CDP command and wait for its reply."""
+    message: Dict[str, Any] = {"id": request_id, "method": method, "params": params}
+    if session_id:
+        message["sessionId"] = session_id
+    socket.send(json.dumps(message))
+    while True:
+        reply = json.loads(socket.recv())
+        if reply.get("id") != request_id:
+            continue
+        if "error" in reply:
+            raise ExportError(f"CDP {method} failed: {reply['error']}")
+        return reply.get("result", {})
+
+
+def set_download_behavior(browser: "BrowserSession", download_dir: Path, url_hint: str = "127.0.0.1") -> Optional[Any]:
+    """Send the editor's downloads to `download_dir` instead of Downloads.
+
+    The editor's export dialog saves a ZIP through an ordinary browser download.
+    Polluting (and polling) the user's Downloads folder is the most fragile part
+    of the export path: partial `.crdownload` files, name collisions with
+    earlier exports, and downloads that never appear where we look. Redirecting
+    the page removes all three; when it cannot be applied, callers still fall
+    back to scanning the default Downloads folder.
+
+    Returns the CDP socket that carries the setting, or None when the redirect
+    could not be applied. **The caller must keep it open for the whole export
+    and close it afterwards**: closing the connection discards the behavior, so
+    a "set and forget" implementation silently does nothing.
+    """
+    try:
+        cdp_url = browser_cdp_url(browser)
+        socket = cdp_connect(cdp_url)
+        try:
+            targets = cdp_call(socket, 1, "Target.getTargets", {}).get("targetInfos", [])
+            pages = [
+                target
+                for target in targets
+                if target.get("type") == "page" and url_hint in str(target.get("url", ""))
+            ]
+            target = pages[0] if pages else next(
+                (item for item in targets if item.get("type") == "page"), None
+            )
+            if target is None:
+                raise ExportError("no browser page target to redirect downloads for")
+            attached = cdp_call(
+                socket,
+                2,
+                "Target.attachToTarget",
+                {"targetId": target["targetId"], "flatten": True},
+            )
+            cdp_call(
+                socket,
+                3,
+                "Page.setDownloadBehavior",
+                {"behavior": "allow", "downloadPath": str(download_dir)},
+                attached.get("sessionId"),
+            )
+        except Exception:
+            socket.close()
+            raise
+        log(f"browser downloads are redirected to {download_dir}")
+        return socket
+    except Exception as error:  # noqa: BLE001 - keep the Downloads fallback working
+        log(f"note: could not redirect downloads ({error}); using the default Downloads folder")
+        return None
 
 
 class BrowserSession:
@@ -1144,9 +1518,13 @@ def export_pptx(
         session = f"pptd-export-{os.getpid()}-{uuid.uuid4().hex[:8]}"
         browser = BrowserSession(agent_browser, session, temp_dir, download_dir, cdp_port)
         downloads = default_downloads_dir()
+        download_redirect = None
         try:
             log("opening the local neo-ppt editor")
             browser.open(url)
+            # Keep the export ZIP out of the user's Downloads folder. The socket
+            # must stay open until the download finished (see its docstring).
+            download_redirect = set_download_behavior(browser, download_dir)
             browser.run(
                 [
                     "wait",
@@ -1191,6 +1569,11 @@ def export_pptx(
                 pass
         finally:
             browser.close()
+            if download_redirect is not None:
+                try:
+                    download_redirect.close()
+                except Exception:  # noqa: BLE001 - the export is already done
+                    pass
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)

@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 import importlib.util
+import os
 import sys
 import tempfile
+import time
 import unittest
 import zipfile
 from pathlib import Path
+from typing import Optional
+from unittest.mock import patch
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[3] / "pptd"
@@ -39,13 +43,28 @@ def make_images_zip(path: Path, names=("1.jpeg", "10.jpeg", "2.jpeg")) -> None:
 
 
 class ExportImagesTests(unittest.TestCase):
-    def test_page_sort_key_orders_numeric_stems(self):
-        paths = [Path("10.jpeg"), Path("2.jpeg"), Path("cover.jpeg"), Path("1.jpeg")]
-        ordered = sorted(paths, key=MODULE.page_sort_key)
-        self.assertEqual(
-            [path.name for path in ordered],
-            ["1.jpeg", "2.jpeg", "10.jpeg", "cover.jpeg"],
-        )
+    def test_unzip_images_keeps_zip_entry_order(self):
+        """Page order comes from the ZIP, not from guessing file names."""
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            archive_path = root / "images.zip"
+            # Entry order is the deck order; the numeric stems lie about it.
+            make_images_zip(archive_path, names=("cover.jpeg", "10.jpeg", "2.jpeg", "1.jpeg"))
+            images = MODULE.unzip_images(archive_path, root / "pages")
+            self.assertEqual(
+                [path.name for path in images],
+                ["cover.jpeg", "10.jpeg", "2.jpeg", "1.jpeg"],
+            )
+
+    def test_unzip_images_flattens_nested_entries(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            archive_path = root / "images.zip"
+            make_images_zip(archive_path, names=("pages/1.jpeg", "note.txt", "pages/2.jpeg"))
+            images = MODULE.unzip_images(archive_path, root / "pages")
+            self.assertEqual(
+                [path.name for path in images], ["1.jpeg", "2.jpeg"]
+            )
 
     def test_is_image_zip_accepts_image_entries_only(self):
         with tempfile.TemporaryDirectory() as name:
@@ -59,16 +78,6 @@ class ExportImagesTests(unittest.TestCase):
                 archive.writestr("readme.txt", "hello")
             self.assertFalse(MODULE.is_image_zip(bad))
             self.assertFalse(MODULE.is_image_zip(root / "missing.zip"))
-
-    def test_unzip_images_flattens_and_sorts(self):
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name)
-            archive_path = root / "images.zip"
-            make_images_zip(archive_path, names=("1.jpeg", "10.jpeg", "2.jpeg", "note.txt"))
-            images = MODULE.unzip_images(archive_path, root / "pages")
-            self.assertEqual(
-                [path.name for path in images], ["1.jpeg", "2.jpeg", "10.jpeg"]
-            )
 
     def test_stitch_overview_grid(self):
         try:
@@ -123,6 +132,106 @@ class DisposableOutputTests(unittest.TestCase):
     def test_allows_a_missing_directory(self):
         with tempfile.TemporaryDirectory() as name:
             MODULE.assert_disposable_output(Path(name) / "nope")
+
+
+@unittest.skipUnless(MODULE.sys.platform == "win32", "the browser QA path is Windows-only")
+class ExportImagesEndToEndTests(unittest.TestCase):
+    """Drive the real editor, dialog, download and stitching pipeline.
+
+    Needs `agent-browser` on PATH and any Chrome/Chromium; both are optional
+    runtime dependencies, so the test skips itself when they are missing.
+    """
+
+    DECK = Path(__file__).resolve().parents[3] / "tools" / "pptd" / "tests" / "fixtures" / "qa-deck" / "deck.pptd"
+
+    @staticmethod
+    def chromium() -> Optional[str]:
+        candidates = [
+            os.environ.get("PPTD_TEST_CHROMIUM"),
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            str(Path.home() / "AppData/Local/Google/Chrome/Application/chrome.exe"),
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        ]
+        candidates.extend(
+            str(path)
+            for path in sorted(Path.home().glob("AppData/Local/ms-playwright/chromium-*/chrome-win64/chrome.exe"))
+        )
+        for candidate in candidates:
+            if candidate and Path(candidate).is_file():
+                return candidate
+        return None
+
+    def test_exports_and_stitches_every_page(self):
+        import shutil as shutil_module
+
+        if not shutil_module.which("agent-browser"):
+            self.skipTest("agent-browser is not installed")
+        chromium = self.chromium()
+        if not chromium:
+            self.skipTest("no Chrome/Chromium executable available")
+        if not self.DECK.is_file():
+            self.skipTest(f"missing fixture: {self.DECK}")
+
+        import socket
+        import subprocess
+        import tempfile
+
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as name:
+            root = Path(name)
+            process = subprocess.Popen(
+                [
+                    chromium,
+                    f"--user-data-dir={root / 'profile'}",
+                    f"--remote-debugging-port={port}",
+                    "--no-first-run",
+                    "--no-default-browser-check",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            try:
+                from export_pptx import cdp_alive, find_debug_chrome_pid, process_image_name
+
+                deadline = time.monotonic() + 30
+                while time.monotonic() < deadline and not cdp_alive(port):
+                    time.sleep(0.5)
+                self.assertTrue(cdp_alive(port), "browser did not open a CDP port")
+
+                environment = dict(os.environ)
+                environment["AGENT_BROWSER_CDP"] = str(port)
+                with patch.dict(MODULE.os.environ, environment):
+                    output = root / "qa"
+                    summary = MODULE.export_images(self.DECK, output, force=True)
+
+                pages = [entry["path"] for entry in MODULE.build_payload(self.DECK)["pages"]]
+                self.assertEqual(summary["pages"], len(pages))
+                self.assertTrue((output / "overview.jpg").is_file())
+                self.assertEqual(
+                    [entry["page"] for entry in summary["images"]],
+                    pages,
+                    "image → .page mapping must follow the deck order",
+                )
+                for entry in summary["images"]:
+                    self.assertTrue((output / entry["image"]).is_file())
+            finally:
+                import subprocess as subprocess_module
+
+                pid = find_debug_chrome_pid(port)
+                subprocess_module.run(
+                    ["taskkill", "/pid", str(pid or 0), "/T", "/F"],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                deadline = time.monotonic() + 15
+                while time.monotonic() < deadline and pid and process_image_name(pid) is not None:
+                    time.sleep(0.5)
+                process.poll()
 
 
 if __name__ == "__main__":

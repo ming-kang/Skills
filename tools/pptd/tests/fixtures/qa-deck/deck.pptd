@@ -1,0 +1,7 @@
+version: v2
+title: QA Smoke Deck
+size: [960, 540]
+pages:
+  - pages/01.page
+  - pages/02.page
+  - pages/03.page

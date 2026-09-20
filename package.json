@@ -8,6 +8,7 @@
     "test:pptd": "node --test \"tools/pptd/tests-node/*.test.js\" && python -B -m unittest discover -s tools/pptd/tests -p \"test_*.py\"",
     "validate:skills": "python -B tools/quick_validate.py",
     "pptd:serve": "node pptd/scripts/serve.mjs",
+    "pptd:clean": "python -B pptd/scripts/clean_processes.py",
     "visualize:build": "python tools/visualize/build_gallery.py",
     "visualize:render": "node tools/visualize/render_gallery.mjs",
     "visualize:validate": "python -B visualize/scripts/validate_svg.py --strict -q visualize/assets",
