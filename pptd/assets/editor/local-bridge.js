@@ -173,44 +173,28 @@ function fileToDataUrl(file) {
   });
 }
 
+/** Common media layouts decks use, most specific first. */
+const IMAGE_LAYOUT_DIRECTORIES = ["media", "assets", "images"];
+
 function lookupImageMap(path) {
   if (!path || !state.imageMap) return "";
   if (state.imageMap[path]) return state.imageMap[path];
+  // The payload's keys are the deck's own src strings; the editor may ask
+  // with a different spelling ("media/x.png" vs "/media/x.png"). Accept a
+  // path-suffix match, never a bare-basename match — that would let any a.png
+  // satisfy a request for b/a.png.
   const keys = Object.keys(state.imageMap);
-  const hit = keys.find(
-    (key) => path.endsWith(`/${key}`) || key.endsWith(`/${path}`) || key === path || key.endsWith(`/${path.split("/").pop()}`),
-  );
+  const hit = keys.find((key) => path.endsWith(`/${key}`) || key.endsWith(`/${path}`));
   return hit ? state.imageMap[hit] : "";
 }
 
-async function resolveImage(requestedPath) {
-  if (requestedPath == null || requestedPath === "") return "";
-  const raw = String(requestedPath);
-  if (/^(?:data:image\/|https?:\/\/|blob:)/i.test(raw)) return raw;
-
-  let path;
-  try {
-    path = normalizeRelativePath(raw.replace(/^file:\/\/+/, "").replace(/^\.\//, ""));
-  } catch {
-    path = raw.replace(/^file:\/\/+/, "").replace(/^\.\//, "").replaceAll("\\", "/");
-  }
-
-  const mapped = lookupImageMap(path);
-  if (mapped) return mapped;
-
-  // Serve-host project mode: read the file straight from the mounted project.
-  if (state.serverProject) {
-    const url = await dataUrlFromBase(state.projectBase, path);
-    if (url) return url;
-  }
-
-  // Headless export host: the deck's media is served, not embedded in the
-  // payload. The host only sets mediaBase when it can serve the project.
-  if (state.mediaBase) {
-    const url = await dataUrlFromBase(state.mediaBase, path);
-    if (url) return url;
-  }
-
+/**
+ * Where an image reference may live inside the deck's own files, most
+ * specific first. The last step is the only fuzzy one and is labeled as such:
+ * any indexed file whose path ends with the requested path, which covers
+ * decks that nest their media one level deeper than the manifest says.
+ */
+function imageCandidates(path) {
   const candidates = [];
   const add = (p) => {
     if (p && !candidates.includes(p)) candidates.push(p);
@@ -223,48 +207,85 @@ async function resolveImage(requestedPath) {
       /* ignore */
     }
   }
-  // common media layouts
   const base = path.split("/").pop();
   if (base) {
-    add(`media/${base}`);
-    add(`assets/${base}`);
-    add(`images/${base}`);
-    if (state.manifestDirectory) {
-      try {
-        add(joinDeckPath(state.manifestDirectory, `media/${base}`));
-      } catch {
-        /* ignore */
+    for (const directory of IMAGE_LAYOUT_DIRECTORIES) {
+      add(`${directory}/${base}`);
+      if (state.manifestDirectory) {
+        try {
+          add(joinDeckPath(state.manifestDirectory, `${directory}/${base}`));
+        } catch {
+          /* ignore */
+        }
       }
     }
   }
-
-  // fuzzy: any indexed file ending with same relative suffix or basename
   for (const key of state.fileIndex.keys()) {
-    if (key === path || key.endsWith("/" + path) || (base && key.endsWith("/" + base)) || key === base) {
-      add(key);
-    }
+    if (key.endsWith(`/${path}`)) add(key);
   }
+  return candidates;
+}
 
-  for (const c of candidates) {
-    if (!state.fileIndex.has(c) && !state.memoryFiles.has(c)) continue;
-    const cacheKey = c;
-    if (!state.imageCache.has(cacheKey)) {
+/** Read the first candidate that exists in the deck's files, as a data URL. */
+async function readIndexedImage(candidates) {
+  for (const candidate of candidates) {
+    if (!state.fileIndex.has(candidate) && !state.memoryFiles.has(candidate)) continue;
+    if (!state.imageCache.has(candidate)) {
+      // memoryFiles holds text (manifests/pages), never image bytes.
+      if (!state.fileIndex.has(candidate)) continue;
       try {
-        if (state.fileIndex.has(c)) {
-          const file = await state.fileIndex.get(c).getFile();
-          state.imageCache.set(cacheKey, await fileToDataUrl(file));
-        } else {
-          // memory text shouldn't be image; skip
-          continue;
-        }
+        const file = await state.fileIndex.get(candidate).getFile();
+        state.imageCache.set(candidate, await fileToDataUrl(file));
       } catch (e) {
-        console.warn("[neodeck] image read failed", c, e);
+        console.warn("[neodeck] image read failed", candidate, e);
         continue;
       }
     }
-    const url = await state.imageCache.get(cacheKey);
+    const url = state.imageCache.get(candidate);
     if (url) return url;
   }
+  return "";
+}
+
+/**
+ * Resolve an image reference to something the editor can render: a named
+ * fallback chain, most specific first. Each step is either a host fetch or a
+ * deck-file lookup, and a total miss reports the exact candidates that were
+ * tried — no interleaved fuzzy scoring to reason about.
+ */
+async function resolveImage(requestedPath) {
+  if (requestedPath == null || requestedPath === "") return "";
+  const raw = String(requestedPath);
+  if (/^(?:data:image\/|https?:\/\/|blob:)/i.test(raw)) return raw;
+
+  let path;
+  try {
+    path = normalizeRelativePath(raw.replace(/^file:\/\/+/, "").replace(/^\.\//, ""));
+  } catch {
+    path = raw.replace(/^file:\/\/+/, "").replace(/^\.\//, "").replaceAll("\\", "/");
+  }
+
+  // 1. embedded payload imageMap (only populated in embed_media mode).
+  const mapped = lookupImageMap(path);
+  if (mapped) return mapped;
+
+  // 2. host-served media: the mounted project (preview) and the export
+  //    host's media mount. The host only sets mediaBase when it can serve
+  //    the project directory.
+  if (state.serverProject) {
+    const url = await dataUrlFromBase(state.projectBase, path);
+    if (url) return url;
+  }
+  if (state.mediaBase) {
+    const url = await dataUrlFromBase(state.mediaBase, path);
+    if (url) return url;
+  }
+
+  // 3. the deck's own files.
+  const candidates = imageCandidates(path);
+  const url = await readIndexedImage(candidates);
+  if (url) return url;
+
   console.warn("[neodeck] image not found", requestedPath, "tried", candidates.slice(0, 8));
   return "";
 }
