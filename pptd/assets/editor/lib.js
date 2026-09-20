@@ -45,7 +45,8 @@ export function joinDeckPath(base, path) {
   return normalizeRelativePath(`${normalizedBase}/${child}`);
 }
 
-function unquoteYamlScalar(value) {
+/** Strip YAML quoting/trailing comments from a scalar. Shared with scripts/serve.mjs. */
+export function unquoteYamlScalar(value) {
   const text = value.trim();
   if (text.startsWith('"')) {
     const match = text.match(/^"(?:\\.|[^"\\])*"/);

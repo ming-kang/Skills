@@ -44,10 +44,48 @@ import { dirname, extname, resolve, sep } from "node:path";
 import { stdout as output } from "node:process";
 import { fileURLToPath } from "node:url";
 
+// The editor bridge's path/YAML helpers are the canonical implementations
+// (and are unit-tested); the host reuses them instead of forking copies.
+import { normalizeRelativePath, unquoteYamlScalar } from "../assets/editor/lib.js";
+
 const SKILL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_PORT = 55_173;
+const DEFAULT_IDLE_MINUTES = 120;
 const PROJECT_MOUNT = "/project/";
 const PING_PATH = "/__ping__";
+
+/**
+ * The editor mirror directory: PPTD_EDITOR_DIR (legacy alias
+ * OPEN_KIMI_PPT_EDITOR) when set, else the in-skill assets/editor copy.
+ * The one definition of this policy — export_pptx.py's resolve_editor_root()
+ * is its Python twin.
+ */
+function resolveEditorRoot() {
+  return resolve(
+    process.env.PPTD_EDITOR_DIR ??
+      process.env.OPEN_KIMI_PPT_EDITOR ??
+      resolve(SKILL_ROOT, "assets", "editor"),
+  );
+}
+
+/**
+ * Idle minutes from PPTD_SERVE_IDLE_MINUTES, falling back to the default
+ * when unset or invalid. An invalid value used to become NaN, which the
+ * watchdog reads as "disabled" — a forgotten background host that never
+ * exits. Loud fallback instead of silent fail-open.
+ */
+function idleMinutesFromEnv() {
+  const raw = process.env.PPTD_SERVE_IDLE_MINUTES;
+  if (raw === undefined || raw === "") return DEFAULT_IDLE_MINUTES;
+  const minutes = Number(raw);
+  if (!Number.isFinite(minutes) || minutes < 0) {
+    output.write(
+      `pptd: ignoring invalid PPTD_SERVE_IDLE_MINUTES=${JSON.stringify(raw)}; using ${DEFAULT_IDLE_MINUTES}\n`,
+    );
+    return DEFAULT_IDLE_MINUTES;
+  }
+  return minutes;
+}
 
 const contentTypes = new Map([
   [".css", "text/css; charset=utf-8"],
@@ -86,44 +124,22 @@ function respond(response, statusCode, message) {
  * Project mounting (read-only preview)
  * ------------------------------------------------------------------ */
 
-/** Same path rules as the editor bridge: no absolute, no drive, no "..". */
+/**
+ * Map a /project/... pathname to a file inside the project, or null when it
+ * escapes. The path rules are the editor bridge's normalizeRelativePath —
+ * one canonical implementation (no absolute, no drive, no ".."), reused here
+ * so host and bridge cannot disagree about what a project path is.
+ */
 function resolveProjectPath(projectRoot, pathname) {
-  let relative = pathname
-    .replace(/^file:\/\/+/, "")
-    .replace(/^\/+/, "")
-    .replace(/^\.\//, "")
-    .replaceAll("\\", "/");
-  if (!relative || relative.includes("\0") || relative.startsWith("/") || /^[A-Za-z]:\//.test(relative)) {
+  let relative;
+  try {
+    // The editor asks for some assets with a leading slash ("media/x.png").
+    relative = normalizeRelativePath(pathname.replace(/^\/+/, ""));
+  } catch {
     return null;
   }
-  const parts = [];
-  for (const part of relative.split("/")) {
-    if (!part || part === ".") continue;
-    if (part === "..") return null;
-    parts.push(part);
-  }
-  if (!parts.length) return null;
-  const candidate = resolve(projectRoot, parts.join(sep));
+  const candidate = resolve(projectRoot, relative);
   return candidate === projectRoot || candidate.startsWith(`${projectRoot}${sep}`) ? candidate : null;
-}
-
-function unquoteYamlScalar(value) {
-  const text = value.trim();
-  if (text.startsWith('"')) {
-    const match = text.match(/^"(?:\\.|[^"\\])*"/);
-    if (match) {
-      try {
-        return JSON.parse(match[0]);
-      } catch {
-        return match[0].slice(1, -1);
-      }
-    }
-  }
-  if (text.startsWith("'")) {
-    const end = text.indexOf("'", 1);
-    if (end !== -1) return text.slice(1, end).replaceAll("''", "'");
-  }
-  return text.replace(/\s+#.*$/, "").trim();
 }
 
 /** Locate the deck manifest inside a mounted project (top level first). */
@@ -172,7 +188,7 @@ function projectTitle(manifestPath, manifestText) {
  * ------------------------------------------------------------------ */
 
 export function createEditorServer({
-  editorDirectory = resolve(SKILL_ROOT, "assets", "editor"),
+  editorDirectory = resolveEditorRoot(),
   projectDirectory = null,
 } = {}) {
   const root = resolve(editorDirectory);
@@ -298,7 +314,7 @@ export function createEditorServer({
 export function createIdleWatchdog({ idleMs, activity, onIdle, now = () => Date.now(), intervalMs = 15_000 }) {
   const disabled = !Number.isFinite(idleMs) || idleMs <= 0;
   if (disabled) {
-    return { touch: () => {}, stop: () => {}, isIdle: () => false };
+    return { stop: () => {}, isIdle: () => false };
   }
   // Check often enough for short timeouts (tests, manual --idle-timeout).
   const interval = Math.max(100, Math.min(intervalMs, idleMs));
@@ -311,7 +327,7 @@ export function createIdleWatchdog({ idleMs, activity, onIdle, now = () => Date.
   // Never keep the process alive just for the watchdog.
   timer.unref?.();
   const stop = () => clearInterval(timer);
-  return { touch: () => {}, stop, isIdle: () => now() - activity.lastActivityAt >= idleMs };
+  return { stop, isIdle: () => now() - activity.lastActivityAt >= idleMs };
 }
 
 /* ------------------------------------------------------------------ *
@@ -362,8 +378,11 @@ function listLeases() {
     return readdirSync(LEASE_DIRECTORY)
       .filter((name) => name.endsWith(".json"))
       .map((name) => {
+        const file = resolve(LEASE_DIRECTORY, name);
         try {
-          return { file: resolve(LEASE_DIRECTORY, name), lease: JSON.parse(readFileSync(resolve(LEASE_DIRECTORY, name), "utf-8")) };
+          // The key is the file name: carry it so consumers never rebuild it
+          // from lease contents (which drifts when the lease shape changes).
+          return { file, key: name.replace(/\.json$/, ""), lease: JSON.parse(readFileSync(file, "utf-8")) };
         } catch {
           return null;
         }
@@ -425,11 +444,10 @@ export async function startEditorServer({
   port = DEFAULT_PORT,
   editorDirectory,
   projectDirectory = null,
-  idleTimeoutMs = Number(process.env.PPTD_SERVE_IDLE_MINUTES ?? 120) * 60_000,
+  idleTimeoutMs = idleMinutesFromEnv() * 60_000,
   registerLease = true,
 } = {}) {
-  const directory = editorDirectory ?? process.env.PPTD_EDITOR_DIR ?? process.env.OPEN_KIMI_PPT_EDITOR;
-  const editorRoot = resolve(directory ?? resolve(SKILL_ROOT, "assets", "editor"));
+  const editorRoot = resolve(editorDirectory ?? resolveEditorRoot());
   const projectRoot = projectDirectory ? resolve(projectDirectory) : null;
   const key = leaseKey({ editorRoot, projectRoot });
 
@@ -560,7 +578,7 @@ function parseServeArguments(args) {
     status: false,
     stop: false,
     project: null,
-    idleTimeoutMinutes: Number(process.env.PPTD_SERVE_IDLE_MINUTES ?? 120),
+    idleTimeoutMinutes: idleMinutesFromEnv(),
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
@@ -608,9 +626,7 @@ function parseServeArguments(args) {
 }
 
 async function reportStatus(options) {
-  const editorRoot = resolve(
-    process.env.PPTD_EDITOR_DIR ?? process.env.OPEN_KIMI_PPT_EDITOR ?? resolve(SKILL_ROOT, "assets", "editor"),
-  );
+  const editorRoot = resolveEditorRoot();
   const entries = options.project
     ? [
         {
@@ -638,23 +654,21 @@ async function reportStatus(options) {
 }
 
 function stopInstances(options) {
-  const editorRoot = resolve(
-    process.env.PPTD_EDITOR_DIR ?? process.env.OPEN_KIMI_PPT_EDITOR ?? resolve(SKILL_ROOT, "assets", "editor"),
-  );
+  const editorRoot = resolveEditorRoot();
   const key = options.project ? leaseKey({ editorRoot, projectRoot: options.project }) : null;
   const entries = key
-    ? [{ file: leaseFile(key), lease: readLease(key) }].filter((entry) => entry.lease)
+    ? [{ file: leaseFile(key), key, lease: readLease(key) }].filter((entry) => entry.lease)
     : listLeases();
   const stopped = [];
-  for (const { lease } of entries) {
+  for (const { key: leaseKeyName, lease } of entries) {
     const pid = lease?.pid;
     if (!processAlive(pid)) {
-      removeLease(leaseKey({ editorRoot: lease?.editorRoot ?? editorRoot, projectRoot: lease?.projectRoot ?? null }), pid);
+      removeLease(leaseKeyName, pid);
       stopped.push({ pid, stopped: false, reason: "not running" });
       continue;
     }
     stopped.push({ pid, url: lease?.url, stopped: stopProcess(pid) });
-    removeLease(leaseKey({ editorRoot: lease?.editorRoot ?? editorRoot, projectRoot: lease?.projectRoot ?? null }), pid);
+    removeLease(leaseKeyName, pid);
   }
   output.write(`${JSON.stringify({ event: "stop", stopped }, null, 2)}\n`);
   return 0;
