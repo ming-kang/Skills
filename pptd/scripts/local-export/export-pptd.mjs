@@ -223,26 +223,38 @@ function loadProjectFromJson(jsonPath) {
 
 function normalizeElement(el) {
   // Official it()/at(): ensure custom shapes get viewBox from bounds
+  const size = [el.bounds?.[2], el.bounds?.[3]];
   if (el.elementType === 'shape') {
-    return ensureViewBox(el, [el.bounds?.[2], el.bounds?.[3]]);
+    return normalizeCustomShape(el, size);
   }
   if (el.elementType === 'image' && el.cropShape) {
     return {
       ...el,
-      cropShape: ensureViewBox(el.cropShape, [el.bounds?.[2], el.bounds?.[3]]),
+      cropShape: normalizeCustomShape(el.cropShape, size),
     };
   }
   return el;
 }
 
-function ensureViewBox(shape, size) {
-  if (
-    shape.shapeName !== 'custom' ||
-    !shape.path ||
-    shape.viewBox ||
-    String(shape.path).includes(';')
-  ) {
-    return shape;
+/**
+ * Give a custom shape its viewBox, whichever encoding the deck used.
+ *
+ * A custom shape's path is either "w,h;pathdata" (split into viewBox + path)
+ * or a bare pathdata string whose viewBox comes from the element's bounds.
+ * One normalizer for both encodings: the old code bailed out on the ";"
+ * encoding here and left it to a second, separate pass, so every reader had
+ * to hold both data shapes in their head at once.
+ */
+function normalizeCustomShape(shape, size) {
+  if (shape?.shapeName !== 'custom' || !shape.path || shape.viewBox) return shape;
+  const separator = String(shape.path).indexOf(';');
+  if (separator >= 0) {
+    const [w, h] = String(shape.path)
+      .slice(0, separator)
+      .split(',')
+      .map(Number);
+    if (!(w > 0) || !(h > 0)) return shape;
+    return { ...shape, viewBox: [w, h], path: String(shape.path).slice(separator + 1) };
   }
   return { ...shape, viewBox: size };
 }
@@ -334,29 +346,7 @@ async function resolveImages(pptd, projectRoot) {
     }
   }
 
-  // shape path;viewBox split (official Kt/Gt)
-  for (const page of pptd.pages ?? []) {
-    for (const el of page.elements ?? []) {
-      if (el?.elementType === 'shape') splitCustomPath(el);
-      if (el?.elementType === 'image' && el.cropShape) splitCustomPath(el.cropShape);
-    }
-  }
-
   return images;
-}
-
-function splitCustomPath(shape) {
-  if (shape?.shapeName !== 'custom' || typeof shape.path !== 'string' || shape.viewBox)
-    return;
-  const t = shape.path.indexOf(';');
-  if (t < 0) return;
-  const [w, h] = shape.path
-    .slice(0, t)
-    .split(',')
-    .map(Number);
-  if (!(w > 0) || !(h > 0)) return;
-  shape.viewBox = [w, h];
-  shape.path = shape.path.slice(t + 1);
 }
 
 // ---------- offline signature (accepted by the patched WASM) ----------
@@ -369,6 +359,25 @@ function offlineSignature(dataString) {
 }
 
 // ---------- WASM glue (Node port of kimiDesign / wasm-bindgen) ----------
+/**
+ * wasm-bindgen hashes import names; upstream has shipped the JSON.stringify
+ * binding under these two adjacent hashes. One of them must be present.
+ */
+const STRINGIFY_IMPORTS = [
+  '__wbg_stringify_b54333f60f1e4ead',
+  '__wbg_stringify_b54333f60f1e4dad',
+];
+
+/** Exports this glue calls directly; a renamed build must fail loudly here. */
+const REQUIRED_WASM_EXPORTS = [
+  'exportPPTDToPPTXBytes',
+  'memory',
+  '__wbindgen_add_to_stack_pointer',
+  '__wbindgen_export', // malloc
+  '__wbindgen_export2', // realloc
+  '__wbindgen_export3', // throw
+];
+
 async function loadWasmExporter(wasmPath) {
   const wasmBytes = fs.readFileSync(wasmPath);
   let exportsRef;
@@ -467,6 +476,20 @@ async function loadWasmExporter(wasmPath) {
     } catch (e) {
       exportsRef.__wbindgen_export3(addHeapObject(e));
     }
+  }
+
+  // Inspect the module's own import section before building the imports
+  // object: which hash of the stringify binding this build actually wants.
+  // Registering a name the module does not import is dead weight, and a
+  // refreshed mirror with an unknown hash must stop and ask a human.
+  const compiled = await WebAssembly.compile(wasmBytes);
+  const importedNames = new Set(WebAssembly.Module.imports(compiled).map((entry) => entry.name));
+  const stringifyImport = STRINGIFY_IMPORTS.find((name) => importedNames.has(name));
+  if (!stringifyImport) {
+    throw new Error(
+      `patched WASM imports no known JSON.stringify binding (looked for ${STRINGIFY_IMPORTS.join(', ')}). ` +
+        'The skill ships one specific build; a refreshed mirror needs its glue re-checked by hand.',
+    );
   }
 
   const imports = {
@@ -572,13 +595,15 @@ async function loadWasmExporter(wasmPath) {
           return Reflect.set(getObject(arg0), getObject(arg1), getObject(arg2));
         }, arguments);
       },
-      __wbg_stringify_b54333f60f1e4ead() {
-        return handleError(function (arg0) {
-          return addHeapObject(JSON.stringify(getObject(arg0)));
-        }, arguments);
-      },
-      // note: official name may be slightly different hash suffix — also register alternate
-      __wbg_stringify_b54333f60f1e4dad() {
+      // The JSON.stringify binding: wasm-bindgen hashes the import name, and
+      // upstream has shipped this one under two adjacent hashes. Detect which
+      // one this build actually imports (below) and register only that one —
+      // an unknown hash is a mirror refresh that must stop and ask a human,
+      // not silently register both and hope.
+      // A plain function expression, not an arrow: `arguments` must be this
+      // import call's arguments (the wasm passes them via apply), not the
+      // enclosing loadWasmExporter's.
+      [stringifyImport]: function () {
         return handleError(function (arg0) {
           return addHeapObject(JSON.stringify(getObject(arg0)));
         }, arguments);
@@ -595,8 +620,19 @@ async function loadWasmExporter(wasmPath) {
     },
   };
 
-  const { instance } = await WebAssembly.instantiate(wasmBytes, imports);
+  // instantiate(Module, …) resolves to the Instance itself (unlike the
+  // bytes form, which resolves to a { module, instance } result object).
+  const instance = await WebAssembly.instantiate(compiled, imports);
   exportsRef = instance.exports;
+  // Fail loudly on a build this glue does not match, instead of a cryptic
+  // TypeError deep inside the first call.
+  const missingExports = REQUIRED_WASM_EXPORTS.filter((name) => exportsRef[name] === undefined);
+  if (missingExports.length) {
+    throw new Error(
+      `patched WASM is missing expected export(s): ${missingExports.join(', ')} — ` +
+        'this glue matches one specific wasm-bindgen build, not any patched WASM.',
+    );
+  }
   memory = exportsRef.memory;
   cachedUint8 = null;
   cachedDataView = null;
@@ -670,8 +706,8 @@ Env:
     path.join(projectRoot, path.basename(manifestPath, '.pptd') + '.offline.pptx');
 
   console.log('[2/5] resolve images');
-  // deep clone so we can rewrite src
-  pptd = JSON.parse(JSON.stringify(pptd));
+  // resolveImages rewrites src in place; the project object is used once and
+  // discarded, so there is nothing to protect with a clone.
   const images = await resolveImages(pptd, projectRoot);
   console.log(`      ${Object.keys(images).length} image(s)`);
 
