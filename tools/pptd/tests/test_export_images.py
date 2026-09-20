@@ -66,18 +66,59 @@ class ExportImagesTests(unittest.TestCase):
                 [path.name for path in images], ["1.jpeg", "2.jpeg"]
             )
 
-    def test_is_image_zip_accepts_image_entries_only(self):
+    def test_canonical_page_names_number_in_deck_order(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
-            good = root / "images.zip"
-            make_images_zip(good)
-            self.assertTrue(MODULE.is_image_zip(good))
+            archive_path = root / "images.zip"
+            # The editor's own names say nothing about page order.
+            make_images_zip(
+                archive_path,
+                names=("cover.jpeg", "10.png", "2.jpeg", "3.jpeg"),
+            )
+            images = MODULE.unzip_images(archive_path, root / "pages")
+            original_bytes = {path.name: path.read_bytes() for path in images}
+            named = MODULE.canonical_page_names(images)
 
-            bad = root / "text.zip"
-            with zipfile.ZipFile(bad, "w") as archive:
-                archive.writestr("readme.txt", "hello")
-            self.assertFalse(MODULE.is_image_zip(bad))
-            self.assertFalse(MODULE.is_image_zip(root / "missing.zip"))
+            self.assertEqual(
+                [path.name for path, _ in named],
+                ["1.jpeg", "2.png", "3.jpeg", "4.jpeg"],
+            )
+            self.assertEqual(
+                [editor for _, editor in named],
+                ["cover.jpeg", "10.png", "2.jpeg", "3.jpeg"],
+            )
+            # Renaming must not touch the content.
+            for path, editor in named:
+                self.assertEqual(path.read_bytes(), original_bytes[editor])
+            self.assertEqual(
+                sorted(path.name for path in (root / "pages").iterdir()),
+                ["1.jpeg", "2.png", "3.jpeg", "4.jpeg"],
+                "the staging directory must not survive",
+            )
+
+    def test_canonical_page_names_survive_editor_names_that_look_canonical(self):
+        """The editor can call its own entries 1.jpeg … — those collide."""
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            archive_path = root / "images.zip"
+            make_images_zip(archive_path, names=("1.jpeg", "2.jpeg", "3.jpeg"))
+            images = MODULE.unzip_images(archive_path, root / "pages")
+            before = {index + 1: path.read_bytes() for index, path in enumerate(images)}
+
+            named = MODULE.canonical_page_names(images)
+
+            self.assertEqual([path.name for path, _ in named], ["1.jpeg", "2.jpeg", "3.jpeg"])
+            # Page 1 is still page 1: nothing was overwritten by the shuffle.
+            for index, (path, _) in enumerate(named, start=1):
+                self.assertEqual(path.read_bytes(), before[index])
+
+    def test_canonical_page_names_reject_unknown_extensions(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / "pages").mkdir()
+            (root / "pages" / "page.bmp").write_bytes(b"x")
+            with self.assertRaisesRegex(MODULE.ExportError, "unsupported extension"):
+                MODULE.canonical_page_names([root / "pages" / "page.bmp"])
 
     def test_stitch_overview_grid(self):
         try:
@@ -208,7 +249,9 @@ class ExportImagesEndToEndTests(unittest.TestCase):
                     output = root / "qa"
                     summary = MODULE.export_images(self.DECK, output, force=True)
 
-                pages = [entry["path"] for entry in MODULE.build_payload(self.DECK)["pages"]]
+                from export_pptx import build_payload
+
+                pages = [entry["path"] for entry in build_payload(self.DECK)["pages"]]
                 self.assertEqual(summary["pages"], len(pages))
                 self.assertTrue((output / "overview.jpg").is_file())
                 self.assertEqual(
@@ -216,8 +259,20 @@ class ExportImagesEndToEndTests(unittest.TestCase):
                     pages,
                     "image → .page mapping must follow the deck order",
                 )
+                # pages/<n>.<ext> in deck order, whatever the editor called them.
+                self.assertEqual(
+                    [entry["image"] for entry in summary["images"]],
+                    [f"pages/{index}.jpeg" for index in range(1, len(pages) + 1)],
+                )
                 for entry in summary["images"]:
                     self.assertTrue((output / entry["image"]).is_file())
+                    self.assertTrue(entry["editorImage"])
+                # The payload carries no base64 media: the host serves the
+                # project's files, which is what keeps large decks light.
+                self.assertEqual(summary["mediaDelivery"], "host")
+                # ... and the editor really pulled them, so the pages cannot be
+                # rendering image placeholders.
+                self.assertGreater(summary["mediaRequests"], 0)
             finally:
                 import subprocess as subprocess_module
 

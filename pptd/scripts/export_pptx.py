@@ -35,7 +35,7 @@ import xml.etree.ElementTree as ET
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 IMAGE_MIME = {
@@ -841,7 +841,15 @@ def build_image_map(root: Path, pages_data: Iterable[Dict[str, Any]]) -> Dict[st
     return image_map
 
 
-def build_payload(manifest: Path) -> Dict[str, Any]:
+def build_payload(manifest: Path, embed_media: bool = False) -> Dict[str, Any]:
+    """Assemble the headless payload for the local editor.
+
+    `embed_media=False` (the default) leaves `imageMap` empty: the deck's local
+    media is served by the host that also serves the payload, so a deck with
+    hundreds of high-resolution images no longer inflates the JSON (and the
+    browser's memory) by a base64 factor. `embed_media=True` restores the old
+    self-contained payload for hosts that cannot serve the project directory.
+    """
     manifest_text, manifest_data = read_yaml_mapping(manifest)
     if manifest_data.get("version") != "v2":
         raise ExportError("local PPTX export currently requires PPTD version: v2")
@@ -869,7 +877,7 @@ def build_payload(manifest: Path) -> Dict[str, Any]:
         "manifestPath": manifest.name,
         "manifestContent": manifest_text,
         "pages": pages,
-        "imageMap": build_image_map(root, pages_data),
+        "imageMap": build_image_map(root, pages_data) if embed_media else {},
     }
 
 
@@ -1142,6 +1150,50 @@ def switch_state(snapshot: Dict[str, Any]) -> Optional[Tuple[str, bool, bool]]:
     return match.group("ref"), "checked=true" in attrs, "disabled" in attrs
 
 
+# The editor reports in-flight project/media fetches on this global; when the
+# host serves media over HTTP (instead of inlining it into payload.json) the deck
+# is "ready" before its images have arrived, and driving the UI too early loses
+# them.
+EDITOR_PENDING_FETCHES_JS = (
+    "!(window.__NEODECK_PENDING_PROJECT_FETCHES__) || "
+    "window.__NEODECK_PENDING_PROJECT_FETCHES__() === 0"
+)
+
+
+def wait_for_editor_media(browser: BrowserSession, timeout: float = 60.0) -> None:
+    """Wait until the editor has fetched every media file it is going to."""
+    try:
+        browser.run(["wait", "--fn", EDITOR_PENDING_FETCHES_JS], timeout=timeout)
+    except ExportError as error:
+        raise ExportError(
+            f"the editor is still loading media after {timeout:.0f}s; "
+            "the render may be incomplete"
+        ) from error
+
+
+def open_export_dialog(browser: BrowserSession, timeout: float = 20.0) -> Dict[str, Any]:
+    """Click 导出 and wait for the export dialog, retrying the click once.
+
+    The editor's toolbar can swallow a click while it is still settling after a
+    deck load (seen when a stale agent-browser session was attached to the
+    browser). Re-snapshotting and clicking again after a short settle is much
+    cheaper than failing the whole export.
+    """
+    last_error: Optional[Exception] = None
+    for attempt in (1, 2):
+        try:
+            snapshot = browser.snapshot()
+            export_ref = ref_by_name(snapshot, "导出", "button")
+            browser.run(["click", f"@{export_ref}"])
+            return wait_for_export_dialog(browser, timeout=timeout)
+        except ExportError as error:
+            last_error = error
+            if attempt == 2:
+                break
+            time.sleep(1.0)
+    raise last_error if last_error else ExportError("could not open the export dialog")
+
+
 def wait_for_export_dialog(browser: BrowserSession, timeout: float = 20.0) -> Dict[str, Any]:
     deadline = time.monotonic() + timeout
     last: Optional[Dict[str, Any]] = None
@@ -1338,27 +1390,104 @@ def resolve_editor_root() -> Path:
     return SKILL_DIR / "assets" / "editor"
 
 
+MEDIA_MOUNT = "__media__"
+# What the editor may pull through the media mount: images and fonts by relative
+# path. A deck directory holds nothing else the page needs over HTTP (manifest
+# and pages already travel inside payload.json).
+SERVE_MEDIA_SUFFIXES = {
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".avif",
+    ".woff", ".woff2", ".ttf", ".otf", ".fntdata",
+}
+MEDIA_CONTENT_TYPES = {
+    **IMAGE_MIME,
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+    ".ttf": "font/ttf",
+    ".otf": "font/otf",
+    ".fntdata": "application/octet-stream",
+}
+
+
 def serve_local_editor(
     payload: Dict[str, Any],
+    project_root: Optional[Path] = None,
 ) -> Tuple[ThreadingHTTPServer, threading.Thread, str]:
-    """Serve the offline editor and inject payload.json for headless export."""
+    """Serve the offline editor and inject payload.json for headless export.
+
+    When `project_root` is given, the deck's local media is served from
+    `/<MEDIA_MOUNT>/<relative path>` instead of being base64-inlined into the
+    payload, and the host records that base URL in `payload["mediaBase"]` so the
+    bridge fetches it instead of looking in `imageMap`.
+    """
     editor_root = resolve_editor_root()
+    # Announce the media mount *before* serializing: the payload is the only
+    # channel that tells the bridge media is served rather than embedded.
+    if project_root is not None:
+        payload["mediaBase"] = f"/{MEDIA_MOUNT}/"
     payload_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    # How many media files the editor actually pulled: a deck that references
+    # images but requests none is silently rendering placeholders.
+    media_hits = {"count": 0}
 
     class LocalEditorHandler(QuietHandler):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, directory=str(editor_root), **kwargs)
 
+        def _path(self) -> str:
+            # Percent-decode first: "%2e%2e%2f" must be judged as ".." rather
+            # than as a literal file name that happens not to exist.
+            return urlparse(unquote(self.path)).path
+
         def _is_payload(self) -> bool:
-            path = urlparse(self.path).path
-            return path in ("/payload.json", "payload.json")
+            return self._path() in ("/payload.json", "payload.json")
+
+        def _media_relative(self) -> Optional[str]:
+            prefix = f"/{MEDIA_MOUNT}/"
+            path = self._path()
+            return path[len(prefix):] if path.startswith(prefix) else None
+
+        def _serve_media(self, relative: str) -> None:
+            if project_root is None:
+                # No project mounted: the route does not exist.
+                self.send_error(404, "No project mounted")
+                return
+            # The editor asks for some assets with a leading slash
+            # ("/media/x.png"); drop it so the path stays project-relative.
+            relative = relative.lstrip("/")
+            media_hits["count"] += 1
+            try:
+                media_path = safe_project_path(project_root, relative)
+            except ExportError:
+                self.send_error(403, "Forbidden")
+                return
+            suffix = media_path.suffix.lower()
+            if suffix not in SERVE_MEDIA_SUFFIXES:
+                self.send_error(404, "Unsupported media type")
+                return
+            if not media_path.is_file():
+                self.send_error(404, "Media not found")
+                return
+            self.send_response(200)
+            self.send_header(
+                "Content-Type", MEDIA_CONTENT_TYPES.get(suffix, "application/octet-stream")
+            )
+            self.send_header("Content-Length", str(media_path.stat().st_size))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            if self.command != "HEAD":
+                with media_path.open("rb") as handle:
+                    shutil.copyfileobj(handle, self.wfile)
 
         def do_GET(self) -> None:  # noqa: N802
+            relative = self._media_relative()
+            if relative is not None:
+                self._serve_media(relative)
+                return
             if self._is_payload():
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                # No CORS header: the editor page is same-origin, and the
-                # payload carries the whole deck including base64 media.
+                # No CORS header: the editor page is same-origin, and the payload
+                # is the deck plus a pointer to where its media lives.
                 self.send_header("Content-Length", str(len(payload_bytes)))
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
@@ -1367,6 +1496,10 @@ def serve_local_editor(
             return SimpleHTTPRequestHandler.do_GET(self)
 
         def do_HEAD(self) -> None:  # noqa: N802
+            relative = self._media_relative()
+            if relative is not None:
+                self._serve_media(relative)
+                return
             if self._is_payload():
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -1381,8 +1514,28 @@ def serve_local_editor(
     thread.start()
     host, port = server.server_address
     url = f"http://{host}:{port}/?ndExport=1"
-    log(f"local editor host: {url} (root={editor_root})")
+    if project_root is not None:
+        log(f"local editor host: {url} (root={editor_root}, media={project_root})")
+    else:
+        log(f"local editor host: {url} (root={editor_root})")
+    server.media_hits = media_hits
     return server, thread, url
+
+
+def open_local_editor(
+    manifest: Path, *, embed_media: bool = False
+) -> Tuple[ThreadingHTTPServer, threading.Thread, str, Dict[str, Any]]:
+    """Build the payload and start the host that serves it, in one step.
+
+    The two browser paths (image QA and the optional `--browser` export) must
+    agree on how media is delivered. With `embed_media=False` (the default) the
+    payload carries no base64 at all and the deck's media is served by the host
+    instead; doing both halves in one call keeps them from drifting apart.
+    """
+    manifest = find_manifest(manifest)
+    payload = build_payload(manifest, embed_media=embed_media)
+    server, thread, url = serve_local_editor(payload, project_root=manifest.parent)
+    return server, thread, url, payload
 
 
 LOCAL_EXPORT_DIR = Path(__file__).resolve().parent / "local-export"
@@ -1497,7 +1650,6 @@ def export_pptx(
             )
 
     manifest = find_manifest(source)
-    payload = build_payload(manifest)
     output = output.expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists() and not force:
@@ -1514,7 +1666,8 @@ def export_pptx(
         temp_dir = Path(temp_name)
         download_dir = temp_dir / "downloads"
         download_dir.mkdir()
-        server, thread, url = serve_local_editor(payload)
+        # One call so the payload and the host agree on how media is delivered.
+        server, thread, url, payload = open_local_editor(manifest)
         session = f"pptd-export-{os.getpid()}-{uuid.uuid4().hex[:8]}"
         browser = BrowserSession(agent_browser, session, temp_dir, download_dir, cdp_port)
         downloads = default_downloads_dir()
@@ -1533,11 +1686,10 @@ def export_pptx(
                 ],
                 timeout=120,
             )
+            # "ready" precedes the media fetches the host-served images need.
+            wait_for_editor_media(browser)
             browser.run(["set", "viewport", "1280", "720"])
-            snapshot = browser.snapshot()
-            export_ref = ref_by_name(snapshot, "导出", "button")
-            browser.run(["click", f"@{export_ref}"])
-            dialog = wait_for_export_dialog(browser)
+            dialog = open_export_dialog(browser)
 
             state = switch_state(dialog)
             if state is not None:

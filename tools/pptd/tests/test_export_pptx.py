@@ -9,6 +9,7 @@ import tempfile
 import time
 import unittest
 import threading
+import urllib.error
 import urllib.request
 import zipfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -296,6 +297,115 @@ class ExportPptxTests(unittest.TestCase):
                 "/bin/agent-browser", "s", Path("."), Path("/tmp/d")
             )
             self.assertNotIn("AGENT_BROWSER_CDP", without_port.env)
+
+
+class EditorHostMediaRouteTests(unittest.TestCase):
+    """The export host serves the deck's media instead of embedding it."""
+
+    def make_deck(self, root: Path) -> Path:
+        (root / "pages").mkdir()
+        (root / "media").mkdir()
+        (root / "media" / "shot.png").write_bytes(bytes([0x89]) + b"PNG shot-bytes")
+        (root / "media" / "font.ttf").write_bytes(b"font-bytes")
+        (root / "deck.pptd").write_text(
+            chr(10).join([
+                "version: v2",
+                "title: Media Host",
+                "size: [960, 540]",
+                "pages:",
+                "  - pages/01.page",
+                "",
+            ]),
+            encoding="utf-8",
+        )
+        (root / "pages" / "01.page").write_text(
+            chr(10).join([
+                "pageType: content",
+                "elements:",
+                "  - elementId: pic",
+                "    elementType: image",
+                "    bounds: [0, 0, 10, 10]",
+                "    src: media/shot.png",
+                "    fit: {mode: contain}",
+                "",
+            ]),
+            encoding="utf-8",
+        )
+        return root / "deck.pptd"
+
+    def test_media_is_served_not_embedded(self):
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self.make_deck(Path(name))
+            payload = MODULE.build_payload(manifest)
+            # Default: no base64 in the payload at all.
+            self.assertEqual(payload["imageMap"], {})
+
+            server, _thread, url = MODULE.serve_local_editor(payload, project_root=manifest.parent)
+            try:
+                base = url.split("?")[0]
+                body = urllib.request.urlopen(base + "payload.json", timeout=10).read()
+                self.assertNotIn(b"base64", body)
+                self.assertEqual(json.loads(body)["mediaBase"], f"/{MODULE.MEDIA_MOUNT}/")
+
+                # The editor asks for some assets with a leading slash.
+                for request in ("media/shot.png", "/media/shot.png", "//media/shot.png"):
+                    served = urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/{request}", timeout=10)
+                    self.assertEqual(served.read(), bytes([0x89]) + b"PNG shot-bytes")
+                font = urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/media/font.ttf", timeout=10)
+                self.assertEqual(font.read(), b"font-bytes")
+                self.assertGreaterEqual(server.media_hits["count"], 3)
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_media_route_refuses_escapes_and_other_types(self):
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self.make_deck(Path(name))
+            payload = MODULE.build_payload(manifest)
+            server, _thread, url = MODULE.serve_local_editor(payload, project_root=manifest.parent)
+            try:
+                base = url.split("?")[0]
+                for request, expected in (
+                    ("../deck.pptd", 403),
+                    ("..%2fdeck.pptd", 403),
+                    ("pages/01.page", 404),
+                    ("missing.png", 404),
+                ):
+                    with self.assertRaises(urllib.error.HTTPError) as caught:
+                        urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/{request}", timeout=10)
+                    self.assertEqual(caught.exception.code, expected, request)
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_without_a_project_root_the_payload_embeds_media(self):
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self.make_deck(Path(name))
+            payload = MODULE.build_payload(manifest, embed_media=True)
+            self.assertTrue(payload["imageMap"])
+            self.assertNotIn("mediaBase", payload)
+            server, _thread, url = MODULE.serve_local_editor(payload)
+            try:
+                base = url.split("?")[0]
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/media/shot.png", timeout=10)
+                self.assertEqual(caught.exception.code, 404)
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_open_local_editor_agrees_with_its_host(self):
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self.make_deck(Path(name))
+            server, _thread, url, payload = MODULE.open_local_editor(manifest)
+            try:
+                self.assertIn("mediaBase", payload)
+                base = url.split("?")[0]
+                served = urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/media/shot.png", timeout=10)
+                self.assertEqual(served.read(), bytes([0x89]) + b"PNG shot-bytes")
+            finally:
+                server.shutdown()
+                server.server_close()
 
 
 class LocalExportEndToEndTests(unittest.TestCase):

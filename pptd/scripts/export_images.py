@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 import zipfile
@@ -25,7 +26,6 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from export_pptx import (
     BrowserSession,
     ExportError,
-    build_payload,
     browser_cdp_url,
     cdp_call,
     cdp_connect,
@@ -34,11 +34,13 @@ from export_pptx import (
     find_download,
     find_manifest,
     log,
+    open_export_dialog,
+    open_local_editor,
     ref_by_name,
     run_command,
-    serve_local_editor,
     set_download_behavior,
     temporary_directory,
+    wait_for_editor_media,
     wait_for_export_dialog,
 )
 
@@ -129,6 +131,41 @@ def unzip_images(archive_path: Path, pages_dir: Path) -> List[Path]:
     if not images:
         raise ExportError(f"no page images found in: {archive_path}")
     return images
+
+
+def canonical_page_names(images: Sequence[Path]) -> List[Tuple[Path, str]]:
+    """Rename the extracted pages to `pages/<n>.<ext>`; return (path, editorName).
+
+    The names inside the editor's ZIP are whatever the editor chose (page titles,
+    ids, timestamps), so the summary's `images[].image` path is useless to a
+    caller that has to find "the render of page 7". Numbering from the ZIP entry
+    order makes `P<n>` on the stitched overview and `pages/<n>.<ext>` the same
+    page; the editor's own name is returned alongside for cross-checking.
+
+    The editor's names can already look canonical ("1.jpeg"), and a naive
+    in-place rename would then overwrite a neighbour, so every file is staged
+    aside first and moved back in page order.
+    """
+    if not images:
+        return []
+    pages_dir = images[0].parent
+    editor_names = [path.name for path in images]
+    targets: List[Path] = []
+    for index, path in enumerate(images, start=1):
+        suffix = path.suffix.lower()
+        if suffix not in IMAGE_SUFFIXES:
+            raise ExportError(f"page image has an unsupported extension: {path.name}")
+        targets.append(pages_dir / f"{index}{suffix}")
+
+    staging = Path(tempfile.mkdtemp(prefix=".pptd-rename-", dir=str(pages_dir)))
+    try:
+        for path in images:
+            path.replace(staging / path.name)
+        for name, target in zip(editor_names, targets):
+            (staging / name).replace(target)
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+    return list(zip(targets, editor_names))
 
 
 def label_font(image_font: Any) -> Any:
@@ -269,7 +306,6 @@ def export_images(
     force: bool = False,
 ) -> Dict[str, Any]:
     manifest = find_manifest(source)
-    payload = build_payload(manifest)
     output = output.expanduser().resolve()
     assert_disposable_output(output)
     if output.exists() and any(output.iterdir()) and not force:
@@ -284,7 +320,8 @@ def export_images(
         temp_dir = Path(temp_name)
         download_dir = temp_dir / "downloads"
         download_dir.mkdir()
-        server, thread, url = serve_local_editor(payload)
+        # One call so the payload and the host agree on how media is delivered.
+        server, thread, url, payload = open_local_editor(manifest)
         session = f"pptd-images-{os.getpid()}-{uuid.uuid4().hex[:8]}"
         browser = BrowserSession(agent_browser, session, temp_dir, download_dir)
         downloads = default_downloads_dir()
@@ -303,11 +340,10 @@ def export_images(
                 ],
                 timeout=120,
             )
+            # "ready" precedes the media fetches the host-served images need.
+            wait_for_editor_media(browser)
             browser.run(["set", "viewport", "1280", "720"])
-            snapshot = browser.snapshot()
-            export_ref = ref_by_name(snapshot, "导出", "button")
-            browser.run(["click", f"@{export_ref}"])
-            dialog = wait_for_export_dialog(browser)
+            dialog = open_export_dialog(browser)
 
             select_image_format(browser)
             dialog = wait_for_export_dialog(browser)
@@ -345,6 +381,10 @@ def export_images(
                 f"the editor exported {len(images)} page image(s) for "
                 f"{len(page_paths)} page(s); refusing to guess the mapping"
             )
+        # pages/<n>.<ext> in deck order, so the P<n> label on the overview and
+        # the file name on disk refer to the same page.
+        named = canonical_page_names(images)
+        images = [path for path, _ in named]
         try:
             if downloaded.resolve().parent == downloads.resolve():
                 downloaded.unlink(missing_ok=True)
@@ -357,13 +397,13 @@ def export_images(
     mapping = [
         {
             "index": index,
-            # Label drawn on the stitched overview; read images by this path,
-            # the file names come from the editor's ZIP and are not <n>.jpeg.
             "overviewLabel": f"P{index}",
-            "image": f"pages/{path.name}",
+            "image": f"pages/{canonical.name}",
             "page": page_paths[index - 1],
+            # The editor's own entry name, kept for cross-checking its ZIP.
+            "editorImage": editor_name,
         }
-        for index, path in enumerate(images, start=1)
+        for index, (canonical, editor_name) in enumerate(named, start=1)
     ]
     return {
         "pages": len(images),
@@ -371,6 +411,13 @@ def export_images(
         "output": str(output),
         "images": mapping,
         "exporter": "browser-local-editor",
+        # How the deck's local media reached the editor: "host" means the payload
+        # carried no base64 and the host served the files, "embedded" means the
+        # old self-contained payload.
+        "mediaDelivery": "host" if payload.get("mediaBase") else "embedded",
+        # Media files the editor actually pulled from the host. A deck that
+        # references images but reports 0 is rendering placeholders.
+        "mediaRequests": getattr(server, "media_hits", {}).get("count", 0),
     }
 
 

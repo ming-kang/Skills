@@ -68,6 +68,17 @@ no Chrome or editor-host process behind.
   and the pid must still be a browser launched with that profile. A pid that was
   recycled by another browser, or a command line that cannot be read, is left
   alone. Never add a cleanup path that can kill a browser the user owns.
+- **Browser paths serve media, they do not embed it.** `open_local_editor()` is
+  the single entry point for both browser paths: it builds the payload *and*
+  starts the host, so the two halves cannot disagree. With the default
+  `embed_media=False` the payload carries no base64 and the host serves the
+  deck's media under `/__media__/` (media and font extensions only, project-
+  relative paths, percent-decoded before the escape check). The editor fetches
+  those files asynchronously, so a host must wait for
+  `window.__NEODECK_PENDING_PROJECT_FETCHES__() === 0` before driving the UI —
+  "deck ready" precedes the media, and clicking earlier loses images. The export
+  summary reports `mediaDelivery` and `mediaRequests` so a silent placeholder
+  render is visible.
 - **SKILL.md paths are folder-relative only.** No absolute install paths, no
   `npx` commands. The skill is a plain directory copy.
 - **Skill self-containment.** Anything the skill needs at runtime lives inside

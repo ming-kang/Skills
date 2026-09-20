@@ -30,7 +30,51 @@ const state = {
   // `node scripts/serve.mjs --project <dir>`, so no folder picker is needed.
   serverProject: false,
   projectBase: "",
+  // Headless export host: media is served from the host instead of being
+  // base64-inlined into payload.json (see open_local_editor in export_pptx.py).
+  mediaBase: "",
 };
+
+/** Fetch a project file and cache it as a data URL; caches misses as "". */
+// In-flight project/media fetches, so a host can wait until the editor has
+// everything it needs before driving it (see wait_for_editor_media).
+const pendingProjectFetches = { count: 0 };
+window.__NEODECK_PENDING_PROJECT_FETCHES__ = () => pendingProjectFetches.count;
+
+// The editor sometimes asks for an asset as "/media/x.png"; both the mounted
+// project and the export host expect a project-relative path.
+function projectRelativePath(path) {
+  return String(path)
+    .replace(/^file:\/\/+/, "")
+    .replace(/^\.\//, "")
+    .replace(/^\/+/, "")
+    .replaceAll("\\", "/");
+}
+
+async function dataUrlFromBase(baseUrl, path) {
+  const cacheKey = `${baseUrl}${projectRelativePath(path)}`;
+  if (state.imageCache.has(cacheKey)) return state.imageCache.get(cacheKey);
+  let url = "";
+  pendingProjectFetches.count += 1;
+  try {
+    const response = await fetch(`${baseUrl}${projectRelativePath(path)}`, { cache: "no-store" });
+    if (response.ok) {
+      const blob = await response.blob();
+      url = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch (e) {
+    console.warn("[neodeck] project file read failed", path, e);
+  } finally {
+    pendingProjectFetches.count -= 1;
+  }
+  state.imageCache.set(cacheKey, url);
+  return url;
+}
 
 // Keep the host's idle watchdog happy while this page stays open: an SPA makes
 // almost no requests after load, so request traffic is not a liveness signal.
@@ -150,27 +194,14 @@ async function resolveImage(requestedPath) {
 
   // Serve-host project mode: read the file straight from the mounted project.
   if (state.serverProject) {
-    const cacheKey = `server:${path}`;
-    if (!state.imageCache.has(cacheKey)) {
-      try {
-        const response = await fetch(`${state.projectBase}${path}`, { cache: "no-store" });
-        if (response.ok) {
-          const blob = await response.blob();
-          state.imageCache.set(cacheKey, await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(blob);
-          }));
-        } else {
-          state.imageCache.set(cacheKey, "");
-        }
-      } catch (e) {
-        console.warn("[neodeck] server image read failed", path, e);
-        state.imageCache.set(cacheKey, "");
-      }
-    }
-    const url = state.imageCache.get(cacheKey);
+    const url = await dataUrlFromBase(state.projectBase, path);
+    if (url) return url;
+  }
+
+  // Headless export host: the deck's media is served, not embedded in the
+  // payload. The host only sets mediaBase when it can serve the project.
+  if (state.mediaBase) {
+    const url = await dataUrlFromBase(state.mediaBase, path);
     if (url) return url;
   }
 
@@ -376,7 +407,7 @@ async function loadProjectFromServer() {
 
   const manifestPath = info.manifest;
   if (!manifestPath) throw new Error("挂载目录中没有 .pptd 清单");
-  const projectUrl = (relative) => `${state.projectBase}${normalizeRelativePath(relative)}`;
+  const projectUrl = (relative) => `${state.projectBase}${projectRelativePath(relative)}`;
 
   const manifestContent = await fetch(projectUrl(manifestPath), { cache: "no-store" }).then((response) => {
     if (!response.ok) throw new Error(`manifest HTTP ${response.status}`);
@@ -451,6 +482,10 @@ async function loadExportPayload() {
     }
     state.imageCache.set(key, value);
   }
+  // Media the host serves instead of inlining into the payload. Empty when the
+  // host could not serve the project directory, in which case imageMap is the
+  // only source and resolveImage falls through to it.
+  state.mediaBase = typeof payload.mediaBase === "string" ? payload.mediaBase : "";
 
   const manifestPath = payload.manifestPath || "deck.pptd";
   state.manifestPath = manifestPath;
