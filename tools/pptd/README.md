@@ -79,6 +79,33 @@ no Chrome or editor-host process behind.
   "deck ready" precedes the media, and clicking earlier loses images. The export
   summary reports `mediaDelivery` and `mediaRequests` so a silent placeholder
   render is visible.
+- **The editor is offline by policy, not by blocklist.** `index.html` carries a
+  `Content-Security-Policy` meta that allows `'self'` only; it is what actually
+  holds the line. The older `blocked[]` shim patches `fetch`/`XHR` and therefore
+  cannot see a `<script>`, a CSS `@font-face` or a `navigator.sendBeacon` — it is
+  kept as a second layer that answers legacy cloud endpoints with a fake 200,
+  not as the enforcement point. Two rules when touching the policy:
+  - `script-src` **must** keep `data:`. The bundle's module loader probes
+    `import.meta.resolve` through a `data:` script; without it the loader and
+    the main chunk are both blocked and the page goes silently blank behind a
+    bridge that still says "等待编辑器…". `'unsafe-eval'` is required to compile
+    the WASM.
+  - Never widen it to a remote origin. `smoke_editor.mjs` asserts zero CSP
+    violations, zero off-host responses and a mounted `#app`; run it after any
+    change to `index.html`, the CSS or the mirror.
+- **Fonts and telemetry are vendored/neutered, so nothing is even attempted.**
+  The upstream mirror shipped 25 `@font-face` rules pointing at
+  `statics.moonshot.cn` and loaded a ByteDance telemetry SDK
+  (`lf3-data.volccdn.com`, collect-rangers) plus an APM screenshot helper
+  (`apm.volccdn.com`) from `<script>` tags. The fonts now live in
+  `neo-ppt/fonts/web/` (25 woff2, ~50 MB, ASCII slug filenames; the CSS points
+  at `../fonts/web/<slug>.woff2`) and both SDK URLs are rewritten to an inert
+  `data:text/javascript,`. Note `neo-ppt/fonts/fnt/*.fntdata` is a *different*
+  thing — a length-prefixed container the WASM exporter embeds, not a web font;
+  do not try to serve it to the browser. Remaining remote hostnames in the
+  bundle (`www.kimi.com`, `gator.volces.com`, `api.iconify.design`, …) are dead
+  string constants behind `location.origin` checks that are false locally; they
+  never fired in an audit and the policy covers them if they ever do.
 - **SKILL.md paths are folder-relative only.** No absolute install paths, no
   `npx` commands. The skill is a plain directory copy.
 - **Skill self-containment.** Anything the skill needs at runtime lives inside
@@ -103,6 +130,12 @@ no Chrome or editor-host process behind.
   mirror, no iframe, no cloud APIs). The patched WASM above is the export
   "source of truth" it hosts. When refreshing the mirror, record the upstream
   origin, version/commit, and the applied patch list here.
+  - **Applied patches to the vendored bundle.** Two surgical string edits in
+    `assets/index-jtNAhQeK.js` replace the collect-rangers and APM-screenshot
+    script URLs with `data:text/javascript,`; `assets/index-Bn1xM_xZ.css` has
+    its 25 `statics.moonshot.cn` font URLs repointed at `../fonts/web/`. Reapply
+    all three after any mirror refresh — `smoke_editor.mjs` will catch it if you
+    forget.
   - **Legacy bundle removed.** The upstream `*-legacy-*` chunks (ES5 fallback,
     64 files / ~5 MB) were deleted: the served `index.html` has no `nomodule`
     tag and nothing in the module graph references them, and the skill requires

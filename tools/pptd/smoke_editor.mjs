@@ -44,6 +44,17 @@ elements:
     fit: {mode: contain}
 `;
 
+/** True for any http(s) URL that is not the local host we started. */
+function isExternal(url) {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.protocol.startsWith("http")) return false;
+    return parsed.hostname !== "127.0.0.1" && parsed.hostname !== "localhost";
+  } catch {
+    return false;
+  }
+}
+
 function makeProject() {
   const root = mkdtempSync(join(tmpdir(), "pptd-smoke-"));
   mkdirSync(join(root, "pages"), { recursive: true });
@@ -93,9 +104,14 @@ async function main() {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const consoleLines = [];
     const requested = [];
+    // Anything that reached an origin other than the host is an offline leak.
+    const externalResponses = [];
     page.on("console", (message) => consoleLines.push(message.text()));
     page.on("pageerror", (error) => failures.push(`page error: ${error.message}`));
     page.on("request", (request) => requested.push(request.url()));
+    page.on("response", (response) => {
+      if (isExternal(response.url())) externalResponses.push(`${response.status()} ${response.url()}`);
+    });
 
     await page.goto(`${info.url}?ndProject=1`, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(
@@ -126,6 +142,25 @@ async function main() {
     // The host must answer the heartbeat the bridge sends every 60s.
     const ping = await page.evaluate(() => fetch("./__ping__", { cache: "no-store" }).then((r) => r.status));
     if (ping !== 204) failures.push(`heartbeat returned ${ping}`);
+
+    // The official bundle only mounts if every module loaded. A CSP that is too
+    // strict (script-src without `data:`) blocks its loader and leaves a blank
+    // page behind a bridge that still reports "ready" — assert the DOM instead.
+    const appSize = await page.evaluate(() => document.querySelector("#app")?.innerHTML.length ?? 0);
+    if (appSize < 1_000) failures.push(`the editor app did not mount (#app is ${appSize} chars)`);
+
+    // Offline invariant: no CSP violation, and nothing answered from off-host.
+    // The fetch/XHR shim cannot see a <script>, an @font-face or a sendBeacon,
+    // so the policy is what actually holds the line here.
+    const violations = consoleLines.filter((line) => /Content Security Policy/i.test(line));
+    if (violations.length) failures.push(`CSP violation: ${violations[0].slice(0, 200)}`);
+    if (externalResponses.length) {
+      failures.push(`the editor reached an external origin: ${externalResponses.join(", ").slice(0, 300)}`);
+    }
+
+    // Fonts must come from the local mirror, not statics.moonshot.cn.
+    const remoteFonts = requested.filter((url) => isExternal(url) && /\.woff2?($|\?)/.test(url));
+    if (remoteFonts.length) failures.push(`remote font requested: ${remoteFonts[0]}`);
   } finally {
     await browser.close();
     child.kill();
