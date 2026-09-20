@@ -25,6 +25,8 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from pptd_common import ensure_module
 
+from pptd_deck import find_manifest
+
 from export_pptx import (
     BrowserSession,
     ExportError,
@@ -34,7 +36,6 @@ from export_pptx import (
     default_downloads_dir,
     ensure_agent_browser,
     find_download,
-    find_manifest,
     log,
     open_export_dialog,
     open_local_editor,

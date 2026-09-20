@@ -24,6 +24,7 @@ SCRIPTS_DIR = SKILL_ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import pptd_common  # noqa: E402  (path set up above)
+import pptd_deck  # noqa: E402  (path set up above)
 
 SCRIPT = SCRIPTS_DIR / "export_pptx.py"
 SPEC = importlib.util.spec_from_file_location("export_pptx", SCRIPT)
@@ -252,7 +253,7 @@ class ExportPptxTests(unittest.TestCase):
                     {"elementType": "image", "src": "https://example.com/remote.png"},
                 ],
             }]
-            image_map = MODULE.build_image_map(root, pages)
+            image_map = pptd_deck.build_image_map(root, pages)
 
         self.assertEqual(list(image_map), ["media/used.png"])
         self.assertTrue(image_map["media/used.png"].startswith("data:image/png;base64,"))
@@ -262,7 +263,7 @@ class ExportPptxTests(unittest.TestCase):
             root = Path(name)
             pages = [{"elements": [{"elementType": "image", "src": "../secret.png"}]}]
             with self.assertRaisesRegex(MODULE.ExportError, "escapes the PPTD directory"):
-                MODULE.build_image_map(root, pages)
+                pptd_deck.build_image_map(root, pages)
 
     def test_deck_errors_do_not_fall_back_to_the_browser(self):
         with tempfile.TemporaryDirectory() as name:
