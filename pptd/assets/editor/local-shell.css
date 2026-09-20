@@ -9,7 +9,7 @@ body.neodeck-local {
   display: grid;
   grid-template-rows: 48px minmax(0, 1fr);
 }
-/* Agent export host: hide NeoDeck chrome, full-bleed official UI */
+/* Agent export host: hide NeoDeck chrome, full-bleed editor UI */
 html.nd-export-mode body.neodeck-local {
   grid-template-rows: minmax(0, 1fr);
 }
@@ -115,7 +115,7 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
 .nd-toast[data-kind="error"] { background: #c0392b; }
 .nd-toast[data-kind="warning"] { background: #b7791f; }
 
-/* Offline: hide share / cloud / Google Drive chrome from the official UI */
+/* Offline: hide share / cloud / Google Drive chrome from the editor UI */
 .share-dialog-trigger,
 [class*="share-dialog"],
 .export-tabs .tabs,
@@ -137,7 +137,7 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
 }
 
 
-/* ===== Fix official editor inside local topbar shell ===== */
+/* ===== Fix the editor inside local topbar shell ===== */
 .nd-topbar {
   z-index: 50;
   position: relative;
@@ -147,7 +147,7 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   position: relative;
   z-index: 1;
 }
-/* Official app assumes full viewport; we host it under a 48px topbar */
+/* The editor assumes a full viewport; we host it under a 48px topbar */
 #app .editor-app {
   width: 100% !important;
   height: 100% !important;

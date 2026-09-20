@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <!--
       Offline enforcement. The fetch/XHR shim below cannot see a <script>, a CSS
-      @font-face or a sendBeacon, so it let the upstream mirror's telemetry SDK
-      (lf3-data.volccdn.com) and 25 remote fonts (statics.moonshot.cn) through.
-      This policy blocks every origin but our own host, whatever initiates it.
+      @font-face or a sendBeacon, so on its own it would let a telemetry SDK or
+      a remote @font-face through. This policy blocks every origin but our own
+      host, whatever initiates it.
       `data:` is required in script-src: the bundle's module loader probes
       `import.meta.resolve` through a data: script, and without it the app never
       mounts (silent blank page). `unsafe-eval` is required to compile the WASM.
@@ -20,13 +20,13 @@
     <title>PPT Design</title>
     <link rel="icon" href="./favicon.ico" />
     <style>
-      /* Avoid dark FOUC before Vue theme init (official default is system → OS dark). */
+      /* Avoid dark FOUC before Vue theme init (bundle default is system → OS dark). */
       html, body { background: #ffffff; color-scheme: light; }
     </style>
     <script>
       // Earliest possible error capture, for the bridge's handshake watchdog.
       // This has to be an inline script in <head>: a CSP violation against the
-      // official bundle fires while the module scripts below are still being
+      // editor bundle fires while the module scripts below are still being
       // fetched, which is before local-bridge.js gets to run. Without this the
       // watchdog can only report "the editor never connected" with no reason.
       (function () {
@@ -51,11 +51,11 @@
         });
       })();
     </script>
-    <!-- Official neo-ppt assets (local mirror) -->
-    <script type="module" crossorigin src="./neo-ppt/assets/polyfills-CXLN5T9E.js"></script>
+    <!-- Editor bundle (local build) -->
+    <script type="module" crossorigin src="./app/polyfills-CXLN5T9E.js"></script>
     <script>
       (function () {
-        // Official app defaults theme to "system" and may flip to dark on mount.
+        // The editor defaults theme to "system" and may flip to dark on mount.
         // Lock light mode before the Vue bundle runs.
         try {
           localStorage.setItem("CUSTOM_THEME", JSON.stringify("light"));
@@ -63,8 +63,8 @@
         window.INJECT_ENV = Object.assign({}, window.INJECT_ENV, { theme: "light" });
         document.documentElement.classList.remove("dark");
         document.documentElement.classList.add("light");
-        // Completely offline: intercept legacy cloud endpoints (inherited from the
-        // upstream mirror) so no request ever leaves the machine.
+        // Completely offline: answer the bundle's legacy cloud endpoints locally
+        // so no request ever leaves the machine.
         const blocked = [
           /\/apiv2\//,
           /www\.kimi\.com/,
@@ -108,18 +108,18 @@
         };
       })();
     </script>
-    <!-- Local bridge MUST load before official app (defines __NEODECK_CONNECT__) -->
+    <!-- Local bridge MUST load before the editor bundle (defines __NEODECK_CONNECT__) -->
     <script type="module" src="./local-bridge.js"></script>
-    <script type="module" crossorigin src="./neo-ppt/assets/index-jtNAhQeK.js"></script>
-    <link rel="modulepreload" crossorigin href="./neo-ppt/assets/rolldown-runtime-DWdDZTNf.js" />
-    <link rel="modulepreload" crossorigin href="./neo-ppt/assets/vue-B11_pI9F.js" />
-    <link rel="modulepreload" crossorigin href="./neo-ppt/assets/common-utils-G6HD4Ji1.js" />
-    <link rel="modulepreload" crossorigin href="./neo-ppt/assets/_plugin-vue_export-helper-B67ILkmu.js" />
-    <link rel="modulepreload" crossorigin href="./neo-ppt/assets/preload-helper-NECkhNH4.js" />
-    <link rel="modulepreload" crossorigin href="./neo-ppt/assets/kimi-DRwOD7EI.js" />
-    <link rel="modulepreload" crossorigin href="./neo-ppt/assets/icons-CgDhqj4h.js" />
-    <link rel="modulepreload" crossorigin href="./neo-ppt/assets/const-BjfH-jZe.js" />
-    <link rel="stylesheet" crossorigin href="./neo-ppt/assets/index-Bn1xM_xZ.css" />
+    <script type="module" crossorigin src="./app/index-jtNAhQeK.js"></script>
+    <link rel="modulepreload" crossorigin href="./app/rolldown-runtime-DWdDZTNf.js" />
+    <link rel="modulepreload" crossorigin href="./app/vue-B11_pI9F.js" />
+    <link rel="modulepreload" crossorigin href="./app/common-utils-G6HD4Ji1.js" />
+    <link rel="modulepreload" crossorigin href="./app/_plugin-vue_export-helper-B67ILkmu.js" />
+    <link rel="modulepreload" crossorigin href="./app/preload-helper-NECkhNH4.js" />
+    <link rel="modulepreload" crossorigin href="./app/kimi-DRwOD7EI.js" />
+    <link rel="modulepreload" crossorigin href="./app/icons-CgDhqj4h.js" />
+    <link rel="modulepreload" crossorigin href="./app/const-BjfH-jZe.js" />
+    <link rel="stylesheet" crossorigin href="./app/index-Bn1xM_xZ.css" />
     <link rel="stylesheet" href="./local-shell.css" />
   
     <style id="neodeck-layout-fix">

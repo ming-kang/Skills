@@ -32,7 +32,7 @@ test("serves the PPTD editor and its JavaScript modules", async () => {
     assert.equal(bridge.status, 200);
     assert.match(bridge.headers.get("content-type"), /^text\/javascript/);
 
-    const wasm = await fetch(`${url}/neo-ppt/assets/pptd_wasm_bg-DPPWdROu.wasm`);
+    const wasm = await fetch(`${url}/app/pptd_wasm_bg-DPPWdROu.wasm`);
     assert.equal(wasm.status, 200);
   });
 });

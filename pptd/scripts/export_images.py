@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export a PPTD project as page images through the local neo-ppt mirror for visual QA.
+"""Export a PPTD project as page images through the local editor for visual QA.
 
 Reuses the localhost local-editor host from export_pptx.py, chooses
 图片 in the export dialog, captures the images ZIP, unzips it, and stitches all pages
@@ -372,7 +372,7 @@ def export_images(
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Export a PPTD project as page images via the local neo-ppt editor, unzip "
+            "Export a PPTD project as page images via the local editor, unzip "
             "them, and stitch an overview image for visual QA."
         )
     )

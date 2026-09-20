@@ -158,7 +158,7 @@ async function main() {
       failures.push(`the editor reached an external origin: ${externalResponses.join(", ").slice(0, 300)}`);
     }
 
-    // Fonts must come from the local mirror, not statics.moonshot.cn.
+    // Fonts must come from the local fonts/ directory, never a remote host.
     const remoteFonts = requested.filter((url) => isExternal(url) && /\.woff2?($|\?)/.test(url));
     if (remoteFonts.length) failures.push(`remote font requested: ${remoteFonts[0]}`);
   } finally {

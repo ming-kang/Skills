@@ -5,10 +5,10 @@ PPT Design is an unofficial agent Skill for creating, editing, replicating, read
 1. a self-contained, editable **PPTD project** (a YAML-based intermediate format over OOXML — every page is self-contained);
 2. the matching **.pptx**, with a fade slide transition on every slide.
 
-It ships an offline local browser editor (a patched mirror of the Kimi neo-ppt frontend) plus a local WASM PPTX writer, so creation, editing, QA, and export all run without any cloud service. Works with any agent that supports SKILL.md skills — Claude Code, Codex, Cursor, WorkBuddy, and others.
+It ships an offline local browser editor plus a local WASM PPTX writer, so creation, editing, QA, and export all run without any cloud service. Works with any agent that supports SKILL.md skills — Claude Code, Codex, Cursor, WorkBuddy, and others.
 
 > [!IMPORTANT]
-> This skill was built by reverse-engineering the public Kimi Slides behavior, the PPTD format, and the editor's frontend. It is **not** an official Moonshot AI / Kimi project. The vendored frontend assets may age as the upstream service evolves.
+> This skill was built by reverse-engineering the public Kimi Slides behavior, the PPTD format, and the editor's frontend. It is **not** an official Moonshot AI / Kimi project. The editor shipped inside the skill is a locally owned build that is maintained here and no longer tracks the upstream service.
 
 ## Install
 
@@ -81,8 +81,8 @@ PPTD is a YAML-based presentation DSL — a simplified abstraction over OOXML th
 
 - The editor serves only `127.0.0.1` — never a LAN address.
 - The browser only reads a project directory after you explicitly authorize it; save callbacks are restricted to `.pptd`/`.page` files and reject absolute or `..` paths.
-- Editing, PPTX export, and image QA all run against the **local** editor mirror and patched WASM — no network calls, no cookies, no login tokens, no cloud accounts. Remote images or fonts referenced by a deck may still be fetched from their hosts.
-- One optional environment variable: `PPTD_EDITOR_DIR` overrides the editor mirror directory (the bundled `assets/editor/` is used otherwise; rarely needed). The legacy alias `OPEN_KIMI_PPT_EDITOR` is still honored.
+- Editing, PPTX export, and image QA all run against the **local** editor and patched WASM — no network calls, no cookies, no login tokens, no cloud accounts. Remote images or fonts referenced by a deck may still be fetched from their hosts.
+- One optional environment variable: `PPTD_EDITOR_DIR` overrides the editor directory (the bundled `assets/editor/` is used otherwise; rarely needed).
 
 - The default PPTX export needs no browser at all, and it does not silently switch to the browser path: a broken deck or an existing output file is reported as an error. The fallback only happens when the local toolchain itself is missing (no `node`, no exporter, no WASM).
 

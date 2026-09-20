@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The local editor HTTP host for the headless export paths.
 
-Serves the offline neo-ppt mirror plus one injected ``payload.json``, and —
+Serves the offline editor plus one injected ``payload.json``, and —
 when a project is mounted — the deck's local media under ``/__media__/``.
 Both browser paths (PPTX export and image QA) get their host from here, so
 they cannot disagree about how a deck reaches the editor.
@@ -48,8 +48,8 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 
 def resolve_editor_root() -> Path:
-    """Locate the offline neo-ppt mirror (env override, else in-skill assets/editor)."""
-    env = os.environ.get("PPTD_EDITOR_DIR") or os.environ.get("OPEN_KIMI_PPT_EDITOR")
+    """Locate the offline editor (``PPTD_EDITOR_DIR`` override, else in-skill assets/editor)."""
+    env = os.environ.get("PPTD_EDITOR_DIR")
     if env:
         return Path(env).expanduser().resolve()
     return SKILL_DIR / "assets" / "editor"

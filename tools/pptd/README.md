@@ -11,6 +11,7 @@ tools/pptd/
   tests/           # python unittest suite for the exporters
     fixtures/      # minimal PPTD project + qa-deck (3 pages, local media)
   tests-node/      # node --test suite for scripts/serve.mjs and assets/editor/lib.js
+  check-editor.mjs # offline / layout invariants of assets/editor (runs on every npm test)
   smoke_editor.mjs # manual browser check of the --project preview mode
 ```
 
@@ -70,13 +71,12 @@ no Chrome or editor-host process behind.
 
 ## Invariants
 
-- **Single canonical patched WASM.** `pptd/assets/editor/neo-ppt/assets/pptd_wasm_bg-DPPWdROu.wasm`
+- **Single canonical patched WASM.** `pptd/assets/editor/app/pptd_wasm_bg-DPPWdROu.wasm`
   is the only copy. Every exporter resolves it relative to the skill root;
   never duplicate it into scripts/ or tools/, and never copy-on-install.
   (`--wasm` exists only as a user override.)
 - **Optional environment variables.** `PPTD_EDITOR_DIR` overrides the
-  editor mirror directory (the legacy alias `OPEN_KIMI_PPT_EDITOR` is still
-  honored); `AGENT_BROWSER_CDP`, `PPTD_DEBUG_CHROME_PORT` and
+  editor directory; `AGENT_BROWSER_CDP`, `PPTD_DEBUG_CHROME_PORT` and
   `PPTD_DEBUG_CHROME_IDLE_MINUTES` tune the Windows debug browser;
   `PPTD_SERVE_IDLE_MINUTES` tunes the editor host's idle timeout. None of them
   are required — the defaults keep export, image QA and editing offline and
@@ -127,23 +127,24 @@ no Chrome or editor-host process behind.
   `window.__ND_ERRORS__`. Keep both: without them a blocked bundle is
   indistinguishable from a slow one, which is exactly how a blank editor once
   hid behind a green suite.
-- **Mirror patches live in `patch-mirror.mjs`, never in someone's memory.**
-  The upstream mirror shipped 25 `@font-face` rules pointing at
-  `statics.moonshot.cn` and loaded a ByteDance telemetry SDK
-  (`lf3-data.volccdn.com`, collect-rangers) plus an APM screenshot helper
-  (`apm.volccdn.com`) from `<script>` tags. Those edits are now declared as
-  rules: `npm run pptd:patch-apply` reapplies them (and fetches any missing
-  font) after a mirror refresh, `npm run pptd:patch-check` runs on every
-  `npm test`. Every rule carries an expected hit count, because the string
-  `neo-ppt` alone appears 13 times in the bundle and **two of them must not be
-  touched** — an APM `pid:'/neo-ppt'` and a share URL in `ShareDialog`. A rule
-  that matches a different number of times fails loudly instead of quietly
-  mangling the bundle. Fonts live in `neo-ppt/fonts/web/` (25 woff2, ~50 MB,
-  ASCII slug filenames; `font-family` names are unchanged so decks are
-  unaffected). Remaining remote hostnames in the bundle (`www.kimi.com`,
-  `gator.volces.com`, `api.iconify.design`, …) are dead string constants behind
-  `location.origin` checks that are false locally; they never fired in an audit
-  and the policy covers them if they ever do.
+- **The editor tree is local and flat; `check-editor.mjs` guards it.**
+  `pptd/assets/editor/` is the whole editor: `index.html` + shell files at the
+  root, the bundle under `app/`, fonts under `fonts/`. There is no upstream to
+  refresh from and no patch script to reapply — the bundle is edited in place
+  when it has to change. `npm run pptd:check-editor` runs on every `npm test`
+  and asserts the couplings that would otherwise live in someone's memory: the
+  telemetry SDK and APM screenshot `<script>` URLs are an inert
+  `data:text/javascript,`; every `@font-face` points at `../fonts/web/` and the
+  file exists and is a woff2; Vite's dependency maps and the preload helper are
+  rooted at `app/`; both WASM loaders resolve against `import.meta.url`; no
+  `.js`/`.css` contains a forbidden host (`statics.moonshot.cn`,
+  `lf3-data.volccdn.com`, `apm.volccdn.com`) or the historical `neo-ppt` base
+  prefix. Fonts: 25 woff2 in `fonts/web/` (~50 MB, ASCII slug filenames;
+  `font-family` names are unchanged so decks are unaffected) and the Latin
+  `.fntdata` subset in `fonts/fnt/`. Remaining remote hostnames in the bundle
+  (`www.kimi.com`, `gator.volces.com`, `api.iconify.design`, …) are dead string
+  constants behind `location.origin` checks that are false locally; they never
+  fired in an audit and the policy covers them if they ever do.
 - **`fonts/fnt/*.fntdata` is not a web font, but the browser does fetch it.**
   It is a length-prefixed container the editor pulls from `${base}fonts/fnt/`
   (see `ThumbnailSlide-*.js`) to embed fonts on the browser export path, and
@@ -168,22 +169,22 @@ no Chrome or editor-host process behind.
 - **Design presets**: `pptd/references/design_system/README.md` is the index of
   all 44 presets (30 primary + 14 extra). Adding/removing a preset means
   updating that index in the same change.
-- **Vendored editor mirror**: `pptd/assets/editor/neo-ppt/` is a locally
-  patched vendored copy of Kimi's public neo-ppt frontend (single-page offline
-  mirror, no iframe, no cloud APIs). The patched WASM above is the export
-  "source of truth" it hosts. When refreshing the mirror, record the upstream
-  origin, version/commit, and the applied patch list here.
-  - **Refreshing the mirror**: drop the new upstream build in, then run
-    `npm run pptd:patch-apply` (reapplies every rule, fetches missing fonts,
-    and verifies the result) followed by `npm test` and `node
-    tools/pptd/smoke_editor.mjs`. The rules themselves are declared in
-    `patch-mirror.mjs` — that file, not this list, is the source of truth.
-  - **Legacy bundle removed.** The upstream `*-legacy-*` chunks (ES5 fallback,
-    64 files / ~5 MB) were deleted: the served `index.html` has no `nomodule`
-    tag and nothing in the module graph references them, and the skill requires
-    a Chromium-based browser anyway. Verified by serving the mirror and
-    fetching every entry asset plus the main chunk's imports (all 200). Redo
-    that check after any mirror refresh before deleting them again.
+- **Editor bundle**: `pptd/assets/editor/app/` is the editor's compiled
+  bundle (single-page offline editor, no iframe, no cloud APIs); it is owned by
+  this repository and edited in place. The patched WASM above is the export
+  "source of truth" it hosts. Changing a chunk means: edit the minified file,
+  run `npm run pptd:check-editor`, then `npm test` and `node
+  tools/pptd/smoke_editor.mjs` (the only checks that open the real page). Add
+  an assertion to `check-editor.mjs` for every new coupling you introduce.
+  - **Paths are root-relative to `assets/editor/`.** The bundle's dependency
+    maps are `app/<chunk>`, the preload helper prefixes `./`, the WASM
+    loaders use `import.meta.url`, `ThumbnailSlide` fetches
+    `./fonts/fnt/<name>.fntdata`, and the CSS uses `../fonts/web/`. Keep it that
+    way — the host serves this directory as `/`, and a mounted project lives
+    under `/project/`, so nothing may assume another prefix.
+  - **No ES5 fallback.** The bundle has no `*-legacy-*` chunks and
+    `index.html` has no `nomodule` tag; the skill requires a Chromium-based
+    browser.
 - **Docs**: user-facing changes go to `docs/README.pptd.md` and the root
   `README.md` entry; the root `AGENTS.md` stays a repository-wide guideline and
   is not the place for skill-specific constraints.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Offline PPTD → PPTX exporter using Kimi's public patched pptd-wasm.
+ * Offline PPTD → PPTX exporter driving the skill's patched pptd-wasm.
  *
  * What this does:
  *   1. Load a PPTD project from disk (manifest + pages + media)
@@ -84,17 +84,8 @@ async function loadYaml() {
 const CANONICAL_WASM_NAME = 'pptd_wasm_bg-DPPWdROu.wasm';
 
 function resolveDefaultWasmPath() {
-  // scripts/local-export → skill root → assets/editor/neo-ppt/assets/
-  return path.join(
-    __dirname,
-    '..',
-    '..',
-    'assets',
-    'editor',
-    'neo-ppt',
-    'assets',
-    CANONICAL_WASM_NAME,
-  );
+  // scripts/local-export → skill root → assets/editor/app/
+  return path.join(__dirname, '..', '..', 'assets', 'editor', 'app', CANONICAL_WASM_NAME);
 }
 
 // ---------- CLI ----------
@@ -481,14 +472,14 @@ async function loadWasmExporter(wasmPath) {
   // Inspect the module's own import section before building the imports
   // object: which hash of the stringify binding this build actually wants.
   // Registering a name the module does not import is dead weight, and a
-  // refreshed mirror with an unknown hash must stop and ask a human.
+  // rebuilt WASM with an unknown hash must stop and ask a human.
   const compiled = await WebAssembly.compile(wasmBytes);
   const importedNames = new Set(WebAssembly.Module.imports(compiled).map((entry) => entry.name));
   const stringifyImport = STRINGIFY_IMPORTS.find((name) => importedNames.has(name));
   if (!stringifyImport) {
     throw new Error(
       `patched WASM imports no known JSON.stringify binding (looked for ${STRINGIFY_IMPORTS.join(', ')}). ` +
-        'The skill ships one specific build; a refreshed mirror needs its glue re-checked by hand.',
+        'The skill ships one specific build; a rebuilt WASM needs its glue re-checked by hand.',
     );
   }
 
@@ -598,7 +589,7 @@ async function loadWasmExporter(wasmPath) {
       // The JSON.stringify binding: wasm-bindgen hashes the import name, and
       // upstream has shipped this one under two adjacent hashes. Detect which
       // one this build actually imports (below) and register only that one —
-      // an unknown hash is a mirror refresh that must stop and ask a human,
+      // an unknown hash is a WASM rebuild that must stop and ask a human,
       // not silently register both and hope.
       // A plain function expression, not an arrow: `arguments` must be this
       // import call's arguments (the wasm passes them via apply), not the
@@ -718,7 +709,7 @@ Env:
   if (!fs.existsSync(args.wasmPath)) {
     throw new Error(
       `patched WASM not found: ${args.wasmPath}\n` +
-        `Expected assets/editor/neo-ppt/assets/${CANONICAL_WASM_NAME} inside the skill.`,
+        `Expected assets/editor/app/${CANONICAL_WASM_NAME} inside the skill.`,
     );
   }
   const { exportPPTDToPPTXBytes } = await loadWasmExporter(args.wasmPath);

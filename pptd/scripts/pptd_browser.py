@@ -874,7 +874,7 @@ class EditorExportSession:
             cdp_port,
         )
         self._redirect = None
-        log("opening the local neo-ppt editor")
+        log("opening the local editor")
         self.browser.open(host.url)
         # Keep the export ZIP out of the user's Downloads folder. The socket
         # must stay open until the download finished (see set_download_behavior).

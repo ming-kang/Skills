@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Local editor host for the pptd skill: serves the offline neo-ppt mirror so a
+ * Local editor host for the pptd skill: serves the offline editor so a
  * Chromium-based browser can open, edit and export PPTD projects. It can also
  * mount one PPTD project read-only, so a preview needs no folder picker.
  *
@@ -23,7 +23,6 @@
  *
  * Env:
  *   PPTD_EDITOR_DIR          override the editor directory (default: assets/editor)
- *                             (legacy alias OPEN_KIMI_PPT_EDITOR still honored)
  *   PPTD_SERVE_IDLE_MINUTES  default idle timeout in minutes (default: 120)
  */
 
@@ -55,16 +54,14 @@ const PROJECT_MOUNT = "/project/";
 const PING_PATH = "/__ping__";
 
 /**
- * The editor mirror directory: PPTD_EDITOR_DIR (legacy alias
- * OPEN_KIMI_PPT_EDITOR) when set, else the in-skill assets/editor copy.
+ * The editor directory: PPTD_EDITOR_DIR when set, else the in-skill
+ * assets/editor copy.
  * The one definition of this policy — export_pptx.py's resolve_editor_root()
  * is its Python twin.
  */
 function resolveEditorRoot() {
   return resolve(
-    process.env.PPTD_EDITOR_DIR ??
-      process.env.OPEN_KIMI_PPT_EDITOR ??
-      resolve(SKILL_ROOT, "assets", "editor"),
+    process.env.PPTD_EDITOR_DIR ?? resolve(SKILL_ROOT, "assets", "editor"),
   );
 }
 

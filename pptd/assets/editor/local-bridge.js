@@ -1,6 +1,6 @@
 /**
  * NeoDeck Local bridge — no iframe, no cloud.
- * Official neo-ppt talks to us via window.__NEODECK_CONNECT__ instead of Penpal parent.
+ * The editor bundle talks to us via window.__NEODECK_CONNECT__ instead of a Penpal parent.
  */
 import {
   basename,
@@ -12,7 +12,7 @@ import {
 } from "./lib.js";
 
 const state = {
-  editor: null, // methods exposed by official editor (setPPTD, ...)
+  editor: null, // methods exposed by the editor bundle (setPPTD, ...)
   directoryHandle: null,
   fileIndex: new Map(),
   memoryFiles: new Map(),
@@ -291,7 +291,7 @@ async function resolveImage(requestedPath) {
 }
 
 async function getImages(payload = {}) {
-  // Official contract: { chatId, filePath: string[] } -> string[] (data URLs / public URLs)
+  // Bundle contract: { chatId, filePath: string[] } -> string[] (data URLs / public URLs)
   let paths = payload?.filePath;
   if (paths == null) paths = [];
   if (!Array.isArray(paths)) paths = [paths];
@@ -344,7 +344,7 @@ async function onSave(payload) {
   }
 }
 
-// The official bundle is expected to call __NEODECK_CONNECT__ once it mounts.
+// The editor bundle is expected to call __NEODECK_CONNECT__ once it mounts.
 // If it never does, this bridge would otherwise sit on "等待编辑器…" forever —
 // the exact symptom of a CSP that blocks the bundle's module loader. Time the
 // handshake out and say what actually went wrong instead.
@@ -362,7 +362,7 @@ let handshakeWatchdog = setTimeout(() => {
   toast(`编辑器内核未加载${detail}`, "error");
 }, HANDSHAKE_TIMEOUT_MS);
 
-/** Called by patched official editor instead of Penpal connect */
+/** Called by the editor bundle instead of Penpal connect */
 window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
   clearTimeout(handshakeWatchdog);
   const methods = options?.methods;
@@ -380,7 +380,7 @@ window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
   state.editor = methods;
   state.ready = true;
   setStatus("编辑器就绪");
-  // Force light chrome immediately (official default is system → OS dark FOUC).
+  // Force light chrome immediately (bundle default is system → OS dark FOUC).
   Promise.resolve(
     methods.setSlideConfig?.({ editable: true, locale: "zh-CN", theme: "light" }),
   ).catch((e) => console.warn("[neodeck] setSlideConfig", e));
@@ -488,14 +488,14 @@ async function presentDeck({
   state.readOnly = readOnly;
   setTitle(title);
   if (statusText) setStatus(statusText);
-  // Force light chrome immediately (official default is system → OS dark FOUC).
+  // Force light chrome immediately (bundle default is system → OS dark FOUC).
   await state.editor.setSlideConfig?.({
     editable,
     locale: "zh-CN",
     theme: "light",
     ...(id ? { slideId: id } : {}),
   });
-  // isCreate:true leaves the official UI in a "generating / loading" state and
+  // isCreate:true leaves the editor UI in a "generating / loading" state and
   // disables export / present until generate_end — use false for local opens.
   await state.editor.setPPTD(id ?? `local-${Date.now()}`, {
     pptdContent,
@@ -760,7 +760,7 @@ function wireUi() {
   });
 }
 
-// Force sdk query params so official app enters ppt-editor external mode
+// Force sdk query params so the editor bundle enters ppt-editor external mode
 (function forceSdkQuery() {
   const url = new URL(location.href);
   let changed = false;

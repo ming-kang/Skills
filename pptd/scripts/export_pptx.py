@@ -5,7 +5,7 @@ Default path (preferred): local patched WASM writer
   scripts/local-export/export-pptd.mjs
   → offline, no network, no browser.
 
-Optional --browser path: local neo-ppt editor mirror via agent-browser
+Optional --browser path: the local editor UI via agent-browser
   (same UI as `node scripts/serve.mjs`).
 
 Image QA (`export_images.py`) uses the same local editor host.
@@ -49,12 +49,12 @@ CANONICAL_WASM_NAME = "pptd_wasm_bg-DPPWdROu.wasm"
 
 
 def resolve_local_wasm() -> Path:
-    candidate = SKILL_DIR / "assets" / "editor" / "neo-ppt" / "assets" / CANONICAL_WASM_NAME
+    candidate = SKILL_DIR / "assets" / "editor" / "app" / CANONICAL_WASM_NAME
     if candidate.is_file():
         return candidate
     raise LocalExportUnavailable(
         "patched WASM not found. Expected "
-        f"assets/editor/neo-ppt/assets/{CANONICAL_WASM_NAME} inside the skill; "
+        f"assets/editor/app/{CANONICAL_WASM_NAME} inside the skill; "
         "the skill folder is incomplete."
     )
 
@@ -133,7 +133,7 @@ def export_pptx(
     force: bool = False,
     prefer_local: bool = True,
 ) -> Dict[str, Any]:
-    """Prefer local patched WASM; fall back to local neo-ppt browser UI.
+    """Prefer local patched WASM; fall back to the local editor browser UI.
 
     The fallback is reserved for a missing local toolchain. Deck and output
     errors propagate, so a broken deck is reported instead of silently
@@ -209,7 +209,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         description=(
             "Export a PPTD project to PPTX. "
             "Default: local patched official WASM (offline). "
-            "Optional --browser uses the local neo-ppt mirror (also offline)."
+            "Optional --browser uses the local editor UI (also offline)."
         )
     )
     parser.add_argument("input", type=Path, help=".pptd manifest or project directory")
@@ -230,7 +230,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--browser",
         action="store_true",
-        help="force local neo-ppt browser UI path instead of Node WASM",
+        help="force the local editor browser UI path instead of Node WASM",
     )
     parser.add_argument(
         "--force",
