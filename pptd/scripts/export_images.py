@@ -11,38 +11,27 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
-import uuid
 import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from pptd_browser import (
-    BrowserSession,
+    EditorExportSession,
     browser_cdp_url,
     cdp_call,
     cdp_connect,
     ensure_agent_browser,
-    find_download,
+    ensure_debug_chrome,
     open_export_dialog,
-    ref_by_name,
-    set_download_behavior,
     wait_for_export_dialog,
-    wait_for_editor_media,
 )
-from pptd_common import (
-    ExportError,
-    default_downloads_dir,
-    ensure_module,
-    log,
-    temporary_directory,
-)
+from pptd_common import ExportError, ensure_module, log
 from pptd_deck import find_manifest
 
 from export_pptx import open_local_editor
@@ -305,60 +294,30 @@ def export_images(
             f"output directory already exists (pass --force to replace it): {output}"
         )
     agent_browser = ensure_agent_browser()
+    # Same Windows debug-browser setup as the PPTX export path: agent-browser
+    # cannot launch Chrome itself there, so image QA drives the same
+    # registered, self-reclaiming browser instead of failing to start one.
+    cdp_port = ensure_debug_chrome()
     image_cls, draw_cls, image_font = ensure_pillow()
 
     log(f"manifest: {manifest}")
-    with temporary_directory(prefix="pptd-images-") as temp_name:
-        temp_dir = Path(temp_name)
-        download_dir = temp_dir / "downloads"
-        download_dir.mkdir()
-        # One call so the payload and the host agree on how media is delivered.
-        host, payload = open_local_editor(manifest)
-        session = f"pptd-images-{os.getpid()}-{uuid.uuid4().hex[:8]}"
-        browser = BrowserSession(agent_browser, session, temp_dir, download_dir)
-        downloads = default_downloads_dir()
-        download_redirect = None
-        try:
-            log("opening the local neo-ppt editor")
-            browser.open(host.url)
-            # Keep the export ZIP out of the user's Downloads folder; the socket
-            # must stay open until the download has finished (see docstring).
-            download_redirect = set_download_behavior(browser, download_dir)
-            browser.run(
-                [
-                    "wait",
-                    "--fn",
-                    'document.documentElement.dataset.deckStatus === "ready"',
-                ],
-                timeout=120,
-            )
-            # "ready" precedes the media fetches the host-served images need.
-            wait_for_editor_media(browser)
-            browser.run(["set", "viewport", "1280", "720"])
-            dialog = open_export_dialog(browser)
+    # One call so the payload and the host agree on how media is delivered.
+    host, payload = open_local_editor(manifest)
+    with EditorExportSession(
+        agent_browser, host, session_prefix="pptd-images", cdp_port=cdp_port
+    ) as session:
+        dialog = open_export_dialog(session.browser)
 
-            select_image_format(browser)
-            dialog = wait_for_export_dialog(browser)
+        select_image_format(session.browser)
+        dialog = wait_for_export_dialog(session.browser)
 
-            started_at = time.time() - 1.0
-            download_ref = ref_by_name(dialog, "下载", "button")
-            log("rendering page images in the local editor")
-            browser.run(["click", f"@{download_ref}"], timeout=300)
-            downloaded = find_download(
-                (downloads, download_dir, temp_dir),
-                timeout=240,
-                accept=is_image_zip,
-                since=started_at,
-            )
-        finally:
-            browser.close()
-            if download_redirect is not None:
-                try:
-                    download_redirect.close()
-                except Exception:  # noqa: BLE001 - the export is already done
-                    pass
-            host.shutdown()
+        log("rendering page images in the local editor")
+        downloaded = session.download_from_dialog(
+            dialog, accept=is_image_zip, click_timeout=300, find_timeout=240
+        )
 
+        # Everything below consumes `downloaded`, which lives inside the
+        # session's temp directory, so it runs before the session exits.
         if output.exists():
             shutil.rmtree(output)
         output.mkdir(parents=True)
@@ -376,7 +335,7 @@ def export_images(
         named = canonical_page_names(images)
         images = [path for path, _ in named]
         try:
-            if downloaded.resolve().parent == downloads.resolve():
+            if downloaded.resolve().parent == session.downloads.resolve():
                 downloaded.unlink(missing_ok=True)
         except OSError:
             pass

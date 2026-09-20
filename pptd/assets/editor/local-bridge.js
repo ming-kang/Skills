@@ -492,7 +492,13 @@ async function loadProjectFromServer() {
   document.documentElement.dataset.deckStatus = "ready";
 }
 
-/** Headless / agent-browser export: load deck from ./payload.json (no folder picker). */
+/**
+ * Headless / agent-browser export: load deck from ./payload.json (no folder picker).
+ *
+ * The payload shape is owned by `build_payload()` in scripts/pptd_deck.py —
+ * its docstring is the single definition of the contract; keep this reader
+ * and that writer in sync through it, not through copies of the field list.
+ */
 async function loadExportPayload() {
   document.documentElement.dataset.deckStatus = "loading";
   setStatus("载入导出载荷…");

@@ -30,10 +30,20 @@ import sys
 import tempfile
 import time
 import urllib.request
+import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
-from pptd_common import PROXY_ENV_KEYS, ExportError, ensure_module, log, run_command
+from pptd_common import (
+    PROXY_ENV_KEYS,
+    ExportError,
+    default_downloads_dir,
+    ensure_module,
+    log,
+    run_command,
+    temporary_directory,
+)
+from pptd_editor_host import EditorHost
 from pptd_pptx import is_pptx
 
 MIN_AGENT_BROWSER_VERSION = (0, 33, 2)
@@ -825,6 +835,96 @@ def wait_for_export_dialog(browser: BrowserSession, timeout: float = 20.0) -> Di
         except ExportError:
             time.sleep(0.35)
     raise ExportError(f"export dialog did not become ready: {last}")
+
+
+class EditorExportSession:
+    """One driven editor-export run.
+
+    Wraps the setup/teardown both browser paths (PPTX export and image QA)
+    share — opening the editor page, redirecting downloads out of the user's
+    Downloads folder, waiting for the deck *and* its host-served media, and
+    shutting everything down in the right order — so the callers only drive
+    their export dialog and read the downloaded file.
+
+    Used as a context manager; the downloaded file only lives until the
+    session exits, so consume it inside the ``with`` block.
+    """
+
+    def __init__(
+        self,
+        agent_browser: str,
+        host: EditorHost,
+        *,
+        session_prefix: str,
+        cdp_port: Optional[int] = None,
+    ) -> None:
+        self.host = host
+        self.temporary = temporary_directory(prefix=f"{session_prefix}-")
+        self.temp_dir = Path(self.temporary.name)
+        self.download_dir = self.temp_dir / "downloads"
+        self.download_dir.mkdir()
+        # Kept as a search root: Chrome may still save to the default folder
+        # when the redirect could not be applied.
+        self.downloads = default_downloads_dir()
+        self.browser = BrowserSession(
+            agent_browser,
+            f"{session_prefix}-{os.getpid()}-{uuid.uuid4().hex[:8]}",
+            self.temp_dir,
+            self.download_dir,
+            cdp_port,
+        )
+        self._redirect = None
+        log("opening the local neo-ppt editor")
+        self.browser.open(host.url)
+        # Keep the export ZIP out of the user's Downloads folder. The socket
+        # must stay open until the download finished (see set_download_behavior).
+        self._redirect = set_download_behavior(self.browser, self.download_dir)
+        self.browser.run(
+            [
+                "wait",
+                "--fn",
+                'document.documentElement.dataset.deckStatus === "ready"',
+            ],
+            timeout=120,
+        )
+        # "ready" precedes the media fetches the host-served images need.
+        wait_for_editor_media(self.browser)
+        self.browser.run(["set", "viewport", "1280", "720"])
+
+    def download_from_dialog(
+        self,
+        dialog: Dict[str, Any],
+        *,
+        accept: Callable[[Path], bool] = is_pptx,
+        click_timeout: int = 180,
+        find_timeout: float = 90.0,
+    ) -> Path:
+        """Click the dialog's 下载 button and wait for the resulting file."""
+        started_at = time.time() - 1.0
+        download_ref = ref_by_name(dialog, "下载", "button")
+        self.browser.run(["click", f"@{download_ref}"], timeout=click_timeout)
+        return find_download(
+            (self.downloads, self.download_dir, self.temp_dir),
+            timeout=find_timeout,
+            accept=accept,
+            since=started_at,
+        )
+
+    def close(self) -> None:
+        self.browser.close()
+        if self._redirect is not None:
+            try:
+                self._redirect.close()
+            except Exception:  # noqa: BLE001 - the export is already done
+                pass
+        self.host.shutdown()
+        self.temporary.cleanup()
+
+    def __enter__(self) -> "EditorExportSession":
+        return self
+
+    def __exit__(self, *_exc: Any) -> None:
+        self.close()
 
 
 def find_download(

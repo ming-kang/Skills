@@ -20,36 +20,27 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
-import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 from pptd_browser import (
-    BrowserSession,
+    EditorExportSession,
     ensure_agent_browser,
     ensure_debug_chrome,
-    find_download,
     open_export_dialog,
-    ref_by_name,
-    set_download_behavior,
     switch_state,
     wait_for_export_dialog,
-    wait_for_editor_media,
 )
 from pptd_common import (
     SKILL_DIR,
     ExportError,
     LocalExportUnavailable,
-    default_downloads_dir,
-    ensure_module,
     log,
     run_command,
-    temporary_directory,
 )
 from pptd_deck import build_local_project, find_manifest
 from pptd_editor_host import open_local_editor
-from pptd_pptx import is_pptx, patch_transitions, verify_output
+from pptd_pptx import patch_transitions, verify_output
 
 LOCAL_EXPORT_DIR = Path(__file__).resolve().parent / "local-export"
 LOCAL_EXPORT_MJS = LOCAL_EXPORT_DIR / "export-pptd.mjs"
@@ -101,6 +92,9 @@ def export_pptx_local(
         project_path.write_text(
             json.dumps(project, ensure_ascii=False), encoding="utf-8"
         )
+        # No --transition: the writer's own slide transition is overwritten by
+        # patch_transitions() below, so this side is the single owner of the
+        # transition policy. (The flag remains for standalone mjs use.)
         cmd = [
             node,
             str(LOCAL_EXPORT_MJS),
@@ -108,8 +102,6 @@ def export_pptx_local(
             str(project_path),
             "-o",
             str(output),
-            "--transition",
-            transition if transition in ("fade", "none") else "fade",
             "--wasm",
             str(wasm_path),
         ]
@@ -175,71 +167,34 @@ def export_pptx(
         f"defaults: transition={transition}, embed_fonts={'on' if embed_fonts else 'off'}"
     )
 
-    with temporary_directory(prefix="pptd-export-") as temp_name:
-        temp_dir = Path(temp_name)
-        download_dir = temp_dir / "downloads"
-        download_dir.mkdir()
-        # One call so the payload and the host agree on how media is delivered.
-        host, payload = open_local_editor(manifest)
-        session = f"pptd-export-{os.getpid()}-{uuid.uuid4().hex[:8]}"
-        browser = BrowserSession(agent_browser, session, temp_dir, download_dir, cdp_port)
-        downloads = default_downloads_dir()
-        download_redirect = None
+    # One call so the payload and the host agree on how media is delivered.
+    host, payload = open_local_editor(manifest)
+    with EditorExportSession(
+        agent_browser, host, session_prefix="pptd-export", cdp_port=cdp_port
+    ) as session:
+        dialog = open_export_dialog(session.browser)
+
+        state = switch_state(dialog)
+        if state is not None:
+            switch_ref, checked, disabled = state
+            if disabled and checked != embed_fonts:
+                log("warning: the font switch is disabled for this deck")
+            elif checked != embed_fonts:
+                session.browser.run(["click", f"@{switch_ref}"])
+                dialog = wait_for_export_dialog(session.browser)
+        elif embed_fonts:
+            log("warning: the export dialog exposed no font switch")
+
+        # Plain click (not agent-browser `download`) so Chrome saves to the
+        # default Downloads folder; --download-path is broken on some Windows setups.
+        log("generating PPTX in the local editor")
+        downloaded = session.download_from_dialog(dialog, click_timeout=180)
+        shutil.copy2(downloaded, output)
         try:
-            log("opening the local neo-ppt editor")
-            browser.open(url)
-            # Keep the export ZIP out of the user's Downloads folder. The socket
-            # must stay open until the download finished (see its docstring).
-            download_redirect = set_download_behavior(browser, download_dir)
-            browser.run(
-                [
-                    "wait",
-                    "--fn",
-                    'document.documentElement.dataset.deckStatus === "ready"',
-                ],
-                timeout=120,
-            )
-            # "ready" precedes the media fetches the host-served images need.
-            wait_for_editor_media(browser)
-            browser.run(["set", "viewport", "1280", "720"])
-            dialog = open_export_dialog(browser)
-
-            state = switch_state(dialog)
-            if state is not None:
-                switch_ref, checked, disabled = state
-                if disabled and checked != embed_fonts:
-                    log("warning: the font switch is disabled for this deck")
-                elif checked != embed_fonts:
-                    browser.run(["click", f"@{switch_ref}"])
-                    dialog = wait_for_export_dialog(browser)
-            elif embed_fonts:
-                log("warning: the export dialog exposed no font switch")
-
-            # Plain click (not agent-browser `download`) so Chrome saves to the
-            # default Downloads folder; --download-path is broken on some Windows setups.
-            started_at = time.time() - 1.0
-            download_ref = ref_by_name(dialog, "下载", "button")
-            log("generating PPTX in the local editor")
-            browser.run(["click", f"@{download_ref}"], timeout=180)
-            downloaded = find_download(
-                (downloads, download_dir, temp_dir),
-                timeout=90,
-                since=started_at,
-            )
-            shutil.copy2(downloaded, output)
-            try:
-                if downloaded.resolve().parent == downloads.resolve():
-                    downloaded.unlink(missing_ok=True)
-            except OSError:
-                pass
-        finally:
-            browser.close()
-            if download_redirect is not None:
-                try:
-                    download_redirect.close()
-                except Exception:  # noqa: BLE001 - the export is already done
-                    pass
-            host.shutdown()
+            if downloaded.resolve().parent == session.downloads.resolve():
+                downloaded.unlink(missing_ok=True)
+        except OSError:
+            pass
 
     slide_count = patch_transitions(output, transition)
     summary = verify_output(output, transition, embed_fonts)

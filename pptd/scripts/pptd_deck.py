@@ -182,6 +182,24 @@ def build_image_map(root: Path, pages_data: Iterable[Dict[str, Any]]) -> Dict[st
 def build_payload(manifest: Path, embed_media: bool = False) -> Dict[str, Any]:
     """Assemble the headless payload for the local editor.
 
+    The payload.json shape is the contract between this module and
+    ``assets/editor/local-bridge.js`` (``loadExportPayload``); both sides
+    document it here and nowhere else:
+
+    ==============  ========================================================
+    key             meaning
+    ==============  ========================================================
+    id              deck id handed to the editor's setPPTD
+    title           deck title (manifest title, else file stem)
+    manifestPath    manifest file name (not a path)
+    manifestContent raw manifest YAML text
+    pages           [{"path", "content"}] — path as listed in the manifest,
+                    content the raw page YAML text
+    imageMap        src → data URL, only when embed_media=True
+    mediaBase       "/__media__/" when the host serves the project's media;
+                    set by the host, never by this function
+    ==============  ========================================================
+
     `embed_media=False` (the default) leaves `imageMap` empty: the deck's local
     media is served by the host that also serves the payload, so a deck with
     hundreds of high-resolution images no longer inflates the JSON (and the

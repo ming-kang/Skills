@@ -15,6 +15,8 @@ SKILL_ROOT = Path(__file__).resolve().parents[3] / "pptd"
 SCRIPTS_DIR = SKILL_ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
+import pptd_browser  # noqa: E402  (path set up above)
+
 SPEC = importlib.util.spec_from_file_location("export_images", SCRIPTS_DIR / "export_images.py")
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
@@ -245,7 +247,8 @@ class ExportImagesEndToEndTests(unittest.TestCase):
 
                 environment = dict(os.environ)
                 environment["AGENT_BROWSER_CDP"] = str(port)
-                with patch.dict(MODULE.os.environ, environment):
+                # ensure_debug_chrome() lives in pptd_browser and reads its env.
+                with patch.dict(pptd_browser.os.environ, environment):
                     output = root / "qa"
                     summary = MODULE.export_images(self.DECK, output, force=True)
 
