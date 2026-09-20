@@ -21,7 +21,6 @@ const state = {
   manifestDirectory: "",
   manifestContent: "",
   deckTitle: "未打开文稿",
-  saveQueue: Promise.resolve(),
   imageCache: new Map(),
   readOnly: false,
   ready: false,
@@ -41,8 +40,12 @@ const state = {
 const pendingProjectFetches = { count: 0 };
 window.__NEODECK_PENDING_PROJECT_FETCHES__ = () => pendingProjectFetches.count;
 
-// The editor sometimes asks for an asset as "/media/x.png"; both the mounted
-// project and the export host expect a project-relative path.
+/**
+ * The editor sometimes asks for an asset as "/media/x.png"; both the mounted
+ * project and the export host expect a project-relative path. This is the
+ * URL-side (never throws) variant — index keys go through the validating
+ * normalizeRelativePath instead.
+ */
 function projectRelativePath(path) {
   return String(path)
     .replace(/^file:\/\/+/, "")
@@ -429,6 +432,60 @@ window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
 };
 
 /** Serve-host project mode: load the mounted deck from ./project/ (read-only). */
+/** Clear every per-deck field. Every load path starts here, so a new deck can never inherit the previous one's files, images or media mount. */
+function resetDeckState() {
+  state.directoryHandle = null;
+  state.readOnly = false;
+  state.fileIndex = new Map();
+  state.memoryFiles = new Map();
+  state.imageCache = new Map();
+  state.imageMap = Object.create(null);
+  state.mediaBase = "";
+}
+
+/**
+ * Hand a fully loaded deck to the editor core.
+ *
+ * The single place that decides how a deck becomes visible: all three load
+ * paths (mounted project, export payload, folder/upload/demo) go through it,
+ * so the manifest bookkeeping, the light-theme forcing and the setPPTD
+ * contract exist once instead of three times.
+ */
+async function presentDeck({
+  id,
+  title,
+  pptdContent,
+  pages,
+  pptdPath,
+  readOnly = false,
+  editable = true,
+  statusText,
+}) {
+  state.manifestPath = pptdPath;
+  state.manifestDirectory = dirname(pptdPath);
+  state.manifestContent = pptdContent;
+  state.readOnly = readOnly;
+  setTitle(title);
+  if (statusText) setStatus(statusText);
+  // Force light chrome immediately (official default is system → OS dark FOUC).
+  await state.editor.setSlideConfig?.({
+    editable,
+    locale: "zh-CN",
+    theme: "light",
+    ...(id ? { slideId: id } : {}),
+  });
+  // isCreate:true leaves the official UI in a "generating / loading" state and
+  // disables export / present until generate_end — use false for local opens.
+  await state.editor.setPPTD(id ?? `local-${Date.now()}`, {
+    pptdContent,
+    pages,
+    basePath: "",
+    pptdPath,
+    isCreate: false,
+  });
+  await state.editor.setEditable?.(editable);
+}
+
 async function loadProjectFromServer() {
   document.documentElement.dataset.deckStatus = "loading";
   setStatus("载入本地项目…");
@@ -466,28 +523,17 @@ async function loadProjectFromServer() {
   }
   if (missing.length) throw new Error(`缺少页面：${missing.slice(0, 5).join(", ")}`);
 
-  state.directoryHandle = null;
-  state.readOnly = true;
-  state.fileIndex = new Map();
-  state.memoryFiles = new Map();
-  state.imageCache = new Map();
-  state.imageMap = Object.create(null);
-  state.manifestPath = manifestPath;
-  state.manifestDirectory = manifestDirectory;
-  state.manifestContent = manifestContent;
-
+  resetDeckState();
   const title = info.title || titleFromManifest(manifestContent, basename(manifestPath));
-  setTitle(title);
-  await state.editor.setSlideConfig?.({ editable: true, locale: "zh-CN", theme: "light" });
-  await state.editor.setPPTD(`local-project-${Date.now()}`, {
+  await presentDeck({
+    id: null,
+    title,
     pptdContent: manifestContent,
     pages,
-    basePath: "",
     pptdPath: manifestPath,
-    isCreate: false,
+    readOnly: true,
+    statusText: `${title} · 预览（只读）`,
   });
-  await state.editor.setEditable?.(true);
-  setStatus(`${title} · 预览（只读）`);
   toast(`已载入「${title}」· ${pages.length} 页 · 挂载目录只读`);
   document.documentElement.dataset.deckStatus = "ready";
 }
@@ -507,12 +553,7 @@ async function loadExportPayload() {
   const payload = await response.json();
   if (!state.editor?.setPPTD) throw new Error("编辑器尚未就绪");
 
-  state.directoryHandle = null;
-  state.readOnly = true;
-  state.fileIndex = new Map();
-  state.memoryFiles = new Map();
-  state.imageCache = new Map();
-  state.imageMap = Object.create(null);
+  resetDeckState();
   for (const [key, value] of Object.entries(payload.imageMap || {})) {
     try {
       state.imageMap[normalizeRelativePath(key)] = value;
@@ -527,32 +568,23 @@ async function loadExportPayload() {
   state.mediaBase = typeof payload.mediaBase === "string" ? payload.mediaBase : "";
 
   const manifestPath = payload.manifestPath || "deck.pptd";
-  state.manifestPath = manifestPath;
-  state.manifestDirectory = dirname(manifestPath);
-  state.manifestContent = payload.manifestContent || "";
-  state.memoryFiles.set(normalizeRelativePath(manifestPath), state.manifestContent);
+  const manifestContent = payload.manifestContent || "";
+  state.memoryFiles.set(normalizeRelativePath(manifestPath), manifestContent);
   for (const page of payload.pages || []) {
     if (!page?.path) continue;
     state.memoryFiles.set(normalizeRelativePath(page.path), page.content ?? "");
   }
 
-  const title = payload.title || titleFromManifest(state.manifestContent, basename(manifestPath));
-  setTitle(title);
-
-  await state.editor.setSlideConfig?.({
-    editable: true,
-    locale: "zh-CN",
-    theme: "light",
-    slideId: payload.id,
-  });
-  await state.editor.setPPTD(payload.id || `export-${Date.now()}`, {
-    pptdContent: state.manifestContent,
+  const title = payload.title || titleFromManifest(manifestContent, basename(manifestPath));
+  await presentDeck({
+    id: payload.id,
+    title,
+    pptdContent: manifestContent,
     pages: payload.pages || [],
     pptdPath: manifestPath,
-    basePath: "",
-    isCreate: false,
+    readOnly: true,
+    statusText: `导出模式 · ${title}`,
   });
-  await state.editor.setEditable?.(true);
 
   window.exportRemote = state.editor;
   try {
@@ -560,14 +592,10 @@ async function loadExportPayload() {
   } catch {
     window.exportSlideStatus = null;
   }
-  setStatus(`导出模式 · ${title}`);
   document.documentElement.dataset.deckStatus = "ready";
 }
 
 async function loadDeckFromIndex(manifestPath, sourceLabel, options = {}) {
-  if (typeof options === "boolean") {
-    options = { readOnly: options, editable: !options };
-  }
   const readOnly = Boolean(options.readOnly);
   const editable = options.editable !== false;
   if (!state.editor?.setPPTD) throw new Error("编辑器尚未就绪");
@@ -586,32 +614,21 @@ async function loadDeckFromIndex(manifestPath, sourceLabel, options = {}) {
   }
   if (missing.length) throw new Error(`缺少页面：${missing.slice(0, 5).join(", ")}`);
   const title = titleFromManifest(manifestContent, basename(manifestPath));
-  state.manifestPath = manifestPath;
-  state.manifestDirectory = manifestDirectory;
-  state.manifestContent = manifestContent;
-  state.readOnly = readOnly;
-  setTitle(title);
-  setStatus(sourceLabel);
-
-  // isCreate:true leaves the official UI in a "generating / loading" state and
-  // disables export / present until generate_end — use false for local opens.
-  await state.editor.setPPTD(`local-${Date.now()}`, {
+  await presentDeck({
+    id: null,
+    title,
     pptdContent: manifestContent,
     pages,
-    basePath: "",
     pptdPath: manifestPath,
-    isCreate: false,
+    readOnly,
+    editable,
+    statusText: sourceLabel,
   });
-  await state.editor.setEditable?.(editable);
-  await state.editor.setSlideConfig?.({ editable, locale: "zh-CN", theme: "light" });
   toast(`已载入「${title}」· ${pages.length} 页`);
 }
 
 async function openDemo() {
-  state.directoryHandle = null;
-  state.fileIndex.clear();
-  state.imageCache.clear();
-  state.memoryFiles.clear();
+  resetDeckState();
   const manifest = JSON.stringify({
     version: "v2",
     title: "PPT Design",
@@ -650,7 +667,6 @@ async function openDemo() {
   });
   state.memoryFiles.set("presentation.pptd", manifest);
   state.memoryFiles.set("pages/01.page", page1);
-  state.fileIndex.clear();
   // synthetic index for demo
   for (const [path, content] of state.memoryFiles) {
     state.fileIndex.set(path, {
@@ -667,10 +683,9 @@ async function openDemo() {
 
 async function openDirectoryHandle(handle) {
   setStatus("扫描文件夹…");
+  resetDeckState();
   state.directoryHandle = handle;
   state.fileIndex = await indexDirectory(handle);
-  state.imageCache.clear();
-  state.memoryFiles.clear();
   const manifests = [...state.fileIndex.keys()].filter((p) => p.toLowerCase().endsWith(".pptd"));
   if (!manifests.length) throw new Error("文件夹内没有 .pptd");
   const manifestPath = manifests.length === 1 ? manifests[0] : manifests.sort()[0];
@@ -682,11 +697,9 @@ async function openDirectoryHandle(handle) {
 
 async function openFallbackFiles(fileList) {
   setStatus("读取上传…");
-  state.directoryHandle = null;
+  resetDeckState();
   state.readOnly = true;
   state.fileIndex = indexFallbackFiles(fileList);
-  state.imageCache.clear();
-  state.memoryFiles.clear();
   const manifests = [...state.fileIndex.keys()].filter((p) => p.toLowerCase().endsWith(".pptd"));
   if (!manifests.length) throw new Error("没有 .pptd");
   await loadDeckFromIndex(manifests.sort()[0], "上传 · 只读", {
