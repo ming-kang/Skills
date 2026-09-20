@@ -23,6 +23,34 @@
       /* Avoid dark FOUC before Vue theme init (official default is system → OS dark). */
       html, body { background: #ffffff; color-scheme: light; }
     </style>
+    <script>
+      // Earliest possible error capture, for the bridge's handshake watchdog.
+      // This has to be an inline script in <head>: a CSP violation against the
+      // official bundle fires while the module scripts below are still being
+      // fetched, which is before local-bridge.js gets to run. Without this the
+      // watchdog can only report "the editor never connected" with no reason.
+      (function () {
+        var errors = (window.__ND_ERRORS__ = []);
+        function record(kind, detail) {
+          if (errors.length < 20) errors.push(kind + ": " + detail);
+        }
+        document.addEventListener("securitypolicyviolation", function (event) {
+          record("CSP", (event.violatedDirective || "") + " blocked " + (event.blockedURI || ""));
+        });
+        window.addEventListener(
+          "error",
+          function (event) {
+            var target = event.target;
+            if (target && (target.src || target.href)) record("load failed", target.src || target.href);
+            else record("error", (event.message || "") + " @ " + (event.filename || ""));
+          },
+          true, // capture: resource load errors do not bubble
+        );
+        window.addEventListener("unhandledrejection", function (event) {
+          record("unhandled rejection", String(event.reason && event.reason.message ? event.reason.message : event.reason));
+        });
+      })();
+    </script>
     <!-- Official neo-ppt assets (local mirror) -->
     <script type="module" crossorigin src="./neo-ppt/assets/polyfills-CXLN5T9E.js"></script>
     <script>

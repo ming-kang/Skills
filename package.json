@@ -5,7 +5,9 @@
   "scripts": {
     "test": "npm run test:visualize && npm run test:pptd",
     "test:visualize": "python -B -m unittest discover -s tools/visualize -p test_*.py",
-    "test:pptd": "node --test \"tools/pptd/tests-node/*.test.js\" && python -B -m unittest discover -s tools/pptd/tests -p \"test_*.py\"",
+    "test:pptd": "npm run pptd:patch-check && node --test \"tools/pptd/tests-node/*.test.js\" && python -B -m unittest discover -s tools/pptd/tests -p \"test_*.py\"",
+    "pptd:patch-check": "node tools/pptd/patch-mirror.mjs --check",
+    "pptd:patch-apply": "node tools/pptd/patch-mirror.mjs --apply",
     "validate:skills": "python -B tools/quick_validate.py",
     "pptd:serve": "node pptd/scripts/serve.mjs",
     "pptd:clean": "python -B pptd/scripts/clean_processes.py",

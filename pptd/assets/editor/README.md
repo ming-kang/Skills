@@ -46,9 +46,17 @@ origin only — nothing in this folder talks to Kimi services at runtime.
 
 Local patches applied on top of the mirror:
 
-- **Offline interception** — cloud endpoints (`kimi.com`, `kimi.ai`,
-  `slides.kimi.*`, `volces.*`, Google APIs, telemetry) are intercepted in
-  `index.html` and answered with offline stubs
+- **Offline enforcement** — `index.html` carries a `'self'`-only
+  `Content-Security-Policy`; it is what actually keeps this folder offline,
+  regardless of what initiates a request. The older `fetch`/`XHR` interception
+  in the same file (cloud endpoints answered with offline stubs) is kept as a
+  second layer, but it cannot see a `<script>`, an `@font-face` or a
+  `sendBeacon`, so it is not the enforcement point.
+- **Remote assets vendored / SDKs neutered** — 25 `@font-face` URLs repointed
+  from `statics.moonshot.cn` to `fonts/web/`, and the collect-rangers and APM
+  screenshot `<script>` URLs replaced with an inert `data:text/javascript,`.
+  These are declared as rules in `tools/pptd/patch-mirror.mjs`; reapply with
+  `npm run pptd:patch-apply` after refreshing the mirror.
 - **Branding removed** — page title is `PPT Design`; favicon, comment
   placeholders, feedback tips, font sample text, default deck names, document
   title suffixes, version-history labels, and PPTX author/company metadata are

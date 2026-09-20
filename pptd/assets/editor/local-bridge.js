@@ -95,9 +95,12 @@ const exportMode =
 state.exportMode = exportMode;
 state.serverProject = new URL(location.href).searchParams.get("ndProject") === "1";
 state.projectBase = state.serverProject ? "./project/" : "";
+// Always publish a status, in every mode: this dataset is the only thing an
+// automated host can observe, and leaving it undefined outside export mode is
+// what let a blank editor look indistinguishable from a slow one.
+document.documentElement.dataset.deckStatus = "booting";
 if (exportMode) {
   document.documentElement.classList.add("nd-export-mode");
-  document.documentElement.dataset.deckStatus = "booting";
 }
 
 function toast(msg, kind = "info") {
@@ -317,9 +320,39 @@ async function onSave(payload) {
   }
 }
 
+// The official bundle is expected to call __NEODECK_CONNECT__ once it mounts.
+// If it never does, this bridge would otherwise sit on "等待编辑器…" forever —
+// the exact symptom of a CSP that blocks the bundle's module loader. Time the
+// handshake out and say what actually went wrong instead.
+// A healthy load reaches deckStatus "ready" in ~300ms against the local host
+// (measured on a cold browser), so this is a ~25x margin: it will not fire on a
+// slow machine, only on an editor that is genuinely never coming.
+const HANDSHAKE_TIMEOUT_MS = 8000;
+let handshakeWatchdog = setTimeout(() => {
+  if (state.ready) return;
+  document.documentElement.dataset.deckStatus = "failed";
+  const [firstError] = window.__ND_ERRORS__ ?? [];
+  setStatus("编辑器内核未加载");
+  const detail = firstError ? `：${firstError}` : "（无 JS 错误，检查编辑器资源是否完整）";
+  console.error(`[neodeck] editor never connected within ${HANDSHAKE_TIMEOUT_MS}ms${detail}`);
+  toast(`编辑器内核未加载${detail}`, "error");
+}, HANDSHAKE_TIMEOUT_MS);
+
 /** Called by patched official editor instead of Penpal connect */
 window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
-  const methods = options?.methods || {};
+  clearTimeout(handshakeWatchdog);
+  const methods = options?.methods;
+  if (!methods || typeof methods !== "object") {
+    // A half-connected editor is worse than none: it would report ready and
+    // then fail on the first setPPTD. Treat it as a failed handshake.
+    document.documentElement.dataset.deckStatus = "failed";
+    setStatus("编辑器握手异常");
+    console.error("[neodeck] __NEODECK_CONNECT__ called without methods", options);
+    toast("编辑器握手异常：未提供接口", "error");
+    const failure = Promise.reject(new Error("no editor methods"));
+    failure.catch(() => {}); // the caller may never attach a handler
+    return { promise: failure, destroy() {} };
+  }
   state.editor = methods;
   state.ready = true;
   setStatus("编辑器就绪");
