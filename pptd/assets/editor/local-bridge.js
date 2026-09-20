@@ -26,13 +26,31 @@ const state = {
   readOnly: false,
   ready: false,
   exportMode: false,
+  // Serve-host project mode (?ndProject=1): the deck is mounted read-only by
+  // `node scripts/serve.mjs --project <dir>`, so no folder picker is needed.
+  serverProject: false,
+  projectBase: "",
 };
+
+// Keep the host's idle watchdog happy while this page stays open: an SPA makes
+// almost no requests after load, so request traffic is not a liveness signal.
+function startHeartbeat() {
+  // Export mode is a short-lived headless run driven by a Python host that has
+  // no idle watchdog; pinging it would just add noise.
+  if (state.exportMode) return;
+  setInterval(() => {
+    fetch("./__ping__", { cache: "no-store" }).catch(() => {});
+  }, 60_000);
+}
+startHeartbeat();
 
 const $ = (sel) => document.querySelector(sel);
 const exportMode =
   new URL(location.href).searchParams.get("ndExport") === "1" ||
   new URL(location.href).searchParams.get("export") === "1";
 state.exportMode = exportMode;
+state.serverProject = new URL(location.href).searchParams.get("ndProject") === "1";
+state.projectBase = state.serverProject ? "./project/" : "";
 if (exportMode) {
   document.documentElement.classList.add("nd-export-mode");
   document.documentElement.dataset.deckStatus = "booting";
@@ -129,6 +147,32 @@ async function resolveImage(requestedPath) {
 
   const mapped = lookupImageMap(path);
   if (mapped) return mapped;
+
+  // Serve-host project mode: read the file straight from the mounted project.
+  if (state.serverProject) {
+    const cacheKey = `server:${path}`;
+    if (!state.imageCache.has(cacheKey)) {
+      try {
+        const response = await fetch(`${state.projectBase}${path}`, { cache: "no-store" });
+        if (response.ok) {
+          const blob = await response.blob();
+          state.imageCache.set(cacheKey, await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+          }));
+        } else {
+          state.imageCache.set(cacheKey, "");
+        }
+      } catch (e) {
+        console.warn("[neodeck] server image read failed", path, e);
+        state.imageCache.set(cacheKey, "");
+      }
+    }
+    const url = state.imageCache.get(cacheKey);
+    if (url) return url;
+  }
 
   const candidates = [];
   const add = (p) => {
@@ -297,6 +341,13 @@ window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
       window.exportHostError = String(error?.stack || error);
       setStatus("导出载荷加载失败");
     });
+  } else if (state.serverProject) {
+    loadProjectFromServer().catch((error) => {
+      console.error("[neodeck] server project failed", error);
+      document.documentElement.dataset.deckStatus = "error";
+      setStatus("项目载入失败");
+      toast(`项目载入失败：${error.message || error}`, "error");
+    });
   } else {
     // Auto-open demo if nothing loaded after a beat
     setTimeout(() => {
@@ -312,6 +363,70 @@ window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
     },
   };
 };
+
+/** Serve-host project mode: load the mounted deck from ./project/ (read-only). */
+async function loadProjectFromServer() {
+  document.documentElement.dataset.deckStatus = "loading";
+  setStatus("载入本地项目…");
+  const info = await fetch("./project.json", { cache: "no-store" }).then((response) => {
+    if (!response.ok) throw new Error(`project.json HTTP ${response.status}`);
+    return response.json();
+  });
+  if (!state.editor?.setPPTD) throw new Error("编辑器尚未就绪");
+
+  const manifestPath = info.manifest;
+  if (!manifestPath) throw new Error("挂载目录中没有 .pptd 清单");
+  const projectUrl = (relative) => `${state.projectBase}${normalizeRelativePath(relative)}`;
+
+  const manifestContent = await fetch(projectUrl(manifestPath), { cache: "no-store" }).then((response) => {
+    if (!response.ok) throw new Error(`manifest HTTP ${response.status}`);
+    return response.text();
+  });
+
+  const manifestDirectory = dirname(manifestPath);
+  const pagePaths = extractPagePaths(manifestContent);
+  const pages = [];
+  const missing = [];
+  for (const pagePath of pagePaths.slice(0, 500)) {
+    try {
+      const content = await fetch(projectUrl(joinDeckPath(manifestDirectory, pagePath)), {
+        cache: "no-store",
+      }).then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.text();
+      });
+      pages.push({ path: pagePath, content });
+    } catch {
+      missing.push(pagePath);
+    }
+  }
+  if (missing.length) throw new Error(`缺少页面：${missing.slice(0, 5).join(", ")}`);
+
+  state.directoryHandle = null;
+  state.readOnly = true;
+  state.fileIndex = new Map();
+  state.memoryFiles = new Map();
+  state.imageCache = new Map();
+  state.imageMap = Object.create(null);
+  state.manifestPath = manifestPath;
+  state.manifestDirectory = manifestDirectory;
+  state.manifestContent = manifestContent;
+
+  const title = info.title || titleFromManifest(manifestContent, basename(manifestPath));
+  setTitle(title);
+  await state.editor.setSlideConfig?.({ editable: true, locale: "zh-CN", theme: "light" });
+  await state.editor.setPPTD(`local-project-${Date.now()}`, {
+    pptdContent: manifestContent,
+    pages,
+    basePath: "",
+    pptdPath: manifestPath,
+    isCreate: false,
+  });
+  await state.editor.setEditable?.(true);
+  setStatus(`${title} · 预览（只读）`);
+  toast(`已载入「${title}」· ${pages.length} 页 · 挂载目录只读`);
+  document.documentElement.dataset.deckStatus = "ready";
+}
 
 /** Headless / agent-browser export: load deck from ./payload.json (no folder picker). */
 async function loadExportPayload() {
@@ -507,6 +622,11 @@ async function openFallbackFiles(fileList) {
 }
 
 function wireUi() {
+  if (state.serverProject) {
+    // The deck is mounted by the host; a folder picker would only confuse.
+    const openButton = $("#nd-open");
+    if (openButton) openButton.hidden = true;
+  }
   $("#nd-open")?.addEventListener("click", async () => {
     try {
       if (window.showDirectoryPicker) {

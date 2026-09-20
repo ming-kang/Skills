@@ -60,15 +60,18 @@ deck/
 
 ## The Local Editor
 
-To view, tweak, or manually export a PPTD project, start the offline editor (run inside the skill folder):
+To view, tweak, or manually export a PPTD project, start the offline editor from inside the skill folder:
 
 ```bash
-node scripts/serve.mjs            # http://127.0.0.1:55173/
-node scripts/serve.mjs --open      # also open the browser
+node scripts/serve.mjs                      # http://127.0.0.1:55173/
+node scripts/serve.mjs --project deck/      # instant preview: no folder picker
+node scripts/serve.mjs --open               # also open the browser
 node scripts/serve.mjs --port 56000
 ```
 
-Open the URL, authorize the complete PPTD project folder, and edit in the browser UI — saves write back to `.pptd`/`.page` files only. Use a Chromium-based browser for writable access; other browsers fall back to read-only upload.
+- **Preview mode** (`--project <dir>`): the host mounts one project read-only and the deck loads as soon as you open the URL — nothing to authorize. Exports and animation tweaks still work in the UI; writes stay in memory, so use the picker flow when you want to save.
+- **Editing mode** (no `--project`): open the URL, authorize the complete PPTD project folder, and edit in the browser UI — saves write back to `.pptd`/`.page` files only. Use a Chromium-based browser for writable access; other browsers fall back to read-only upload.
+- **Background-friendly**: the host registers a lease file in the OS temp dir, so a second launch for the same editor + project reuses the running URL instead of failing with `EADDRINUSE`, and a foreign process on port 55173 makes it drift to a free port. An open editor page pings the host; when the pings stop the host exits after 120 idle minutes (`--idle-timeout <minutes>`, `0` disables). `--status` lists running hosts and `--stop` shuts one down — both print JSON, so an agent can host a preview for you and clean it up afterwards.
 
 ## What the PPTD Format Is
 
@@ -83,7 +86,7 @@ PPTD is a YAML-based presentation DSL — a simplified abstraction over OOXML th
 
 - The default PPTX export needs no browser at all, and it does not silently switch to the browser path: a broken deck or an existing output file is reported as an error. The fallback only happens when the local toolchain itself is missing (no `node`, no exporter, no WASM).
 
-Windows note: the browser paths (image QA, `--browser` export) drive one persistent debug browser via CDP, reused across exports. It stays running after the export on purpose — close that window to stop it, or set `PPTD_DEBUG_CHROME_PORT` to move it off the default `9337`. Machines without any Chromium-based browser get one provisioned automatically: the export scripts run `agent-browser install` once to download Chrome for Testing. To manage your own instance, start a browser with `--remote-debugging-port=<port>` and set `AGENT_BROWSER_CDP` to that port.
+Windows note: the browser paths (image QA, `--browser` export) drive one persistent debug browser via CDP, reused across exports. It stays running after the export on purpose — close that window to stop it, or set `PPTD_DEBUG_CHROME_PORT` to move it off the default `9337`. Every browser the skill starts is registered in `%TEMP%\pptd-cdp.json` and reclaimed automatically after 60 idle minutes (`PPTD_DEBUG_CHROME_IDLE_MINUTES=0` disables the reaper), so a killed export cannot leave one behind forever; `npm run pptd:clean` (`python scripts/clean_processes.py`) reclaims registered editors and browsers on demand and never touches a browser you started yourself through `AGENT_BROWSER_CDP`. Machines without any Chromium-based browser get one provisioned automatically: the export scripts run `agent-browser install` once to download Chrome for Testing. To manage your own instance, start a browser with `--remote-debugging-port=<port>` and set `AGENT_BROWSER_CDP` to that port.
 
 ## License and Attribution
 
