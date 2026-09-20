@@ -15,13 +15,11 @@ from __future__ import annotations
 
 import argparse
 import base64
-import importlib
 import json
 import os
 import re
 import shutil
 import signal
-import site
 import socket
 import subprocess
 import sys
@@ -36,6 +34,17 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib.parse import unquote, urlparse
+
+from pptd_common import (
+    PROXY_ENV_KEYS,
+    ExportError,
+    LocalExportUnavailable,
+    default_downloads_dir,
+    ensure_module,
+    log,
+    run_command,
+    temporary_directory,
+)
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 IMAGE_MIME = {
@@ -63,142 +72,9 @@ EDITOR_MISSING_HINT = (
 )
 
 
-class ExportError(RuntimeError):
-    pass
-
-
-class LocalExportUnavailable(ExportError):
-    """The local WASM toolchain itself is missing.
-
-    Only this narrow class is allowed to trigger the browser fallback: a
-    malformed deck or an existing output file must surface as-is instead of
-    quietly pulling in agent-browser and a Chromium download.
-    """
-
-
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, _format: str, *_args: Any) -> None:
         return
-
-
-def log(message: str) -> None:
-    print(f"[pptd] {message}", file=sys.stderr, flush=True)
-
-
-def run_command(
-    command: Sequence[str],
-    *,
-    cwd: Optional[Path] = None,
-    env: Optional[Dict[str, str]] = None,
-    timeout: int = 90,
-) -> subprocess.CompletedProcess[str]:
-    """Capture merged stdout/stderr via a temp file.
-
-    On Windows, agent-browser's detached daemon can inherit a PIPE handle and
-    prevent EOF, deadlocking ``subprocess.run(stdout=PIPE)``. Decoding with the
-    system locale (GBK on zh-CN Windows) can also raise UnicodeDecodeError.
-    Writing to a UTF-8 file avoids both failures.
-    """
-    handle, sink_path = tempfile.mkstemp(prefix="pptd-", suffix=".log")
-    os.close(handle)
-    sink = Path(sink_path)
-    output = ""
-    try:
-        with sink.open("w", encoding="utf-8", errors="replace") as out:
-            returncode = subprocess.call(
-                list(command),
-                cwd=str(cwd) if cwd is not None else None,
-                env=env,
-                stdout=out,
-                stderr=subprocess.STDOUT,
-                timeout=timeout,
-            )
-        output = sink.read_text(encoding="utf-8", errors="replace")
-    except subprocess.TimeoutExpired as exc:
-        try:
-            output = sink.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            output = ""
-        raise subprocess.TimeoutExpired(
-            cmd=list(command),
-            timeout=timeout,
-            output=output,
-        ) from exc
-    finally:
-        try:
-            sink.unlink(missing_ok=True)
-        except OSError:
-            # WinError 32: daemon may still hold the log file handle.
-            pass
-    return subprocess.CompletedProcess(list(command), returncode, output, None)
-
-
-def temporary_directory(prefix: str) -> Any:
-    # ignore_cleanup_errors avoids masking the real export error when a Windows
-    # browser daemon still holds files under the temp tree (Python 3.10+).
-    try:
-        return tempfile.TemporaryDirectory(prefix=prefix, ignore_cleanup_errors=True)
-    except TypeError:
-        return tempfile.TemporaryDirectory(prefix=prefix)
-
-
-def default_downloads_dir() -> Path:
-    home = Path.home()
-    candidates: List[Path] = []
-    user_profile = os.environ.get("USERPROFILE")
-    if user_profile:
-        candidates.append(Path(user_profile) / "Downloads")
-    candidates.extend((home / "Downloads", home / "下载"))
-    for path in candidates:
-        if path.is_dir():
-            return path
-    return home / "Downloads"
-
-
-_YAML: Any = None
-
-
-def ensure_pyyaml() -> Any:
-    """Import PyYAML, installing it on demand.
-
-    Lazy on purpose: importing this module must not run pip. After a --user
-    install the new site directory is usually absent from sys.path (CPython
-    only adds it when it exists at startup), so register it explicitly before
-    retrying the import.
-    """
-    global _YAML
-    if _YAML is not None:
-        return _YAML
-    try:
-        import yaml
-    except ImportError:
-        log("PyYAML is required; installing pyyaml with pip --user")
-        process = run_command(
-            [sys.executable, "-m", "pip", "install", "--user", "pyyaml"],
-            timeout=300,
-        )
-        if process.returncode != 0:
-            raise ExportError(
-                "failed to install PyYAML with pip --user:\n"
-                f"{process.stdout[-2000:]}\n"
-                "Install it manually with: python3 -m pip install --user pyyaml"
-            )
-        try:
-            user_site = site.getusersitepackages()
-        except AttributeError:  # pragma: no cover - non-standard site module
-            user_site = None
-        if isinstance(user_site, str) and os.path.isdir(user_site):
-            site.addsitedir(user_site)
-        importlib.invalidate_caches()
-        try:
-            import yaml
-        except ImportError as exc:
-            raise ExportError(
-                "PyYAML was installed but is still not importable; "
-                f"restart the export or install it into {sys.executable} manually"
-            ) from exc
-    _YAML = yaml
-    return yaml
 
 
 def parse_version(output: str) -> Tuple[int, int, int]:
@@ -748,7 +624,7 @@ def find_manifest(source: Path) -> Path:
 
 
 def read_yaml_mapping(path: Path) -> Tuple[str, Dict[str, Any]]:
-    yaml = ensure_pyyaml()
+    yaml = ensure_module("yaml", "pyyaml", "PyYAML is required to read PPTD YAML")
     text = path.read_text(encoding="utf-8")
     try:
         value = yaml.safe_load(text)
@@ -936,38 +812,12 @@ def browser_cdp_url(browser: "BrowserSession") -> str:
     return match.group(0)
 
 
-def ensure_websocket() -> Any:
-    try:
-        import websocket
-
-        return websocket
-    except ImportError:
-        log("websocket-client is required for browser automation; installing with pip --user")
-        process = run_command(
-            [sys.executable, "-m", "pip", "install", "--user", "websocket-client"],
-            timeout=300,
-        )
-        if process.returncode != 0:
-            raise ExportError(f"failed to install websocket-client:\n{process.stdout[-2000:]}")
-        import websocket
-
-        return websocket
-
-
-# websocket-client honors http_proxy env vars; the CDP endpoint is local, so
-# strip proxy settings instead of tunneling localhost through a proxy.
-PROXY_ENV_KEYS = (
-    "http_proxy",
-    "https_proxy",
-    "HTTP_PROXY",
-    "HTTPS_PROXY",
-    "all_proxy",
-    "ALL_PROXY",
-)
-
-
 def cdp_connect(cdp_url: str) -> Any:
-    websocket = ensure_websocket()
+    # websocket-client honors proxy env vars; the CDP endpoint is local, so
+    # strip proxy settings instead of tunneling localhost through a proxy.
+    websocket = ensure_module(
+        "websocket", "websocket-client", "websocket-client is required for browser automation"
+    )
     saved_proxy = {name: os.environ.pop(name) for name in PROXY_ENV_KEYS if name in os.environ}
     try:
         return websocket.create_connection(cdp_url, timeout=30, suppress_origin=True)
@@ -1068,17 +918,9 @@ class BrowserSession:
         self.env.setdefault("AGENT_BROWSER_DEFAULT_TIMEOUT", "60000")
         self.env.setdefault("AGENT_BROWSER_IDLE_TIMEOUT_MS", "180000")
         # Local editor host is 127.0.0.1; corporate HTTP(S)_PROXY would otherwise
-        # intercept and 403 the offline export page.
-        for key in (
-            "http_proxy",
-            "https_proxy",
-            "HTTP_PROXY",
-            "HTTPS_PROXY",
-            "ALL_PROXY",
-            "all_proxy",
-            "socks5_proxy",
-            "SOCKS5_PROXY",
-        ):
+        # intercept and 403 the offline export page. Same canonical list that
+        # cdp_connect() strips, so the two cannot drift apart again.
+        for key in PROXY_ENV_KEYS:
             self.env.pop(key, None)
         no_proxy = self.env.get("NO_PROXY") or self.env.get("no_proxy") or ""
         parts = {p.strip() for p in no_proxy.split(",") if p.strip()}

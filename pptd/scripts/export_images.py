@@ -23,6 +23,8 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from pptd_common import ensure_module
+
 from export_pptx import (
     BrowserSession,
     ExportError,
@@ -37,7 +39,6 @@ from export_pptx import (
     open_export_dialog,
     open_local_editor,
     ref_by_name,
-    run_command,
     set_download_behavior,
     temporary_directory,
     wait_for_editor_media,
@@ -78,21 +79,10 @@ ACTIVE_FORMAT_JS = """
 
 
 def ensure_pillow() -> Tuple[Any, Any, Any]:
-    try:
-        from PIL import Image, ImageDraw, ImageFont
+    ensure_module("PIL", "pillow", "Pillow is required for stitching")
+    from PIL import Image, ImageDraw, ImageFont
 
-        return Image, ImageDraw, ImageFont
-    except ImportError:
-        log("Pillow is required for stitching; installing pillow with pip --user")
-        process = run_command(
-            [sys.executable, "-m", "pip", "install", "--user", "pillow"],
-            timeout=300,
-        )
-        if process.returncode != 0:
-            raise ExportError(f"failed to install Pillow:\n{process.stdout[-2000:]}")
-        from PIL import Image, ImageDraw, ImageFont
-
-        return Image, ImageDraw, ImageFont
+    return Image, ImageDraw, ImageFont
 
 
 def is_image_zip(path: Path) -> bool:

@@ -5,6 +5,7 @@ import json
 import os
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -19,7 +20,12 @@ from unittest.mock import patch
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[3] / "pptd"
-SCRIPT = SKILL_ROOT / "scripts" / "export_pptx.py"
+SCRIPTS_DIR = SKILL_ROOT / "scripts"
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import pptd_common  # noqa: E402  (path set up above)
+
+SCRIPT = SCRIPTS_DIR / "export_pptx.py"
 SPEC = importlib.util.spec_from_file_location("export_pptx", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
@@ -140,7 +146,7 @@ class ExportPptxTests(unittest.TestCase):
                 slide = archive.read("ppt/slides/slide1.xml")
                 self.assertIn(b"<p:fade/>", slide)
 
-    @patch.object(MODULE.subprocess, "call", return_value=0)
+    @patch.object(pptd_common.subprocess, "call", return_value=0)
     def test_run_command_captures_utf8_via_temp_file(self, call):
         def write_sink(*_args, **kwargs):
             kwargs["stdout"].write("agent-browser 0.33.2\n")
@@ -150,7 +156,7 @@ class ExportPptxTests(unittest.TestCase):
         process = MODULE.run_command(["agent-browser", "--version"], timeout=5)
         self.assertEqual(process.returncode, 0)
         self.assertIn("0.33.2", process.stdout)
-        self.assertEqual(call.call_args.kwargs["stderr"], MODULE.subprocess.STDOUT)
+        self.assertEqual(call.call_args.kwargs["stderr"], subprocess.STDOUT)
 
     def test_find_download_ignores_files_older_than_since(self):
         with tempfile.TemporaryDirectory() as name:
