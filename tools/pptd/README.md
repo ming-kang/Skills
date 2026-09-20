@@ -9,8 +9,9 @@ nothing in this directory ships with the skill.
 ```text
 tools/pptd/
   tests/           # python unittest suite for the exporters
-    fixtures/      # minimal PPTD project used by the tests
+    fixtures/      # minimal PPTD project + qa-deck (3 pages, local media)
   tests-node/      # node --test suite for scripts/serve.mjs and assets/editor/lib.js
+  smoke_editor.mjs # manual browser check of the --project preview mode
 ```
 
 ## Running tests
@@ -20,12 +21,29 @@ npm test                 # every skill in this repository
 npm run test:pptd        # this skill only
 node --test "tools/pptd/tests-node/*.test.js"
 python -B -m unittest discover -s tools/pptd/tests -p "test_*.py"
+
+# manual, needs Playwright's Chromium (devDependency at the repo root)
+node tools/pptd/smoke_editor.mjs
 ```
 
-Note: the suites have no system side effects. `agent-browser` upgrade and
-Node.js probing are fully mocked (`unittest.mock.patch` in
-`tests/test_export_pptx.py`); the `[pptd] agent-browser upgraded …` lines in the
-test output come from the mocked code path, not a real global npm install.
+Note: `agent-browser` upgrade and Node.js probing are fully mocked
+(`unittest.mock.patch` in `tests/test_export_pptx.py`); the
+`[pptd] agent-browser upgraded …` lines in the test output come from the mocked
+code path, not a real global npm install.
+
+Three suites are **environment-dependent** and skip themselves when the needed
+binary is missing — they are the only tests that start a real browser:
+
+- `DebugChromeLifecycleTests` — spawns a real Chrome/Chromium (system install
+  or Playwright cache) and drives the spawn → register → reuse → reclaim cycle.
+- `DownloadRedirectTests` — verifies that `Page.setDownloadBehavior` sends the
+  editor's ZIP to our directory instead of the user's Downloads.
+- `ExportImagesEndToEndTests` — runs the whole image-QA pipeline against
+  `fixtures/qa-deck`; needs `agent-browser` on PATH plus a debug browser.
+
+Each of them kills only the browser instance it started (pid from `netstat`,
+tree kill, then waits for exit) and cleans up its temp directories. They leave
+no Chrome or editor-host process behind.
 
 ## Invariants
 
@@ -33,11 +51,23 @@ test output come from the mocked code path, not a real global npm install.
   is the only copy. Every exporter resolves it relative to the skill root;
   never duplicate it into scripts/ or tools/, and never copy-on-install.
   (`--wasm` exists only as a user override.)
-- **One optional environment variable.** `PPTD_EDITOR_DIR` overrides the
+- **Optional environment variables.** `PPTD_EDITOR_DIR` overrides the
   editor mirror directory (the legacy alias `OPEN_KIMI_PPT_EDITOR` is still
-  honored); `AGENT_BROWSER_CDP` is internal. Do not add env vars or network
-  paths — PPTX export, image export, and editing must stay offline. A deck may
-  still fetch remote images/fonts it references.
+  honored); `AGENT_BROWSER_CDP`, `PPTD_DEBUG_CHROME_PORT` and
+  `PPTD_DEBUG_CHROME_IDLE_MINUTES` tune the Windows debug browser;
+  `PPTD_SERVE_IDLE_MINUTES` tunes the editor host's idle timeout. None of them
+  are required — the defaults keep export, image QA and editing offline and
+  self-cleaning. Do not add env vars that change *what* is produced, and do not
+  add network paths: PPTX export, image export, and editing must stay offline.
+  A deck may still fetch remote images/fonts it references.
+- **Background helpers clean up after themselves.** The editor host and the
+  Windows debug browser register themselves (`%TEMP%/pptd-serve/*.json`,
+  `%TEMP%/pptd-cdp.json`), exit on an idle timeout, and are reclaimable with
+  `python pptd/scripts/clean_processes.py` (`npm run pptd:clean`). Reclaiming is
+  gated by a signature: the entry must carry the skill's own profile directory
+  and the pid must still be a browser launched with that profile. A pid that was
+  recycled by another browser, or a command line that cannot be read, is left
+  alone. Never add a cleanup path that can kill a browser the user owns.
 - **SKILL.md paths are folder-relative only.** No absolute install paths, no
   `npx` commands. The skill is a plain directory copy.
 - **Skill self-containment.** Anything the skill needs at runtime lives inside
