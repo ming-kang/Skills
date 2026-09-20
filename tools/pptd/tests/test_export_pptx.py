@@ -26,6 +26,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 import pptd_common  # noqa: E402  (path set up above)
 import pptd_browser  # noqa: E402  (path set up above)
 import pptd_deck  # noqa: E402  (path set up above)
+import pptd_editor_host  # noqa: E402  (path set up above)
 import pptd_pptx  # noqa: E402  (path set up above)
 
 SCRIPT = SCRIPTS_DIR / "export_pptx.py"
@@ -285,7 +286,7 @@ class ExportPptxTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             with patch.object(MODULE, "export_pptx_local") as local, \
-                    patch.object(MODULE, "build_payload", return_value={}), \
+                    patch.object(pptd_editor_host, "build_payload", return_value={}), \
                     patch.object(MODULE, "find_manifest", return_value=root / "d.pptd"), \
                     patch.object(MODULE, "ensure_agent_browser") as agent_browser:
                 local.side_effect = MODULE.LocalExportUnavailable("node missing")
@@ -345,35 +346,35 @@ class EditorHostMediaRouteTests(unittest.TestCase):
     def test_media_is_served_not_embedded(self):
         with tempfile.TemporaryDirectory() as name:
             manifest = self.make_deck(Path(name))
-            payload = MODULE.build_payload(manifest)
+            payload = pptd_deck.build_payload(manifest)
             # Default: no base64 in the payload at all.
             self.assertEqual(payload["imageMap"], {})
 
-            server, _thread, url = MODULE.serve_local_editor(payload, project_root=manifest.parent)
+            host = pptd_editor_host.serve_local_editor(payload, project_root=manifest.parent)
             try:
-                base = url.split("?")[0]
+                base = host.url.split("?")[0]
                 body = urllib.request.urlopen(base + "payload.json", timeout=10).read()
                 self.assertNotIn(b"base64", body)
-                self.assertEqual(json.loads(body)["mediaBase"], f"/{MODULE.MEDIA_MOUNT}/")
+                self.assertEqual(json.loads(body)["mediaBase"], f"/{pptd_editor_host.MEDIA_MOUNT}/")
 
                 # The editor asks for some assets with a leading slash.
                 for request in ("media/shot.png", "/media/shot.png", "//media/shot.png"):
-                    served = urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/{request}", timeout=10)
+                    served = urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/{request}", timeout=10)
                     self.assertEqual(served.read(), bytes([0x89]) + b"PNG shot-bytes")
-                font = urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/media/font.ttf", timeout=10)
+                font = urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/media/font.ttf", timeout=10)
                 self.assertEqual(font.read(), b"font-bytes")
-                self.assertGreaterEqual(server.media_hits["count"], 3)
+                # Only files that actually reached the editor are counted.
+                self.assertEqual(host.media_requests, 4)
             finally:
-                server.shutdown()
-                server.server_close()
+                host.shutdown()
 
     def test_media_route_refuses_escapes_and_other_types(self):
         with tempfile.TemporaryDirectory() as name:
             manifest = self.make_deck(Path(name))
-            payload = MODULE.build_payload(manifest)
-            server, _thread, url = MODULE.serve_local_editor(payload, project_root=manifest.parent)
+            payload = pptd_deck.build_payload(manifest)
+            host = pptd_editor_host.serve_local_editor(payload, project_root=manifest.parent)
             try:
-                base = url.split("?")[0]
+                base = host.url.split("?")[0]
                 for request, expected in (
                     ("../deck.pptd", 403),
                     ("..%2fdeck.pptd", 403),
@@ -381,40 +382,39 @@ class EditorHostMediaRouteTests(unittest.TestCase):
                     ("missing.png", 404),
                 ):
                     with self.assertRaises(urllib.error.HTTPError) as caught:
-                        urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/{request}", timeout=10)
+                        urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/{request}", timeout=10)
                     self.assertEqual(caught.exception.code, expected, request)
+                # Refused requests are not "media the editor pulled".
+                self.assertEqual(host.media_requests, 0)
             finally:
-                server.shutdown()
-                server.server_close()
+                host.shutdown()
 
     def test_without_a_project_root_the_payload_embeds_media(self):
         with tempfile.TemporaryDirectory() as name:
             manifest = self.make_deck(Path(name))
-            payload = MODULE.build_payload(manifest, embed_media=True)
+            payload = pptd_deck.build_payload(manifest, embed_media=True)
             self.assertTrue(payload["imageMap"])
             self.assertNotIn("mediaBase", payload)
-            server, _thread, url = MODULE.serve_local_editor(payload)
+            host = pptd_editor_host.serve_local_editor(payload)
             try:
-                base = url.split("?")[0]
+                base = host.url.split("?")[0]
                 with self.assertRaises(urllib.error.HTTPError) as caught:
-                    urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/media/shot.png", timeout=10)
+                    urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/media/shot.png", timeout=10)
                 self.assertEqual(caught.exception.code, 404)
             finally:
-                server.shutdown()
-                server.server_close()
+                host.shutdown()
 
     def test_open_local_editor_agrees_with_its_host(self):
         with tempfile.TemporaryDirectory() as name:
             manifest = self.make_deck(Path(name))
-            server, _thread, url, payload = MODULE.open_local_editor(manifest)
+            host, payload = pptd_editor_host.open_local_editor(manifest)
             try:
                 self.assertIn("mediaBase", payload)
-                base = url.split("?")[0]
-                served = urllib.request.urlopen(f"{base}{MODULE.MEDIA_MOUNT}/media/shot.png", timeout=10)
+                base = host.url.split("?")[0]
+                served = urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/media/shot.png", timeout=10)
                 self.assertEqual(served.read(), bytes([0x89]) + b"PNG shot-bytes")
             finally:
-                server.shutdown()
-                server.server_close()
+                host.shutdown()
 
 
 class LocalExportEndToEndTests(unittest.TestCase):

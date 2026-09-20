@@ -24,6 +24,11 @@ class ExportError(RuntimeError):
     pass
 
 
+# The skill root (scripts/..), shared by every module that resolves paths
+# relative to it — one definition so the modules cannot drift apart.
+SKILL_DIR = Path(__file__).resolve().parent.parent
+
+
 class LocalExportUnavailable(ExportError):
     """The local WASM toolchain itself is missing.
 

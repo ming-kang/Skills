@@ -313,14 +313,14 @@ def export_images(
         download_dir = temp_dir / "downloads"
         download_dir.mkdir()
         # One call so the payload and the host agree on how media is delivered.
-        server, thread, url, payload = open_local_editor(manifest)
+        host, payload = open_local_editor(manifest)
         session = f"pptd-images-{os.getpid()}-{uuid.uuid4().hex[:8]}"
         browser = BrowserSession(agent_browser, session, temp_dir, download_dir)
         downloads = default_downloads_dir()
         download_redirect = None
         try:
             log("opening the local neo-ppt editor")
-            browser.open(url)
+            browser.open(host.url)
             # Keep the export ZIP out of the user's Downloads folder; the socket
             # must stay open until the download has finished (see docstring).
             download_redirect = set_download_behavior(browser, download_dir)
@@ -357,9 +357,7 @@ def export_images(
                     download_redirect.close()
                 except Exception:  # noqa: BLE001 - the export is already done
                     pass
-            server.shutdown()
-            server.server_close()
-            thread.join(timeout=2)
+            host.shutdown()
 
         if output.exists():
             shutil.rmtree(output)
@@ -409,7 +407,7 @@ def export_images(
         "mediaDelivery": "host" if payload.get("mediaBase") else "embedded",
         # Media files the editor actually pulled from the host. A deck that
         # references images but reports 0 is rendering placeholders.
-        "mediaRequests": getattr(server, "media_hits", {}).get("count", 0),
+        "mediaRequests": host.media_requests,
     }
 
 
