@@ -1,120 +1,171 @@
 #!/usr/bin/env python3
-import functools
-import importlib.util
+
+import hashlib
+import io
 import json
-import os
-import socket
+import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
-import threading
-import urllib.error
-import urllib.request
 import zipfile
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from contextlib import redirect_stdout
 from pathlib import Path
-from typing import Optional
 from unittest.mock import patch
-
 
 SKILL_ROOT = Path(__file__).resolve().parents[3] / "pptd"
 SCRIPTS_DIR = SKILL_ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import pptd_common  # noqa: E402  (path set up above)
-import pptd_browser  # noqa: E402  (path set up above)
-import pptd_deck  # noqa: E402  (path set up above)
-import pptd_editor_host  # noqa: E402  (path set up above)
-import pptd_pptx  # noqa: E402  (path set up above)
+import export_pptx as EXPORT  # noqa: E402
+import pptd_deck  # noqa: E402
+import pptd_pptx  # noqa: E402
+import validate_pptd as VALIDATE  # noqa: E402
 
-SCRIPT = SCRIPTS_DIR / "export_pptx.py"
-SPEC = importlib.util.spec_from_file_location("export_pptx", SCRIPT)
-MODULE = importlib.util.module_from_spec(SPEC)
-assert SPEC and SPEC.loader
-SPEC.loader.exec_module(MODULE)
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+MINIMAL = FIXTURES / "minimal"
+QA_DECK = FIXTURES / "qa-deck"
+WASM_HASH = "589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e"
 
 
-class ExportPptxTests(unittest.TestCase):
-    def test_parse_version_handles_both_probes(self):
-        # agent-browser prints "agent-browser 0.33.2"; Node prints "v22.11.0".
-        self.assertEqual(pptd_browser.parse_version("agent-browser 0.33.2"), (0, 33, 2))
-        self.assertEqual(pptd_browser.parse_version("v1.4.0-beta.1"), (1, 4, 0))
-        self.assertEqual(pptd_browser.parse_version("v22.11.0"), (22, 11, 0))
-        self.assertEqual(pptd_browser.parse_version("18.20.4"), (18, 20, 4))
+def make_deck(root: Path, manifest: str | None = None, page: str | None = None) -> Path:
+    (root / "pages").mkdir(parents=True)
+    manifest_path = root / "deck.pptd"
+    manifest_path.write_text(
+        manifest
+        or """version: v2
+title: Validation fixture
+size: [960, 540]
+pages:
+  - pages/01.page
+""",
+        encoding="utf-8",
+    )
+    (root / "pages" / "01.page").write_text(
+        page
+        or """elements:
+  - elementId: title
+    elementType: text
+    bounds: [100, 100, 400, 80]
+    content:
+      text: Hello
+""",
+        encoding="utf-8",
+    )
+    return manifest_path
 
-    @patch.object(pptd_browser, "run_command")
-    @patch.object(pptd_browser.shutil, "which")
-    def test_old_agent_browser_is_upgraded(self, which, run_command):
-        which.side_effect = [
-            "/bin/node",
-            "/bin/npm",
-            "/bin/agent-browser",
-            "/bin/npm",
-            "/bin/agent-browser",
-        ]
-        run_command.side_effect = [
-            MODULE.subprocess.CompletedProcess([], 0, "v22.11.0\n"),
-            MODULE.subprocess.CompletedProcess([], 0, "agent-browser 0.17.1\n"),
-            MODULE.subprocess.CompletedProcess([], 0, "changed 1 package\n"),
-            MODULE.subprocess.CompletedProcess([], 0, "agent-browser 0.33.2\n"),
-        ]
-        self.assertEqual(pptd_browser.ensure_agent_browser(), "/bin/agent-browser")
-        self.assertEqual(run_command.call_args_list[2].args[0], [
-            "/bin/npm", "install", "-g", "agent-browser@latest"
-        ])
 
-    @patch.object(pptd_browser, "run_command")
-    @patch.object(pptd_browser.shutil, "which")
-    def test_missing_nodejs_raises_clear_error(self, which, run_command):
-        which.return_value = None
-        with self.assertRaisesRegex(MODULE.ExportError, "Node.js is not installed"):
-            pptd_browser.ensure_nodejs()
-        run_command.assert_not_called()
+class DeckValidationTests(unittest.TestCase):
+    def test_valid_project_summary(self):
+        with tempfile.TemporaryDirectory() as name:
+            project = pptd_deck.build_local_project(make_deck(Path(name)))
+            summary = pptd_deck.validation_summary(project)
+            self.assertTrue(summary["valid"])
+            self.assertEqual(summary["slides"], 1)
+            self.assertEqual(summary["elements"], 1)
+            self.assertEqual(summary["warnings"], [])
 
-    @patch.object(pptd_browser, "run_command")
-    @patch.object(pptd_browser.shutil, "which")
-    def test_old_nodejs_raises_clear_error(self, which, run_command):
-        which.return_value = "/bin/node"
-        run_command.return_value = MODULE.subprocess.CompletedProcess([], 0, "v16.20.2\n")
-        with self.assertRaisesRegex(MODULE.ExportError, "Node.js 18\\+ is required"):
-            pptd_browser.ensure_nodejs()
+    def test_rejects_non_string_page_entries(self):
+        manifest = """version: v2
+size: [960, 540]
+pages:
+  - {}
+"""
+        with tempfile.TemporaryDirectory() as name:
+            path = make_deck(Path(name), manifest=manifest)
+            with self.assertRaisesRegex(EXPORT.ExportError, "non-empty string"):
+                pptd_deck.build_local_project(path)
 
-    @patch.object(pptd_browser, "run_command")
-    @patch.object(pptd_browser.shutil, "which")
-    def test_missing_npm_raises_clear_error(self, which, run_command):
-        which.side_effect = ["/bin/node", None]
-        run_command.return_value = MODULE.subprocess.CompletedProcess([], 0, "v22.11.0\n")
-        with self.assertRaisesRegex(MODULE.ExportError, "npm is not installed"):
-            pptd_browser.ensure_nodejs()
+    def test_rejects_duplicate_element_ids(self):
+        page = """elements:
+  - {elementId: same, elementType: text, bounds: [0, 0, 100, 50], content: {text: One}}
+  - {elementId: same, elementType: text, bounds: [0, 60, 100, 50], content: {text: Two}}
+"""
+        with tempfile.TemporaryDirectory() as name:
+            path = make_deck(Path(name), page=page)
+            with self.assertRaisesRegex(EXPORT.ExportError, "duplicate elementId"):
+                pptd_deck.build_local_project(path)
 
+    def test_rejects_missing_local_media(self):
+        page = """elements:
+  - elementId: photo
+    elementType: image
+    bounds: [0, 0, 100, 100]
+    src: media/missing.png
+"""
+        with tempfile.TemporaryDirectory() as name:
+            path = make_deck(Path(name), page=page)
+            with self.assertRaisesRegex(EXPORT.ExportError, "missing local image"):
+                pptd_deck.build_local_project(path)
+
+    def test_rejects_paths_outside_the_project(self):
+        manifest = """version: v2
+size: [960, 540]
+pages:
+  - ../outside.page
+"""
+        with tempfile.TemporaryDirectory() as name:
+            path = make_deck(Path(name), manifest=manifest)
+            with self.assertRaisesRegex(EXPORT.ExportError, "escapes"):
+                pptd_deck.build_local_project(path)
+
+    def test_warns_instead_of_rejecting_intentional_bleed(self):
+        page = """elements:
+  - elementId: bleed
+    elementType: text
+    bounds: [-20, 100, 400, 80]
+    content: {text: Bleed}
+"""
+        with tempfile.TemporaryDirectory() as name:
+            project = pptd_deck.build_local_project(make_deck(Path(name), page=page))
+            self.assertEqual(len(project["warnings"]), 1)
+            self.assertIn("beyond the slide canvas", project["warnings"][0])
+
+    def test_rejects_non_positive_element_size(self):
+        page = """elements:
+  - elementId: bad
+    elementType: text
+    bounds: [0, 0, 0, 80]
+    content: {text: Bad}
+"""
+        with tempfile.TemporaryDirectory() as name:
+            path = make_deck(Path(name), page=page)
+            with self.assertRaisesRegex(EXPORT.ExportError, "must be positive"):
+                pptd_deck.build_local_project(path)
+
+    def test_validation_cli_prints_json(self):
+        with tempfile.TemporaryDirectory() as name:
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = VALIDATE.main([str(make_deck(Path(name)))])
+            self.assertEqual(result, 0)
+            summary = json.loads(output.getvalue())
+            self.assertTrue(summary["valid"])
+            self.assertEqual(summary["slides"], 1)
+
+
+class TransitionTests(unittest.TestCase):
     def test_fade_is_inserted_before_timing(self):
         source = (
-            b'<?xml version="1.0" encoding="UTF-8"?>'
             b'<p:sld xmlns:p="urn:test"><p:cSld><p:spTree><p:extLst/>'
             b'</p:spTree></p:cSld><p:clrMapOvr/><p:timing/><p:extLst/></p:sld>'
         )
-        result_bytes = pptd_pptx.replace_transition(source, "fade")
-        result = result_bytes.decode("utf-8")
-        self.assertIn("<p:transition", result)
-        self.assertIn("<p:fade/>", result)
-        self.assertGreater(result.index("<p:transition"), result.index("<p:clrMapOvr"))
-        self.assertLess(result.index("<p:transition"), result.index("<p:timing"))
-        pptd_pptx.validate_transition_order(pptd_pptx.slide_transition_facts(result_bytes), "fade")
+        result = pptd_pptx.replace_transition(source, "fade")
+        text = result.decode()
+        self.assertGreater(text.index("<p:transition"), text.index("<p:clrMapOvr"))
+        self.assertLess(text.index("<p:transition"), text.index("<p:timing"))
+        pptd_pptx.validate_transition_order(pptd_pptx.slide_transition_facts(result), "fade")
 
     def test_existing_transition_is_replaced_or_removed(self):
         source = (
             b'<p:sld xmlns:p="urn:test"><p:cSld/>'
             b'<p:transition><p:wipe/></p:transition><p:extLst/></p:sld>'
         )
-        faded = pptd_pptx.replace_transition(source, "fade").decode("utf-8")
-        self.assertNotIn("p:wipe", faded)
-        self.assertEqual(faded.count("<p:transition"), 1)
-        pptd_pptx.validate_transition_order(pptd_pptx.slide_transition_facts(faded.encode("utf-8")), "fade")
-        cleared = pptd_pptx.replace_transition(source, "none").decode("utf-8")
-        self.assertNotIn("p:transition", cleared)
-        pptd_pptx.validate_transition_order(pptd_pptx.slide_transition_facts(cleared.encode("utf-8")), "none")
+        faded = pptd_pptx.replace_transition(source, "fade")
+        self.assertNotIn(b"p:wipe", faded)
+        self.assertEqual(faded.count(b"<p:transition"), 1)
+        cleared = pptd_pptx.replace_transition(source, "none")
+        self.assertNotIn(b"p:transition", cleared)
 
     def test_nested_transition_is_relocated_to_slide_root(self):
         source = (
@@ -122,14 +173,10 @@ class ExportPptxTests(unittest.TestCase):
             b'<p:transition><p:fade/></p:transition><p:extLst/>'
             b'</p:spTree></p:cSld><p:clrMapOvr/><p:extLst/></p:sld>'
         )
-        result = pptd_pptx.replace_transition(source, "fade")
-        facts = pptd_pptx.slide_transition_facts(result)
-        pptd_pptx.validate_transition_order(facts, "fade")
-        self.assertEqual(facts.names, [
-            "cSld", "clrMapOvr", "transition", "extLst"
-        ])
+        facts = pptd_pptx.slide_transition_facts(pptd_pptx.replace_transition(source, "fade"))
+        self.assertEqual(facts.names, ["cSld", "clrMapOvr", "transition", "extLst"])
 
-    def test_patch_transitions_preserves_a_valid_zip(self):
+    def test_patch_transitions_preserves_zip_integrity(self):
         with tempfile.TemporaryDirectory() as name:
             deck = Path(name) / "test.pptx"
             with zipfile.ZipFile(deck, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -139,662 +186,95 @@ class ExportPptxTests(unittest.TestCase):
                     '<Override PartName="/ppt/presentation.xml" '
                     f'ContentType="{pptd_pptx.PPTX_CONTENT_TYPE}"/></Types>',
                 )
-                archive.writestr("ppt/presentation.xml", "<p:presentation xmlns:p=\"urn:test\"/>")
+                archive.writestr("ppt/presentation.xml", "<p:presentation xmlns:p='urn:test'/>")
                 archive.writestr(
-                    "ppt/slides/slide1.xml",
-                    '<p:sld xmlns:p="urn:test"><p:cSld/></p:sld>',
+                    "ppt/slides/slide1.xml", '<p:sld xmlns:p="urn:test"><p:cSld/></p:sld>'
                 )
             self.assertEqual(pptd_pptx.patch_transitions(deck, "fade"), 1)
-            with zipfile.ZipFile(deck) as archive:
-                self.assertIsNone(archive.testzip())
-                slide = archive.read("ppt/slides/slide1.xml")
-                self.assertIn(b"<p:fade/>", slide)
-
-    @patch.object(pptd_common.subprocess, "call", return_value=0)
-    def test_run_command_captures_utf8_via_temp_file(self, call):
-        def write_sink(*_args, **kwargs):
-            kwargs["stdout"].write("agent-browser 0.33.2\n")
-            return 0
-
-        call.side_effect = write_sink
-        process = MODULE.run_command(["agent-browser", "--version"], timeout=5)
-        self.assertEqual(process.returncode, 0)
-        self.assertIn("0.33.2", process.stdout)
-        self.assertEqual(call.call_args.kwargs["stderr"], subprocess.STDOUT)
-
-    def test_find_download_ignores_files_older_than_since(self):
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name)
-            old = root / "old.pptx"
-            new = root / "new.pptx"
-            for path in (old, new):
-                with zipfile.ZipFile(path, "w") as archive:
-                    archive.writestr(
-                        "[Content_Types].xml",
-                        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-                        '<Override PartName="/ppt/presentation.xml" '
-                        f'ContentType="{pptd_pptx.PPTX_CONTENT_TYPE}"/></Types>',
-                    )
-                    archive.writestr("ppt/presentation.xml", "<p:presentation/>")
-
-            older = time.time() - 60
-            os.utime(old, (older, older))
-            since = time.time() - 5
-            found = pptd_browser.find_download([root], timeout=2.0, since=since)
-            self.assertEqual(found.resolve(), new.resolve())
-
-    def test_find_download_survives_files_vanishing_mid_scan(self):
-        # Chrome renames "*.crdownload" files away between directory listing
-        # and stat(); a vanished file must be skipped, not crash the export.
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name)
-            deck = root / "deck.pptx"
-            with zipfile.ZipFile(deck, "w") as archive:
-                archive.writestr(
-                    "[Content_Types].xml",
-                    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-                    '<Override PartName="/ppt/presentation.xml" '
-                    f'ContentType="{pptd_pptx.PPTX_CONTENT_TYPE}"/></Types>',
-                )
-                archive.writestr("ppt/presentation.xml", "<p:presentation/>")
-            ghost = root / "ghost.crdownload"
-            ghost.write_bytes(b"partial download")
-
-            real_stat = Path.stat
-            seen = {"count": 0}
-
-            def racy_stat(self, **kwargs):
-                if self.name == "ghost.crdownload":
-                    seen["count"] += 1
-                    if seen["count"] > 1:
-                        raise FileNotFoundError(2, "vanished mid-scan", str(self))
-                return real_stat(self, **kwargs)
-
-            with patch.object(Path, "stat", racy_stat):
-                found = pptd_browser.find_download([root], timeout=2.0)
-            self.assertEqual(found.resolve(), deck.resolve())
-
-    def test_browser_open_does_not_pass_download_path(self):
-        session = pptd_browser.BrowserSession(
-            "/bin/agent-browser",
-            "test-session",
-            Path("."),
-            Path("/tmp/downloads"),
-        )
-        with patch.object(session, "run") as run:
-            session.open("http://127.0.0.1:9/?pptdExport=1")
-        run.assert_called_once_with(
-            ["open", "http://127.0.0.1:9/?pptdExport=1"],
-            timeout=90,
-        )
-
-    def test_ensure_debug_chrome_is_windows_only(self):
-        with patch.object(pptd_browser.sys, "platform", "linux"):
-            self.assertIsNone(pptd_browser.ensure_debug_chrome())
-
-    @patch.object(pptd_browser, "cdp_alive", return_value=True)
-    def test_ensure_debug_chrome_prefers_working_explicit_port(self, cdp_alive):
-        with patch.object(pptd_browser.sys, "platform", "win32"), \
-                patch.dict(pptd_browser.os.environ, {"AGENT_BROWSER_CDP": "9444"}):
-            self.assertEqual(pptd_browser.ensure_debug_chrome(), 9444)
-        cdp_alive.assert_called_once_with(9444)
-
-    def test_image_map_only_embeds_referenced_media(self):
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name)
-            (root / "media").mkdir()
-            (root / "media" / "used.png").write_bytes(b"\x89PNG\r\n\x1a\n used")
-            (root / "media" / "orphan.png").write_bytes(b"\x89PNG\r\n\x1a\n orphan")
-            # The visual-QA loop writes page renders here, inside the project.
-            (root / ".qa-images" / "pages").mkdir(parents=True)
-            (root / ".qa-images" / "pages" / "1.jpeg").write_bytes(b"\xff\xd8\xff qa")
-
-            pages = [{
-                "elements": [
-                    {"elementType": "image", "src": "media/used.png"},
-                    {"elementType": "shape", "fill": {"type": "image", "src": "media/used.png"}},
-                    {"elementType": "image", "src": "https://example.com/remote.png"},
-                ],
-            }]
-            image_map = pptd_deck.build_image_map(root, pages)
-
-        self.assertEqual(list(image_map), ["media/used.png"])
-        self.assertTrue(image_map["media/used.png"].startswith("data:image/png;base64,"))
-
-    def test_image_map_rejects_paths_outside_the_project(self):
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name)
-            pages = [{"elements": [{"elementType": "image", "src": "../secret.png"}]}]
-            with self.assertRaisesRegex(MODULE.ExportError, "escapes the PPTD directory"):
-                pptd_deck.build_image_map(root, pages)
-
-    def test_deck_errors_do_not_fall_back_to_the_browser(self):
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name)
-            (root / "deck.pptd").write_text(
-                "version: v2\npages:\n  - pages/missing.page\n", encoding="utf-8"
-            )
-            with patch.object(MODULE, "ensure_agent_browser") as agent_browser:
-                with self.assertRaisesRegex(MODULE.ExportError, "missing page file"):
-                    MODULE.export_pptx(
-                        root, root / "out.pptx", "fade", False, prefer_local=True
-                    )
-            agent_browser.assert_not_called()
-
-    def test_missing_local_toolchain_still_falls_back(self):
-        self.assertTrue(issubclass(MODULE.LocalExportUnavailable, MODULE.ExportError))
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name)
-            with patch.object(MODULE, "export_pptx_local") as local, \
-                    patch.object(pptd_editor_host, "build_payload", return_value={}), \
-                    patch.object(MODULE, "find_manifest", return_value=root / "d.pptd"), \
-                    patch.object(MODULE, "ensure_agent_browser") as agent_browser:
-                local.side_effect = MODULE.LocalExportUnavailable("node missing")
-                agent_browser.side_effect = RuntimeError("reached the browser path")
-                with self.assertRaisesRegex(RuntimeError, "reached the browser path"):
-                    MODULE.export_pptx(
-                        root, root / "out.pptx", "fade", False, prefer_local=True
-                    )
-
-    def test_browser_session_exports_cdp_port_to_env(self):
-        with patch.dict(pptd_browser.os.environ, {}, clear=False):
-            pptd_browser.os.environ.pop("AGENT_BROWSER_CDP", None)
-            with_port = pptd_browser.BrowserSession(
-                "/bin/agent-browser", "s", Path("."), Path("/tmp/d"), cdp_port=9337
-            )
-            self.assertEqual(with_port.env["AGENT_BROWSER_CDP"], "9337")
-            without_port = pptd_browser.BrowserSession(
-                "/bin/agent-browser", "s", Path("."), Path("/tmp/d")
-            )
-            self.assertNotIn("AGENT_BROWSER_CDP", without_port.env)
+            summary = pptd_pptx.verify_output(deck, "fade")
+            self.assertEqual(summary["slides"], 1)
+            self.assertEqual(summary["fadeTransitions"], 1)
 
 
-class EditorHostMediaRouteTests(unittest.TestCase):
-    """The export host serves the deck's media instead of embedding it."""
+class ExportTests(unittest.TestCase):
+    @patch.object(EXPORT.shutil, "which", return_value=None)
+    def test_missing_node_is_a_clear_error(self, _which):
+        with self.assertRaisesRegex(EXPORT.ExportError, "Node.js 18"):
+            EXPORT.ensure_node()
 
-    def make_deck(self, root: Path) -> Path:
-        (root / "pages").mkdir()
-        (root / "media").mkdir()
-        (root / "media" / "shot.png").write_bytes(bytes([0x89]) + b"PNG shot-bytes")
-        (root / "media" / "font.ttf").write_bytes(b"font-bytes")
-        (root / "deck.pptd").write_text(
-            chr(10).join([
-                "version: v2",
-                "title: Media Host",
-                "size: [960, 540]",
-                "pages:",
-                "  - pages/01.page",
-                "",
-            ]),
-            encoding="utf-8",
-        )
-        (root / "pages" / "01.page").write_text(
-            chr(10).join([
-                "pageType: content",
-                "elements:",
-                "  - elementId: pic",
-                "    elementType: image",
-                "    bounds: [0, 0, 10, 10]",
-                "    src: media/shot.png",
-                "    fit: {mode: contain}",
-                "",
-            ]),
-            encoding="utf-8",
-        )
-        return root / "deck.pptd"
+    @patch.object(EXPORT.shutil, "which", return_value="/bin/node")
+    def test_old_node_is_rejected(self, _which):
+        completed = subprocess.CompletedProcess([], 0, stdout="v16.20.2\n")
+        with patch.object(EXPORT, "run_command", return_value=completed):
+            with self.assertRaisesRegex(EXPORT.ExportError, "Node.js 18"):
+                EXPORT.ensure_node()
 
-    def test_media_is_served_not_embedded(self):
-        with tempfile.TemporaryDirectory() as name:
-            manifest = self.make_deck(Path(name))
-            payload = pptd_deck.build_payload(manifest)
-            # Default: no base64 in the payload at all.
-            self.assertEqual(payload["imageMap"], {})
-
-            host = pptd_editor_host.serve_local_editor(payload, project_root=manifest.parent)
-            try:
-                base = host.url.split("?")[0]
-                body = urllib.request.urlopen(base + "payload.json", timeout=10).read()
-                self.assertNotIn(b"base64", body)
-                self.assertEqual(json.loads(body)["mediaBase"], f"/{pptd_editor_host.MEDIA_MOUNT}/")
-
-                # The editor asks for some assets with a leading slash.
-                for request in ("media/shot.png", "/media/shot.png", "//media/shot.png"):
-                    served = urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/{request}", timeout=10)
-                    self.assertEqual(served.read(), bytes([0x89]) + b"PNG shot-bytes")
-                font = urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/media/font.ttf", timeout=10)
-                self.assertEqual(font.read(), b"font-bytes")
-                # Only files that actually reached the editor are counted.
-                self.assertEqual(host.media_requests, 4)
-            finally:
-                host.shutdown()
-
-    def test_media_route_refuses_escapes_and_other_types(self):
-        with tempfile.TemporaryDirectory() as name:
-            manifest = self.make_deck(Path(name))
-            payload = pptd_deck.build_payload(manifest)
-            host = pptd_editor_host.serve_local_editor(payload, project_root=manifest.parent)
-            try:
-                base = host.url.split("?")[0]
-                for request, expected in (
-                    ("../deck.pptd", 403),
-                    ("..%2fdeck.pptd", 403),
-                    ("pages/01.page", 404),
-                    ("missing.png", 404),
-                ):
-                    with self.assertRaises(urllib.error.HTTPError) as caught:
-                        urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/{request}", timeout=10)
-                    self.assertEqual(caught.exception.code, expected, request)
-                # Refused requests are not "media the editor pulled".
-                self.assertEqual(host.media_requests, 0)
-            finally:
-                host.shutdown()
-
-    def test_without_a_project_root_the_payload_embeds_media(self):
-        with tempfile.TemporaryDirectory() as name:
-            manifest = self.make_deck(Path(name))
-            payload = pptd_deck.build_payload(manifest, embed_media=True)
-            self.assertTrue(payload["imageMap"])
-            self.assertNotIn("mediaBase", payload)
-            host = pptd_editor_host.serve_local_editor(payload)
-            try:
-                base = host.url.split("?")[0]
-                with self.assertRaises(urllib.error.HTTPError) as caught:
-                    urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/media/shot.png", timeout=10)
-                self.assertEqual(caught.exception.code, 404)
-            finally:
-                host.shutdown()
-
-    def test_open_local_editor_agrees_with_its_host(self):
-        with tempfile.TemporaryDirectory() as name:
-            manifest = self.make_deck(Path(name))
-            host, payload = pptd_editor_host.open_local_editor(manifest)
-            try:
-                self.assertIn("mediaBase", payload)
-                base = host.url.split("?")[0]
-                served = urllib.request.urlopen(f"{base}{pptd_editor_host.MEDIA_MOUNT}/media/shot.png", timeout=10)
-                self.assertEqual(served.read(), bytes([0x89]) + b"PNG shot-bytes")
-            finally:
-                host.shutdown()
-
-
-class LocalExportEndToEndTests(unittest.TestCase):
-    """Exercises the real Node + patched-WASM path, including the --json handoff."""
-
-    FIXTURE = Path(__file__).resolve().parent / "fixtures" / "minimal"
-
-    @unittest.skipUnless(MODULE.shutil.which("node"), "node is required")
-    def test_exports_a_pptx_without_a_node_yaml_package(self):
+    def test_existing_output_is_not_overwritten_without_force(self):
         with tempfile.TemporaryDirectory() as name:
             output = Path(name) / "deck.pptx"
-            summary = MODULE.export_pptx_local(self.FIXTURE, output, "fade")
-            self.assertTrue(output.is_file())
-            self.assertEqual(summary["exporter"], "local-wasm-patched")
+            output.write_bytes(b"keep")
+            with patch.object(EXPORT, "ensure_node", return_value="node"):
+                with self.assertRaisesRegex(EXPORT.ExportError, "already exists"):
+                    EXPORT.export_pptx(MINIMAL, output)
+            self.assertEqual(output.read_bytes(), b"keep")
+
+    def test_wasm_binary_is_unique_and_byte_stable(self):
+        wasm_files = list(SKILL_ROOT.rglob("*.wasm"))
+        self.assertEqual(wasm_files, [SKILL_ROOT / "assets" / "wasm" / "pptd_wasm_bg.wasm"])
+        self.assertEqual(hashlib.sha256(wasm_files[0].read_bytes()).hexdigest(), WASM_HASH)
+
+    @unittest.skipUnless(shutil.which("node"), "node is required")
+    def test_public_cli_exports_real_wasm_pptx(self):
+        with tempfile.TemporaryDirectory() as name:
+            output = Path(name) / "deck.pptx"
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                result = EXPORT.main([str(MINIMAL), "--output", str(output)])
+            self.assertEqual(result, 0)
+            summary = json.loads(stdout.getvalue())
+            self.assertEqual(summary["exporter"], "wasm")
             self.assertEqual(summary["slides"], summary["fadeTransitions"])
             with zipfile.ZipFile(output) as archive:
-                self.assertIn("ppt/presentation.xml", archive.namelist())
-                app = archive.read("docProps/app.xml").decode("utf-8")
-                provenance = archive.read("customXml/provenance.xml").decode("utf-8")
-                slide = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+                self.assertIsNone(archive.testzip())
+                app = archive.read("docProps/app.xml").decode()
+                provenance = archive.read("customXml/provenance.xml").decode()
+                slide = archive.read("ppt/slides/slide1.xml").decode()
                 self.assertIn("<Application>PPT Design</Application>", app)
                 self.assertIn("urn:pptd:prov:provenance", provenance)
                 self.assertIn("<producer>PPT Design (local)</producer>", provenance)
                 self.assertIn('xmlns:pptd="https://pptd.local/ns/2026/pptd/schema"', slide)
 
-    def test_build_local_project_shape(self):
-        project = MODULE.build_local_project(self.FIXTURE / "minimal.pptd")
-        self.assertEqual(project["manifest"]["version"], "v2")
-        self.assertTrue(project["pages"])
-        for page in project["pages"]:
-            self.assertIsInstance(page["path"], str)
-            self.assertIsInstance(page["data"]["elements"], list)
-
-class DebugChromeRegistryTests(unittest.TestCase):
-    """The browser registry decides what may be reclaimed — no browser needed."""
-
-    def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        self.registry = Path(temporary.name) / "pptd-cdp.json"
-        patcher = patch.object(pptd_browser, "CDP_REGISTRY_PATH", self.registry)
-        patcher.start()
-        self.addCleanup(patcher.stop)
-
-    def test_register_touch_and_read_back(self):
-        pptd_browser.write_cdp_registry(
-            [
-                {
-                    "port": 9337,
-                    "pid": 4242,
-                    "profile": str(pptd_browser.DEBUG_CHROME_PROFILE),
-                    "startedAt": 10.0,
-                    "lastUsedAt": 20.0,
-                }
-            ]
-        )
-        entry = pptd_browser.registered_debug_chrome(9337)
-        self.assertEqual(entry["pid"], 4242)
-        pptd_browser.touch_cdp_registry(9337)
-        self.assertGreater(pptd_browser.registered_debug_chrome(9337)["lastUsedAt"], 20.0)
-        self.assertIsNone(pptd_browser.registered_debug_chrome(9444))
-
-    def test_signature_rejects_foreign_or_recycled_pids(self):
-        profile = str(pptd_browser.DEBUG_CHROME_PROFILE)
-        # Our own python pid: it is not a browser, so the signature fails early.
-        self.assertIsNone(pptd_browser.process_image_name(os.getpid()))
-        self.assertFalse(pptd_browser.debug_chrome_is_ours({"pid": os.getpid(), "profile": profile}))
-        # A browser the user started by hand: different profile.
-        self.assertFalse(pptd_browser.debug_chrome_is_ours({"pid": os.getpid(), "profile": "/tmp/somewhere-else"}))
-        self.assertIsNone(pptd_browser.process_image_name(None))
-
-    def test_signature_requires_our_command_line(self):
-        profile = str(pptd_browser.DEBUG_CHROME_PROFILE)
-        entry = {"pid": 4321, "profile": profile}
-        # Chrome relaunches itself with the path quoted; we spawn it unquoted.
-        ours = (
-            f'chrome.exe --user-data-dir="{profile}"',
-            f"chrome.exe --user-data-dir={profile}",
-        )
-        # A recycled pid now owned by somebody else's browser, and an empty line.
-        theirs = ('chrome.exe --user-data-dir="C:/Users/someone/else"', "")
-        with patch.object(pptd_browser, "process_image_name", return_value="chrome.exe"):
-            for command in ours:
-                with patch.object(pptd_browser, "process_command_line", return_value=command):
-                    self.assertTrue(pptd_browser.debug_chrome_is_ours(entry), command)
-            for command in theirs:
-                with patch.object(pptd_browser, "process_command_line", return_value=command):
-                    self.assertFalse(pptd_browser.debug_chrome_is_ours(entry), command)
-            # Unreadable command line: leave it alone instead of guessing.
-            with patch.object(pptd_browser, "process_command_line", return_value=None):
-                self.assertFalse(pptd_browser.debug_chrome_is_ours(entry))
-
-    def test_reap_reclaims_only_signed_idle_instances(self):
-        pptd_browser.write_cdp_registry(
-            [
-                {
-                    "port": 9337,
-                    "pid": 111,
-                    "profile": str(pptd_browser.DEBUG_CHROME_PROFILE),
-                    "startedAt": 0,
-                    "lastUsedAt": 0,
-                },
-                {"port": 9444, "pid": 222, "profile": "/tmp/foreign-profile", "startedAt": 0, "lastUsedAt": 0},
-            ]
-        )
-        attempted = []
-
-        def fake_kill(entry):
-            attempted.append(entry["port"])
-            # The real kill_debug_chrome decides by signature; mirror that here.
-            return os.path.basename(str(entry.get("profile", ""))) == "pptd-cdp-profile"
-
-        with patch.object(pptd_browser, "cdp_alive", return_value=True), \
-                patch.object(pptd_browser, "kill_debug_chrome", side_effect=fake_kill):
-            reaped = pptd_browser.reap_idle_debug_chrome(idle_minutes=1)
-
-        self.assertEqual(attempted, [9337, 9444])
-        self.assertEqual([entry["port"] for entry in reaped], [9337])
-        self.assertEqual([entry["port"] for entry in pptd_browser.read_cdp_registry()], [9444])
-
-    def test_reap_keeps_recently_used_instances(self):
-        now = time.time()
-        pptd_browser.write_cdp_registry(
-            [
-                {
-                    "port": 9337,
-                    "pid": 111,
-                    "profile": str(pptd_browser.DEBUG_CHROME_PROFILE),
-                    "startedAt": now,
-                    "lastUsedAt": now - 30,
-                }
-            ]
-        )
-        with patch.object(pptd_browser, "cdp_alive", return_value=True), \
-                patch.object(pptd_browser, "kill_debug_chrome") as kill:
-            self.assertEqual(pptd_browser.reap_idle_debug_chrome(idle_minutes=60), [])
-        kill.assert_not_called()
-
-    def test_reap_can_be_disabled(self):
-        pptd_browser.write_cdp_registry(
-            [
-                {
-                    "port": 9337,
-                    "pid": 111,
-                    "profile": str(pptd_browser.DEBUG_CHROME_PROFILE),
-                    "startedAt": 0,
-                    "lastUsedAt": 0,
-                }
-            ]
-        )
-        with patch.object(pptd_browser, "cdp_alive", return_value=True), \
-                patch.object(pptd_browser, "kill_debug_chrome") as kill:
-            self.assertEqual(pptd_browser.reap_idle_debug_chrome(idle_minutes=0), [])
-        kill.assert_not_called()
-
-    def test_missing_registry_is_not_an_error(self):
-        self.assertEqual(pptd_browser.read_cdp_registry(), [])
-        self.assertEqual(pptd_browser.reap_idle_debug_chrome(idle_minutes=1), [])
-
-
-@unittest.skipUnless(pptd_browser.sys.platform == "win32", "the debug browser path is Windows-only")
-class DebugChromeLifecycleTests(unittest.TestCase):
-    """Drive the real spawn → register → reuse → reclaim cycle."""
-
-    PORT = 47731
-
-    @staticmethod
-    def chromium() -> Optional[str]:
-        override = os.environ.get("PPTD_TEST_CHROMIUM")
-        candidates = [override] if override else []
-        candidates.extend(pptd_browser.CHROME_CANDIDATES)
-        candidates.extend(
-            str(path)
-            for path in sorted(Path.home().glob("AppData/Local/ms-playwright/chromium-*/chrome-win64/chrome.exe"))
-        )
-        for candidate in candidates:
-            if candidate and Path(candidate).is_file():
-                return candidate
-        return None
-
-    def test_start_reuse_and_reclaim(self):
-        chromium = self.chromium()
-        if not chromium:
-            self.skipTest("no Chrome/Chromium executable available")
-
+    @unittest.skipUnless(shutil.which("node"), "node is required")
+    def test_exports_local_media_and_transition_none(self):
         with tempfile.TemporaryDirectory() as name:
-            registry = Path(name) / "pptd-cdp.json"
-            profile = Path(name) / "pptd-cdp-profile"
-            with patch.object(pptd_browser, "CDP_REGISTRY_PATH", registry), \
-                    patch.object(pptd_browser, "DEBUG_CHROME_PROFILE", profile), \
-                    patch.object(pptd_browser, "CHROME_CANDIDATES", (chromium,)), \
-                    patch.dict(
-                        pptd_browser.os.environ,
-                        {"PPTD_DEBUG_CHROME_PORT": str(self.PORT), "PPTD_DEBUG_CHROME_IDLE_MINUTES": "60"},
-                    ):
-                try:
-                    self.assertEqual(pptd_browser.ensure_debug_chrome(), self.PORT)
-                    self.assertTrue(pptd_browser.cdp_alive(self.PORT))
-                    entry = pptd_browser.registered_debug_chrome(self.PORT)
-                    self.assertIsNotNone(entry, "a browser we start must be registered")
-                    self.assertEqual(entry["profile"], str(profile))
-                    self.assertIsNotNone(entry["pid"])
-                    self.assertIsNotNone(
-                        pptd_browser.process_image_name(entry["pid"]),
-                        "the registered pid must look like a browser",
-                    )
-                    pid = entry["pid"]
-
-                    # Reuse: same port, same process, no second browser.
-                    self.assertEqual(pptd_browser.ensure_debug_chrome(), self.PORT)
-                    self.assertEqual(pptd_browser.registered_debug_chrome(self.PORT)["pid"], pid)
-
-                    # Reclaim: force ignores the idle age.
-                    reaped = pptd_browser.reap_idle_debug_chrome(force=True)
-                    self.assertEqual([item["port"] for item in reaped], [self.PORT])
-                    self.assertFalse(pptd_browser.cdp_alive(self.PORT))
-                    self.assertIsNone(pptd_browser.registered_debug_chrome(self.PORT))
-                finally:
-                    pptd_browser.reap_idle_debug_chrome(force=True)
+            output = Path(name) / "qa.pptx"
+            summary = EXPORT.export_pptx(QA_DECK, output, transition="none")
+            self.assertEqual(summary["slides"], 3)
+            self.assertEqual(summary["fadeTransitions"], 0)
+            self.assertEqual(summary["fontParts"], 0)
+            with zipfile.ZipFile(output) as archive:
+                self.assertTrue(any(name.startswith("ppt/media/") for name in archive.namelist()))
 
 
-def free_port() -> int:
-    with socket.socket() as probe:
-        probe.bind(("127.0.0.1", 0))
-        return probe.getsockname()[1]
+class ReferenceCoverageTests(unittest.TestCase):
+    def test_all_44_presets_are_retained_and_indexed(self):
+        root = SKILL_ROOT / "references" / "design_system"
+        index = (root / "README.md").read_text(encoding="utf-8")
+        primary = sorted(root.glob("*/*/design.md"))
+        extra = sorted((root / "extra").glob("*.md"))
+        self.assertEqual(len(primary), 30)
+        self.assertEqual(len(extra), 14)
+        for path in primary + extra:
+            relative = path.relative_to(root).as_posix()
+            self.assertIn(f"`{relative}`", index)
 
-
-@unittest.skipUnless(pptd_browser.sys.platform == "win32", "the debug browser path is Windows-only")
-class DownloadRedirectTests(unittest.TestCase):
-    """The export ZIP must land in our directory, not in the user's Downloads."""
-
-    @staticmethod
-    def chromium() -> Optional[str]:
-        override = os.environ.get("PPTD_TEST_CHROMIUM")
-        candidates = [override] if override else []
-        candidates.extend(pptd_browser.CHROME_CANDIDATES)
-        candidates.extend(
-            str(path)
-            for path in sorted(Path.home().glob("AppData/Local/ms-playwright/chromium-*/chrome-win64/chrome.exe"))
-        )
-        for candidate in candidates:
-            if candidate and Path(candidate).is_file():
-                return candidate
-        return None
-
-    def test_download_lands_in_the_redirected_directory(self):
-        chromium = self.chromium()
-        if not chromium:
-            self.skipTest("no Chrome/Chromium executable available")
-
-        port = free_port()
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as name:
-            root = Path(name)
-            profile = root / "profile"
-            downloads = root / "downloads"
-            downloads.mkdir()
-            (root / "payload.txt").write_text("pptd-download-redirect", encoding="utf-8")
-            (root / "page.html").write_text(
-                '<a id="go" href="payload.txt" download="payload.txt">download</a>',
-                encoding="utf-8",
-            )
-            # The editor is always reached over http; Chromium does not perform
-            # downloads triggered from a file:// page, so serve one here too.
-            with socket.socket() as probe:
-                probe.bind(("127.0.0.1", 0))
-                http_port = probe.getsockname()[1]
-            handler = functools.partial(SimpleHTTPRequestHandler, directory=str(root))
-            origin = ThreadingHTTPServer(("127.0.0.1", http_port), handler)
-            threading.Thread(target=origin.serve_forever, daemon=True).start()
-            self.addCleanup(origin.shutdown)
-            process = subprocess.Popen(
-                [
-                    chromium,
-                    f"--user-data-dir={profile}",
-                    f"--remote-debugging-port={port}",
-                    "--no-first-run",
-                    "--no-default-browser-check",
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            try:
-                deadline = time.monotonic() + 30
-                while time.monotonic() < deadline and not pptd_browser.cdp_alive(port):
-                    time.sleep(0.5)
-                self.assertTrue(pptd_browser.cdp_alive(port), "browser did not open a CDP port")
-
-                version = json.loads(
-                    urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=10).read()
-                )
-                debugger_url = version["webSocketDebuggerUrl"]
-
-                # A BrowserSession stand-in: only browser_cdp_url() is needed.
-                browser = pptd_browser.BrowserSession.__new__(pptd_browser.BrowserSession)
-                browser.executable = ""
-                browser.session = "test"
-                browser.cwd = root
-                browser.download_dir = downloads
-                browser.env = dict(os.environ)
-                browser.run = lambda args, **kwargs: subprocess.CompletedProcess(
-                    args, 0, "cdp-url: " + debugger_url + "\n", ""
-                )
-                redirect = pptd_browser.set_download_behavior(browser, downloads)
-                self.assertIsNotNone(
-                    redirect,
-                    "the download redirect should succeed against a live CDP browser",
-                )
-                # The redirect lives on this socket: closing it drops the setting.
-                self.addCleanup(redirect.close)
-
-                cdp_socket = pptd_browser.cdp_connect(debugger_url)
-                try:
-                    targets = pptd_browser.cdp_call(cdp_socket, 1, "Target.getTargets", {}).get("targetInfos", [])
-                    page = next((t for t in targets if t.get("type") == "page"), None)
-                    self.assertIsNotNone(page, "browser exposed no page target")
-                    attached = pptd_browser.cdp_call(
-                        cdp_socket, 2, "Target.attachToTarget", {"targetId": page["targetId"], "flatten": True}
-                    )
-                    session = attached["sessionId"]
-                    pptd_browser.cdp_call(
-                        cdp_socket,
-                        3,
-                        "Page.navigate",
-                        {"url": f"http://127.0.0.1:{http_port}/page.html"},
-                        session,
-                    )
-                    # Wait for the link to exist before clicking: Page.navigate
-                    # resolves when the navigation starts, not when it finishes.
-                    def anchor_ready() -> bool:
-                        result = pptd_browser.cdp_call(
-                            cdp_socket,
-                            4,
-                            "Runtime.evaluate",
-                            {
-                                "expression": "Boolean(document.getElementById('go'))",
-                                "returnByValue": True,
-                            },
-                            session,
-                        )
-                        return bool(result.get("result", {}).get("value"))
-
-                    deadline = time.monotonic() + 15
-                    while time.monotonic() < deadline and not anchor_ready():
-                        time.sleep(0.3)
-                    self.assertTrue(anchor_ready(), "the test page never became interactive")
-                    pptd_browser.cdp_call(
-                        cdp_socket,
-                        5,
-                        "Runtime.evaluate",
-                        {"expression": "document.getElementById('go').click()", "returnByValue": True},
-                        session,
-                    )
-                finally:
-                    cdp_socket.close()
-
-                deadline = time.monotonic() + 20
-                downloaded = None
-                while time.monotonic() < deadline and downloaded is None:
-                    candidates = list(downloads.glob("payload*"))
-                    downloaded = candidates[0] if candidates else None
-                    if downloaded is None:
-                        time.sleep(0.5)
-                self.assertIsNotNone(downloaded, f"nothing arrived in {downloads}")
-                self.assertEqual(downloaded.read_text(encoding="utf-8"), "pptd-download-redirect")
-            finally:
-                for pid in (process.pid, pptd_browser.find_debug_chrome_pid(port)):
-                    if pid:
-                        subprocess.run(
-                            ["taskkill", "/pid", str(pid), "/T", "/F"],
-                            capture_output=True,
-                            text=True,
-                            timeout=30,
-                        )
-                # The profile lives inside the temp dir: let the browser release
-                # its files before the directory is removed.
-                deadline = time.monotonic() + 15
-                cdp_pid = pptd_browser.find_debug_chrome_pid(port)
-                while time.monotonic() < deadline and cdp_pid and pptd_browser.process_image_name(cdp_pid) is not None:
-                    time.sleep(0.5)
-                process.poll()
+    def test_all_seven_scenarios_are_retained_and_routed(self):
+        root = SKILL_ROOT / "references" / "slides_categories"
+        router = (SKILL_ROOT / "references" / "slides_categories.md").read_text(encoding="utf-8")
+        scenarios = sorted(root.glob("*.md"))
+        self.assertEqual(len(scenarios), 7)
+        for path in scenarios:
+            self.assertIn(f"references/slides_categories/{path.name}", router)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Design System Presets — Index
 
-The pptd skill ships 44 design-system presets. Use them **only when the user explicitly names a theme** — self-directed design must not auto-pick a preset (see `SKILL.md` §step3).
+The pptd skill ships 44 design-system presets. Use them **only when the user explicitly names a theme** — self-directed design uses the scenario guides instead of auto-picking a preset (see `SKILL.md` → “Load only the references needed”).
 
 ## Rules
 

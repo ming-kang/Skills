@@ -1,44 +1,19 @@
-#!/usr/bin/env python3
-"""PPTD deck loading: manifests, pages, payloads and local image maps.
-
-This module owns "what is in a deck": finding the ``.pptd`` manifest, reading
-YAML safely, keeping every referenced file inside the project directory, and
-assembling the two hand-off shapes the exporters consume —
-
-* ``build_payload``: the headless ``payload.json`` for the local editor host
-  (consumed by ``assets/editor/local-bridge.js``);
-* ``build_local_project``: the pre-parsed project for the Node WASM exporter
-  (``scripts/local-export/export-pptd.mjs --json``).
-
-Both parse here on purpose: PyYAML is the one Python dependency the skill
-already requires, and the Node side has no guaranteed package tree. Both also
-share ``read_validated_project``, so the two shapes cannot drift apart on what
-a well-formed v2 deck is.
-"""
-
 from __future__ import annotations
 
-import base64
+import math
 import re
-import uuid
+import sys
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any
 
-from pptd_common import ExportError, ensure_module, log
+from pptd_common import ExportError
 
-IMAGE_MIME = {
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".gif": "image/gif",
-    ".svg": "image/svg+xml",
-}
-MAX_IMAGE_BYTES = 20 * 1024 * 1024
-MAX_EMBEDDED_MEDIA_BYTES = 200 * 1024 * 1024
+ELEMENT_TYPES = {"text", "shape", "line", "image", "icon", "table", "chart"}
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".svg"}
 
 
 def find_manifest(source: Path) -> Path:
-    source = source.expanduser().resolve()
+    source = Path(source).expanduser().resolve()
     if source.is_file():
         if source.suffix.lower() != ".pptd":
             raise ExportError(f"input must be a .pptd file or project directory: {source}")
@@ -56,22 +31,27 @@ def find_manifest(source: Path) -> Path:
     return manifests[0]
 
 
-def read_yaml_mapping(path: Path) -> Tuple[str, Dict[str, Any]]:
-    yaml = ensure_module("yaml", "pyyaml", "PyYAML is required to read PPTD YAML")
-    text = path.read_text(encoding="utf-8")
+def read_yaml_mapping(path: Path) -> dict[str, Any]:
     try:
-        value = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
+        import yaml
+    except ImportError as exc:
+        raise ExportError(
+            f"PyYAML is required; install it with: {sys.executable} -m pip install PyYAML"
+        ) from exc
+    try:
+        value = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (yaml.YAMLError, UnicodeError) as exc:
         raise ExportError(f"invalid YAML in {path}: {exc}") from exc
     if not isinstance(value, dict):
         raise ExportError(f"expected a YAML mapping in {path}")
-    return text, value
+    return value
 
 
 def safe_project_path(root: Path, relative: str) -> Path:
     if not isinstance(relative, str) or not relative.strip():
-        raise ExportError("page path must be a non-empty string")
-    candidate = (root / relative).resolve()
+        raise ExportError("project path must be a non-empty string")
+    root = root.resolve()
+    candidate = (root / relative.replace("\\", "/")).resolve()
     try:
         candidate.relative_to(root)
     except ValueError as exc:
@@ -79,158 +59,126 @@ def safe_project_path(root: Path, relative: str) -> Path:
     return candidate
 
 
-def read_validated_project(
-    manifest: Path,
-) -> Tuple[str, Dict[str, Any], List[Tuple[str, str, Dict[str, Any]]]]:
-    """Read and validate one v2 deck.
+def _number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
-    Returns ``(manifest text, manifest mapping, [(page path, page text, page
-    data)])``. The single definition of the deck contract, shared by both
-    hand-off shapes so they cannot disagree about it.
-    """
-    manifest_text, manifest_data = read_yaml_mapping(manifest)
-    if manifest_data.get("version") != "v2":
-        raise ExportError("local PPTX export currently requires PPTD version: v2")
-    page_paths = manifest_data.get("pages")
+
+def _dimensions(value: Any, label: str) -> list[float]:
+    if not isinstance(value, list) or len(value) != 4 or not all(_number(item) for item in value):
+        raise ExportError(f"{label} must be [x, y, width, height] with finite numbers")
+    if value[2] <= 0 or value[3] <= 0:
+        raise ExportError(f"{label} width and height must be positive")
+    return value
+
+
+def _media_holders(page: dict[str, Any]):
+    background = page.get("background")
+    if isinstance(background, dict) and background.get("type") == "image":
+        yield background
+    for element in page.get("elements", []):
+        if element.get("elementType") == "image":
+            yield element
+        fill = element.get("fill")
+        if isinstance(fill, dict) and fill.get("type") == "image":
+            yield fill
+
+
+def _validate_media(root: Path, page_path: str, page: dict[str, Any]) -> None:
+    for holder in _media_holders(page):
+        src = holder.get("src")
+        if not isinstance(src, str) or not src.strip():
+            raise ExportError(f"{page_path}: image source must be a non-empty string")
+        if re.match(r"^(https?://|data:)", src, re.IGNORECASE):
+            continue
+        relative = re.sub(r"^file://+", "", src)
+        path = safe_project_path(root, relative)
+        if not path.is_file():
+            raise ExportError(f"{page_path}: missing local image: {src}")
+        if path.suffix.lower() not in IMAGE_EXTENSIONS:
+            raise ExportError(f"{page_path}: unsupported local image type: {src}")
+
+
+def _validate_elements(
+    root: Path, size: list[float], page_path: str, page: dict[str, Any]
+) -> list[str]:
+    warnings: list[str] = []
+    seen_ids: set[str] = set()
+    for index, element in enumerate(page["elements"]):
+        label = f"{page_path}: elements[{index}]"
+        if not isinstance(element, dict):
+            raise ExportError(f"{label} must be a mapping")
+        element_id = element.get("elementId")
+        if not isinstance(element_id, str) or not element_id.strip():
+            raise ExportError(f"{label}.elementId must be a non-empty string")
+        if element_id in seen_ids:
+            raise ExportError(f"{page_path}: duplicate elementId: {element_id}")
+        seen_ids.add(element_id)
+        if element.get("elementType") not in ELEMENT_TYPES:
+            raise ExportError(f"{label}.elementType is invalid: {element.get('elementType')!r}")
+        bounds = _dimensions(element.get("bounds"), f"{label}.bounds")
+        if (
+            bounds[0] < 0
+            or bounds[1] < 0
+            or bounds[0] + bounds[2] > size[0]
+            or bounds[1] + bounds[3] > size[1]
+        ):
+            warnings.append(f"{label} ({element_id}) extends beyond the slide canvas")
+        if element["elementType"] == "text":
+            content = element.get("content")
+            if not isinstance(content, dict) or not isinstance(content.get("text"), str):
+                raise ExportError(f"{label}.content.text must be a string for text elements")
+    _validate_media(root, page_path, page)
+    return warnings
+
+
+def build_local_project(source: Path) -> dict[str, Any]:
+    manifest_path = find_manifest(source)
+    manifest = read_yaml_mapping(manifest_path)
+    if manifest.get("version") != "v2":
+        raise ExportError("only PPTD version: v2 is supported")
+    size = manifest.get("size")
+    if (
+        not isinstance(size, list)
+        or len(size) != 2
+        or not all(_number(item) and item > 0 for item in size)
+    ):
+        raise ExportError("manifest.size must contain two positive finite numbers")
+    page_paths = manifest.get("pages")
     if not isinstance(page_paths, list) or not page_paths:
-        raise ExportError("PPTD manifest must contain a non-empty pages list")
+        raise ExportError("manifest.pages must be a non-empty array")
+    if not all(isinstance(entry, str) and entry.strip() for entry in page_paths):
+        raise ExportError("every manifest.pages entry must be a non-empty string")
+    if len(set(page_paths)) != len(page_paths):
+        raise ExportError("manifest.pages contains duplicate paths")
 
-    root = manifest.parent.resolve()
-    pages: List[Tuple[str, str, Dict[str, Any]]] = []
+    root = manifest_path.parent.resolve()
+    pages: list[dict[str, Any]] = []
+    warnings: list[str] = []
     for entry in page_paths:
         page_path = safe_project_path(root, entry)
         if not page_path.is_file():
             raise ExportError(f"missing page file: {entry}")
-        page_text, page_data = read_yaml_mapping(page_path)
-        if not isinstance(page_data.get("elements"), list):
+        page = read_yaml_mapping(page_path)
+        if not isinstance(page.get("elements"), list):
             raise ExportError(f"page elements must be an array: {entry}")
-        pages.append((entry, page_text, page_data))
-    return manifest_text, manifest_data, pages
+        warnings.extend(_validate_elements(root, size, entry, page))
+        pages.append({"path": entry, "data": page})
 
-
-def collect_image_sources(pages_data: Iterable[Dict[str, Any]]) -> List[str]:
-    """Local image sources actually referenced by the deck, in first-seen order.
-
-    Scanning the project directory instead would sweep up unrelated files —
-    notably the page renders under .qa-images/, which the visual-QA loop writes
-    into the project root and regenerates on every round.
-    """
-    sources: List[str] = []
-    seen = set()
-
-    def visit(holder: Any) -> None:
-        if not isinstance(holder, dict):
-            return
-        src = holder.get("src")
-        if not isinstance(src, str) or not src.strip():
-            return
-        if re.match(r"^(https?://|data:)", src, re.IGNORECASE):
-            return
-        if src in seen:
-            return
-        seen.add(src)
-        sources.append(src)
-
-    for page in pages_data:
-        if not isinstance(page, dict):
-            continue
-        background = page.get("background")
-        if isinstance(background, dict) and background.get("type") == "image":
-            visit(background)
-        elements = page.get("elements")
-        if not isinstance(elements, list):
-            continue
-        for element in elements:
-            if not isinstance(element, dict):
-                continue
-            if element.get("elementType") == "image":
-                visit(element)
-            fill = element.get("fill")
-            if isinstance(fill, dict) and fill.get("type") == "image":
-                visit(fill)
-    return sources
-
-
-def build_image_map(root: Path, pages_data: Iterable[Dict[str, Any]]) -> Dict[str, str]:
-    image_map: Dict[str, str] = {}
-    total = 0
-    for src in collect_image_sources(pages_data):
-        path = safe_project_path(root, re.sub(r"^file://+", "", src))
-        if not path.is_file():
-            log(f"skip missing local image: {src}")
-            continue
-        suffix = path.suffix.lower()
-        if suffix not in IMAGE_MIME:
-            log(f"skip unsupported image type: {src}")
-            continue
-        size = path.stat().st_size
-        if size > MAX_IMAGE_BYTES:
-            log(f"skip local image over 20 MiB: {src}")
-            continue
-        if total + size > MAX_EMBEDDED_MEDIA_BYTES:
-            raise ExportError(
-                "local image payload exceeds 200 MiB; reduce media size or use remote URLs"
-            )
-        data = base64.b64encode(path.read_bytes()).decode("ascii")
-        image_map[src] = f"data:{IMAGE_MIME[suffix]};base64,{data}"
-        total += size
-    if image_map:
-        log(f"prepared {len(image_map)} local image resource(s), {total} bytes")
-    return image_map
-
-
-def build_payload(manifest: Path, embed_media: bool = False) -> Dict[str, Any]:
-    """Assemble the headless payload for the local editor.
-
-    The payload.json shape is the contract between this module and
-    ``assets/editor/local-bridge.js`` (``loadExportPayload``); both sides
-    document it here and nowhere else:
-
-    ==============  ========================================================
-    key             meaning
-    ==============  ========================================================
-    id              deck id handed to the editor's setPPTD
-    title           deck title (manifest title, else file stem)
-    manifestPath    manifest file name (not a path)
-    manifestContent raw manifest YAML text
-    pages           [{"path", "content"}] — path as listed in the manifest,
-                    content the raw page YAML text
-    imageMap        src → data URL, only when embed_media=True
-    mediaBase       "/__media__/" when the host serves the project's media;
-                    set by the host, never by this function
-    ==============  ========================================================
-
-    `embed_media=False` (the default) leaves `imageMap` empty: the deck's local
-    media is served by the host that also serves the payload, so a deck with
-    hundreds of high-resolution images no longer inflates the JSON (and the
-    browser's memory) by a base64 factor. `embed_media=True` restores the old
-    self-contained payload for hosts that cannot serve the project directory.
-    """
-    manifest = find_manifest(manifest)
-    manifest_text, manifest_data, pages = read_validated_project(manifest)
-    title = str(manifest_data.get("title") or manifest.stem)
     return {
-        "id": f"local-export-{uuid.uuid4().hex}",
-        "title": title,
-        "manifestPath": manifest.name,
-        "manifestContent": manifest_text,
-        "pages": [{"path": entry, "content": text} for entry, text, _ in pages],
-        "imageMap": build_image_map(manifest.parent, [data for _, _, data in pages])
-        if embed_media
-        else {},
+        "manifestPath": str(manifest_path),
+        "manifest": manifest,
+        "pages": pages,
+        "warnings": warnings,
     }
 
 
-def build_local_project(manifest: Path) -> Dict[str, Any]:
-    """Pre-parsed project for the local WASM exporter (`export-pptd.mjs --json`).
-
-    The Node side has no guaranteed YAML package next to the skill, so the
-    parsing happens here, where PyYAML is already a hard dependency.
-    """
-    manifest = find_manifest(manifest)
-    _, manifest_data, pages = read_validated_project(manifest)
+def validation_summary(project: dict[str, Any]) -> dict[str, Any]:
+    pages = project["pages"]
     return {
-        "manifestPath": str(manifest),
-        "manifest": manifest_data,
-        "pages": [{"path": entry, "data": data} for entry, _, data in pages],
+        "valid": True,
+        "manifest": project["manifestPath"],
+        "title": project["manifest"].get("title"),
+        "slides": len(pages),
+        "elements": sum(len(page["data"]["elements"]) for page in pages),
+        "warnings": project.get("warnings", []),
     }

@@ -180,7 +180,7 @@ project/
    - Image paths in `.page`: `media/image1.jpg`
 3. **Media supports URLs**: `Image.src`, and the [ImageFill](#fill).src of `background` / `fill`, may be `https://...` (only jpg/jpeg/png/gif supported)
 
-**Main entry is required:** everything must be loaded through the `.pptd` main entry file; a `.page` cannot be passed alone to `scripts/export_pptx.py` or `scripts/export_images.py`
+**Main entry is required:** everything must be loaded through the `.pptd` main entry file; a `.page` cannot be passed alone to `scripts/validate_pptd.py` or `scripts/export_pptx.py`
 
 ---
 

@@ -1,209 +1,112 @@
 ---
 name: pptd
-description: "Create, edit, and export presentations as PPTD projects and .pptx files. Use whenever a slide deck, PowerPoint, PPT/PPTX, infographic, or poster is involved — created from a topic or document, replicated from images or PDF, edited from an existing PPTD project, or exported. Default deliverables are BOTH a self-contained PPTD project folder and a locally generated .pptx with fade slide transitions."
+description: "Create, edit, replicate, validate, and export presentations with the private PPTD YAML format and its bundled WASM writer. Use whenever a slide deck, PowerPoint, PPT/PPTX, infographic, or poster is involved. Produces BOTH a self-contained editable PPTD project and a local .pptx by default; supports PPTD → PPTX only."
 ---
 
-# Definition
-pptd is a presentation creation and export skill built around the PPTD format and a browser-side PPTX writer. It defines a YAML-format intermediate DSL (`.pptd`) that abstracts OOXML and keeps each page self-contained.
+# PPTD
 
-Paths below are relative to this skill folder. Resolve the installed folder before running helpers from another working directory.
+PPTD is a private, YAML-based presentation format. Each `.pptd` manifest lists self-contained `.page` files; the bundled WASM writer converts the project to PPTX without a browser or cloud service.
 
-**The default output is not PPTD-only.** Unless the user explicitly opts out, always produce both:
+Resolve paths below relative to this skill folder, including when working from another directory.
 
-1. the complete editable PPTD project directory (`.pptd` + `pages/` + `media/` and other referenced dependencies);
-2. the matching locally generated `.pptx`, with fade slide transitions applied by default. Font embedding is only available on the optional `--browser` export path (see step5); do not describe the default WASM export as having embedded fonts.
+## Scope and delivery
 
-**PPTX import is not supported.** The exporter is one-way (PPTD → PPTX); this skill ships no pptx reader. To work from an existing `.pptx`, ask the user to export it to PDF or page images first, then rebuild it through the replicate path (see step3).
+Unless the user explicitly requests PPTD-only output, deliver:
 
-## The pptd format
-The .pptd format is a simplified abstraction layer over OOXML that follows basic YAML syntax. This abstraction preserves the core content of OOXML (theme, page layout, element positions and definitions, etc.) while removing complex nesting logic such as Masters; every page is self-contained — what you see is what you get. Read references/pptd.md for the complete definition of this DSL.
+1. A complete PPTD project: one `.pptd`, its `pages/`, and every referenced local asset.
+2. The matching `.pptx`, exported locally with a fade slide transition by default.
 
-## PPT production workflow
+The exporter is one-way: **PPTD → PPTX**. There is no PPTX importer, editor, renderer, or image exporter in this skill. To edit or replicate an existing `.pptx`, ask the user for a PDF or page images and rebuild it as PPTD. Do not claim font embedding or image-based visual QA; the bundled pipeline performs structural checks and PPTX package verification.
 
-### step0. Check local prerequisites
-Default delivery includes PPTX export (and optional `node scripts/serve.mjs`), which need a local toolchain. **Before generating**, verify:
+`references/pptd.md` is the authoritative format contract. It describes the private dialect understood by the WASM writer, so do not invent fields or substitute another YAML schema.
 
-1. **Node.js 18+**: run `node --version`. If `node` is missing or the major version is below 18, **stop immediately**, tell the user to install Node.js 18+ from https://nodejs.org (or their OS package manager), and do not continue with PPTX export until it is available. Only continue with PPTD-only output when the user explicitly opts out of PPTX.
-2. **python3**: run `python3 --version` (on Windows, `python` may be the correct command). Needed for `scripts/export_pptx.py` / `scripts/export_images.py`.
-3. **Chrome / Chromium / Edge**: needed by `agent-browser` for **image QA** (`scripts/export_images.py`) and optional `--browser` PPTX path. Default PPTX export uses local WASM and does **not** require a browser. If the machine has no Chromium-based browser at all, the scripts automatically run `agent-browser install` once to download a private Chrome for Testing; only if that also fails, ask the user to install a Chromium-based browser.
-4. Soft deps are auto-handled by the scripts when missing: **PyYAML**, **agent-browser** (≥0.33.2 via npm, only for browser/image paths; `agent-browser install` additionally provisions Chrome for Testing when the machine has no Chromium-based browser), and for image QA **Pillow** + **websocket-client**. **PPTX / image export / manual edit are offline** against the local editor + patched WASM. Network is only needed if the deck references remote images/fonts.
+## Workflow
 
-### step1. Read the context thoroughly
-Read **all files uploaded by the user**, the provided URLs, and the pptd format guide `references/pptd.md` to fully understand the user's requirements. That guide is long: follow its "How to Read This Document" index — always read the conventions, §1, §3, §4, then load only the §2 shared types and §5 element sections this deck actually needs.
+### 1. Establish the task
 
-### step2. Understand the user's requirements
-Understand the user's requirements based on the context:
-1. First determine the purpose of the request
-  - Create a PPT: create a new presentation (from scratch, or from an existing pptx template)
-  - Edit a PPT: edit an existing PPTD project (local modifications, single-page beautification, etc.)
-  - Replicate a PPT: replicate a presentation from a non-pptd format (images, PDF, etc.) into pptd format — this is also the only route for an existing `.pptx`
+Determine whether the user wants to:
 
-2. Then determine the design direction
-  - Self-directed design: no preference, or only simple style constraints given; you need to fill in or create the design
-  - Design system: a preset design system from the skill (`references/design_system/`) is specified, or the user provides a complete and detailed design scheme covering all color, font, layout, and component specifications
-  - Use a template: a template is provided and must be used
-  - Style transfer: a style reference source is provided (images, web pages, etc.)
+- **Create** a deck from a topic, document, outline, or template.
+- **Edit** an existing PPTD project while preserving unrelated pages and elements.
+- **Replicate** PDF or page images as editable PPTD, as closely as the available detail allows.
 
-3. Then determine the input type
-  - Topic only: only a PPT topic direction or content requirements for the presentation is given, with no concrete content
-  - Full document: the user provides a complete document (paper, research report, press release, etc.)
-  - Outline: the user provides a page-by-page outline, speech script, or similar content
-  * When the "user input type" is [Full document] or [Outline] and it is not specified whether expansion is allowed: since a page-by-page outline, speech script, or user document can hardly support the full content of a presentation, prefer using search to expand with more relevant material, cases, etc., unless the user explicitly says not to expand
+Confirm page count, audience, language, aspect ratio, and design direction when they materially affect the result and cannot be inferred. User-provided content, templates, brand rules, and style references take priority over built-in guides. Never fabricate facts, citations, data, or missing source material.
 
-4. Finally determine the exact page count
-  - If the user requests a specific page count, the user's requirement takes priority
-  - Page-by-page outline/script provided: match the number of pages in the outline
-  - When a complete and relatively structured document is provided: ask the user how much document content one page should cover, and give an estimated total page count; when only a topic is given: suggest a recommended page count and confirm with the user
+### 2. Load only the references needed
 
-#### Clarification and follow-up questions
-When any of the following situations arise, resolve them by asking the user (use the agent's ask/clarification tool when available)
-1. Requirements are ambiguous
-- The user's intent is unclear or hard to understand
-- The files/URLs provided by the user are inaccessible
-2. Conflicting intents
-- The user's intents contradict each other. For example:
-  * A design system is selected while also requesting a style that is completely inconsistent with that design system (e.g., using a McKinsey style while requiring large areas of whitespace on pages) / using a template / referencing an image style
-  * Requesting both "make 10 pages" and "deliver 30+ pages of output"
-3. Unable to determine the user's requirements on your own
-- When the purpose, design direction, input type, page count, etc. are hard for you to decide yourself
+For every deck, read `references/pptd.md` using its own reading index: conventions and §§1, 3, 4 first; then only the shared types, elements, and animation sections used by the deck.
 
-### step3. Generate the presentation based on the user's requirements
+| Situation | Additional reading |
+|---|---|
+| Self-directed presentation design | `references/slides_categories.md`, then one matching file under `references/slides_categories/` |
+| User explicitly names a preset | `references/design_system/README.md`, then only that preset's file |
+| Poster, infographic, or highly visual single page | `references/general-poster.md` |
+| Font selection | `references/fonts.md` |
+| Built-in or custom shapes | `references/shapes.md` and the corresponding PPTD spec section |
 
-Before generating, first read `references/pptd.md` (per its "How to Read This Document" index) to understand the pptd format definition and constraints, loading the element sections this deck needs.
+Use a design preset only when the user names it; do not mix presets or auto-select one for self-directed work. Keep all 44 presets available through the index.
 
-#### Replicating a PPT
-- Analyze the images to estimate element positions, fonts and sizes, etc., and **replicate 1:1 as closely as possible**.
-- For parts that are difficult to make out, use methods such as grid lines and close-up views to improve understanding.
-- Replicate simple content in the image with elements; icons may be approximated with icons provided by Font Awesome. For content that cannot be approximated with icons or shapes, such as photos and avatars, use tools such as bash or python to crop and split the original image, then add the resulting image elements to the presentation
+### 3. Build a self-contained project
 
-#### Editing a PPT
-- Editing applies to an existing PPTD project. Review it first (the `.pptd` manifest, the page structure, and key visual details), then read a few key pages individually.
-- Locate the pages to edit, and be careful not to affect parts outside the intended scope.
-> A `.pptx` cannot be imported. When the user uploads one and asks for edits, say so plainly and offer the replicate path: they export the deck to PDF or page images, and you rebuild those pages as PPTD.
+Use this layout unless editing an existing valid project:
 
-#### Generating a PPT
-When generating a PPT, adopt different production approaches for different user [design directions]
-##### Self-directed design
-1. Read the design guide `references/slides_categories.md`, and read the scenario document corresponding to the user's query
-2. Produce the presentation based on the above
+```text
+deck/
+  deck.pptd
+  pages/
+    01-cover.page
+    02-content.page
+  media/                 # when local media is used
+```
 
-#### Generating content in other formats
-- When the user explicitly asks for an infographic, poster, or a highly visual single-page design, read `references/general-poster.md` and implement it as a single-page or few-page editable PPTD; when the user only asks for an image, still build it with PPTD first, then output the image via screenshot or rendering. Do not load this reference file for ordinary PPT requests.
+Follow the format contract:
 
-##### Design system
-1. Read the general constraints section of the `references/slides_categories.md` guide, and read the scenario document corresponding to the user's query as the design foundation
-2. Read the specified design system as the presentation style: either the user-provided design scheme, or the matching preset under `references/design_system/` — resolve the slug through the index at `references/design_system/README.md` (44 presets: 30 primary `<category>/<slug>/design.md` folders + 14 flat `extra/<slug>.md` sheets). It is strictly forbidden to reference or mix in other design styles
-3. Produce the presentation with reference to the above
-4. Do not auto-pick a preset during self-directed design; only use `references/design_system/` when a preset is explicitly specified
+- Use `version: v2`, an explicit positive `size`, and an ordered `pages` list.
+- Keep page and media paths relative to the manifest directory and inside the project.
+- Give every element a unique `elementId` within its page and valid `[x, y, width, height]` bounds.
+- Keep text, shapes, tables, charts, and images editable where practical; crop source images instead of distorting them.
+- Add speaker notes only when requested. Add element animations only when requested or clearly useful for a live presentation; slide-level fade is handled separately during export.
 
-##### Using a template
-1. Accept the template as an existing PPTD project, or as images / PDF of the template deck. A `.pptx` template cannot be imported — ask the user to export it to PDF or page images first, then treat those pages as the reference
-2. Review the template pages to understand the template's visual style (color scheme, font style, element characteristics, layout characteristics, content density, etc.)
-3. Identify page types; focus on reading special pages such as the cover, summary pages, and section dividers (single-page screenshots, .page files), extracting their page layouts, content structures, reusable components (icons, shapes, smartart, reusable body layout schemes, etc.), and element styles (e.g., whitespace/line/card separators, square/rounded corners, etc.)
-4. Produce the presentation using the template
+For self-directed design, decide each page's reader task before laying it out. Use relevant images as evidence or explanation, not as decoration quotas. Prefer sources supplied by the user, then authoritative sources. Keep factual source links in the deck where appropriate.
 
-##### Style transfer
-1. Analyze the reference file's visual style (color scheme, font style, element characteristics, layout characteristics, content density, etc.), page layouts, content structures, reusable components (icons, shapes, smartart, reusable body layout schemes, etc.), and element styles (e.g., whitespace/line/card separators, square/rounded corners, etc.).
-- If the user provides a style reference URL, do not only read the text content; refer to and learn from the page's visual effect more to help understand the style
-2. Produce the presentation using the reference file's style characteristics. You are encouraged to reuse illustrations, fonts, font-size hierarchies, elements, etc. from the original pdf/url
+### 4. Validate the PPTD project
 
-##### Images and Visual Materials
-1. Images are an effective way to enrich a presentation's visual impact. Appropriate images should be used not only on covers and section dividers, but also on body pages to enrich the page, aid understanding, or support decision-making
-2. Images are used to show concrete subjects, explain content, provide evidence, or establish a scene. Logos, icons, decorative textures, and very small thumbnails do not count as substantive imagery.
-3. When a page involves products, people, places, buildings, events, cases, interfaces, experimental subjects, or spatial environments, prioritize corresponding real images or screenshots. If real images and screenshots cannot be obtained, generated images may be used instead.
-4. Image priority: images provided by the user; images from official websites, official reports, and credible sources; searched images that are directly relevant to the content; images generated for conceptual expression or atmosphere.
-5. After deciding which images are needed, complete image search, generation, and downloading in a batch before designing pages around their proportions. Save images in the `media` directory, keep them clear, and never stretch or distort them.
-6. Analytical, technical, and academic PPTs should use corresponding evidence images when products, experiments, interfaces, cases, or on-site materials are available. Do not reduce every page to text, color blocks, and shapes.
-7. Do not add irrelevant images merely to meet a quantity target. Every image must be directly relevant to the page's conclusion or communication goal.
+Run the structural validator before exporting:
 
-##### Content Guidelines
-1. Language style: unless the user explicitly requests otherwise, strictly avoid overly abstract expressions and uncommon metaphors
-- Do not overuse metaphors, slogans, or abstract jargon such as distribution, an N-step argument, everything at a glance, a closed loop, hands-on practice, verification, deconstruction, second-class citizens, poison pills, or wall clocks
-- Do not use common AI phrasing such as "not X, but Y," "X is Y," "why / based on what / how," "key takeaway," or "N battlefronts / paths"
-- Do not use overly colloquial expressions such as "where should the ammunition go," "the Nth thing," "can't pick the right one," or "cannot be used as X"
+```bash
+python scripts/validate_pptd.py /absolute/path/deck/deck.pptd
+```
 
-### step4. PPT validation
-1. Validate the generated pptd against the format definition in `references/pptd.md` (required fields, types, bounds, theme tokens, resource paths, etc.) and repair issues over multiple rounds
-2. Visual review with exported page images — **required before PPTX export when the model supports image input (multimodal)**:
-   - Run `scripts/export_images.py`. It loads the deck into the **local editor** (the same offline editor `serve` hosts), chooses 导出 → 图片, downloads the images ZIP, unzips it, and stitches all pages into one overview image. Needs Chromium via `agent-browser`; runs entirely against the local editor.
+On Windows, `python` may be the available command; elsewhere use `python3`. The validator requires PyYAML and checks YAML, manifest/page structure, paths, element basics, and local media references. It prints a JSON summary and exits nonzero on errors.
 
-     ```bash
-     python3 scripts/export_images.py \
-       /abs/path/project/deck.pptd \
-       --output /abs/path/project/.qa-images
-     ```
+Fix every error. Review warnings, especially possible canvas overflow; intentional bleed is allowed by some designs, so warnings require judgment rather than automatic rewriting. Also inspect long text, contrast, alignment, and layering against the spec. These checks do not replace rendered visual review.
 
-     The script prints a JSON summary whose `images` array maps, per page, the stitched label (`overviewLabel`: `P1`…`Pn`, 1-based page order), the rendered image path (`image`), and the source `.page` file (`page`). Use `--output` outside the deck (the default `<project>/.qa-images` is fine); the script refuses to overwrite a directory that holds a `.pptd` manifest or `.page` files.
-   - Read the stitched overview image (`.qa-images/overview.jpg`) and check every page against this list:
-     1. 图片是否清晰、不变形（无拉伸、压缩、模糊）
-     2. 文字是否压在关键画面（人脸、产品主体、Logo 等）上
-     3. 元素坐标是否超出页面边界
-     4. 边界与配色对比是否足够（文字与背景、相邻色块之间）
-     5. 排版是否统一（对齐、间距、字号层级、页边距）
-     6. 文字是否可能溢出文本框（文本过长、行距过密、字号过大）
-     7. 内容是否被上层元素遮挡
-   - For any suspicious page, read its full-resolution image to confirm the problem before editing. Take the path from the JSON summary (`images[].image`, relative to the output directory) — the file names come from the editor's ZIP, so do not assume `<n>.jpeg`.
-   - Fix issues in the corresponding `.page` file, then re-run `scripts/export_images.py --force` and review the new overview; repeat until every page passes.
-   - Do not export the PPTX until the visual review passes. `.qa-images/` is an intermediate QA artifact and may be deleted after delivery.
-3. When the model cannot read images, fall back to a structural review of the generated pages (bounds, overflow-prone long text, contrast, hierarchy, layout density) over multiple rounds, and state that image-based visual QA was skipped.
+### 5. Export PPTX through the bundled WASM
 
-### step5. PPT output and delivery
-1. Always produce a self-contained project directory. Keep the `.pptd` manifest and every referenced dependency together; never deliver a standalone manifest without its referenced files. Use this layout unless an existing project already has a valid equivalent structure:
+Requirements:
 
-   ```text
-   deck/
-     deck.pptd
-     pages/
-       *.page
-     media/
-       *                # when the deck has local media
-     deck.pptx          # generated by default
-   ```
+- Node.js 18 or newer;
+- Python 3 with PyYAML (`python -m pip install PyYAML` if missing);
+- the bundled `assets/wasm/pptd_wasm_bg.wasm` and Node adapter.
 
-2. Generate the `.pptx` by default after PPTD validation, even when the user only asks to create or edit a presentation. Skip PPTX export only when the user explicitly requests PPTD-only output or the environment cannot run the exporter; in the latter case, report the exact blocker and still deliver the complete PPTD project.
-3. Deliver with normal clickable local links using absolute paths. In the final response, link all of the following:
-   - the project directory;
-   - the `.pptd` manifest;
-   - the `pages/` directory and `media/` directory when present;
-   - the generated `.pptx` file.
-4. PPTX conversion: use `scripts/export_pptx.py`. **Default path is the local patched WASM writer** (`scripts/local-export/export-pptd.mjs`): fully offline, no network, no browser. Optional `--browser` uses the **local** editor UI (same as `serve`), still fully offline.
-5. Default PPTX options:
-   - page transition: `fade` (淡入淡出), written to every slide after export;
-   - font embedding: available on the browser path; local WASM path prioritizes reliability over embed;
-   - override with `--transition none` or force browser UI with `--browser`.
-6. Export command:
+Run:
 
-   ```bash
-   # preferred: local patched WASM (offline)
-   python3 scripts/export_pptx.py \
-     /abs/path/project/deck.pptd \
-     --output /abs/path/project/deck.pptx
+```bash
+python scripts/export_pptx.py \
+  /absolute/path/deck/deck.pptd \
+  --output /absolute/path/deck/deck.pptx
+```
 
-   # optional: local editor browser UI (also offline)
-   python3 scripts/export_pptx.py \
-     /abs/path/project/deck.pptd \
-     --output /abs/path/project/deck.pptx --browser
-   ```
+Options:
 
-   A project directory may be passed instead of the manifest only when it contains exactly one `.pptd` file.
-   Existing output files are not overwritten unless `--force` is passed.
-7. Offline model (本地编辑器 + 本地导出):
-   - **PPTX export (default)**: local patched WASM via `scripts/local-export/export-pptd.mjs`. Canonical binary: `assets/editor/app/pptd_wasm_bg-DPPWdROu.wasm`, shipped inside the skill; `--wasm` can override. Requires **Node.js 18+** only — `export_pptx.py` parses the project with PyYAML and hands the Node side a pre-parsed `--json` payload, so no npm packages are needed next to the skill.
-   - The browser fallback only triggers when the local toolchain itself is missing (no `node`, no exporter, no WASM). Deck errors, validation failures, and an existing output file are reported as-is and never escalate to the browser path.
-   - **Image QA / visual review**: `scripts/export_images.py` drives the **local** editor via agent-browser (Chromium required). It waits until the editor has fetched every media file (the deck's images are served by the host instead of being embedded in the payload), then exports, unzips, stitches, and reports the page count plus the media request count — a deck that references images but reports 0 requests is rendering placeholders.
-   - **Manual edit / preview**: `node scripts/serve.mjs` serves the same offline editor.
-   - Browser PPTX path (`--browser`) uses the same local editor host; auto-installs `agent-browser@latest` when missing/outdated; **PyYAML** auto-installed with `pip --user` when missing; image QA additionally auto-installs Pillow and websocket-client.
-   - On Windows the browser paths start a dedicated debug Chrome on `127.0.0.1:9337` (override with `PPTD_DEBUG_CHROME_PORT`) and **leave it running** so repeated exports reuse one instance. Every instance the skill starts is registered in `<tempdir>/pptd-cdp.json`, reclaimed automatically after 60 idle minutes (`PPTD_DEBUG_CHROME_IDLE_MINUTES`, `0` disables) so that an interrupted export cannot leave one behind forever, and reclaimable on demand with `python3 scripts/clean_processes.py` (`npm run pptd:clean`). A browser you started yourself and pointed the skill at with `AGENT_BROWSER_CDP` is never registered and therefore never touched. Mention this when the user asks, and tell them they can close that window to stop it immediately.
-   - Both browser paths redirect the editor's download into their own temporary directory (`Page.setDownloadBehavior`), so nothing lands in the user's Downloads folder; the default folder is still scanned as a fallback when the redirect cannot be applied.
-   - Local PNG/JPEG/GIF/SVG files inside the PPTD project are resolved by the local exporter directly (bytes from disk); the browser paths serve them from the export host under `__media__/` rather than base64-inlining them into the payload, so a media-heavy deck no longer inflates the JSON (a 12 MB image costs a few hundred bytes of payload). Pass `embed_media=True` to `build_payload` for a self-contained payload when a host cannot serve the project directory.
-   - Do not claim PowerPoint/WPS/Keynote playback compatibility solely because ZIP validation succeeds.
-8. After export, verify that the output exists and report the generated path. Confirm that every slide has exactly one root-level fade transition in valid CT_Slide order (`cSld`, optional `clrMapOvr`, `transition`, optional `timing/extLst`) and that the PPTX ZIP passes integrity checks. A byte-string search for `<p:fade>` is insufficient because Office ignores transitions nested inside `cSld`. For higher-risk decks, additionally inspect font parts and representative rendered/opened pages as appropriate.
-9. Local editor host (`scripts/serve.mjs`) — pick the mode that fits the situation:
-   - **Agent-hosted preview** (when your runtime supports background processes): start it yourself with `node scripts/serve.mjs --project /abs/path/project`, read the JSON line it prints (or `--status`) for the URL, and give that URL to the user — the deck is already mounted, so there is no terminal, no port number and no directory authorization to deal with. Stop it when the task ends or the user is done: `node scripts/serve.mjs --stop` (add `--project <dir>` when several hosts are running). If your runtime cannot keep background processes, fall back to telling the user the command below.
-   - **User-run editor for manual editing**: `node scripts/serve.mjs` (no `--project`); the user opens `http://127.0.0.1:55173/` and authorizes the complete PPTD project directory. Use a Chromium-based browser for writable access; folder-upload fallback is read-only.
-   - The host serves the **offline editor** plus local patched WASM export — no network calls. Remote images or fonts referenced by the deck may still be fetched from their hosts.
-   - Lifecycle guardrails, so a background host never becomes an orphan: the instance registers a lease file in the OS temp dir (a second launch with the same editor + project reuses the running URL instead of failing with `EADDRINUSE`); a foreign process on port 55173 makes the host drift to a free port rather than exit; an open editor page pings the host and the host exits after 120 idle minutes by default (`--idle-timeout <minutes>`, `0` disables, `PPTD_SERVE_IDLE_MINUTES` overrides the default); `--status` and `--stop` print JSON.
-10. After completing and delivering any presentation, always end the final response with a concise optional next step: if you already host the project under step5.9, point at that URL and mention that you can stop it on request; otherwise tell the user they can run `node scripts/serve.mjs --project /abs/path/project` (instant preview) or `node scripts/serve.mjs` (manual editing after authorizing the folder) to view or edit the PPTD project, configure slide transition animations, and export PPTX manually. Keep this reminder in addition to, not instead of, the required project and file links.
-11. Element animations (`page.animations` in PPTD — entrance / emphasis / exit / motion-path; see `references/pptd.md` §6): use them only when the user explicitly requests animations, or when the deck is clearly intended for live presentation / slideshow playback and animation provides a clear benefit for staged disclosure, process demonstration, causal explanation, pacing, visual impact, or brand storytelling. By default, do not add element animations to reading-oriented, self-study, print, or primarily send-and-browse decks. Prefer 1–3 animation groups per page and simple effects such as fade, fly, and zoom. This is separate from the default PPTX slide-level fade page transition written by `export_pptx.py`.
-12. Speaker notes (`notes` on each `.page`): use them only when the user explicitly requests them; otherwise, do not add them.
-13. Parallel tool calls: during PPT production, make tool calls in parallel whenever possible; in each round, write multiple page files in parallel to reduce the number of steps.
+- `--transition none` disables slide transitions; the default is `fade`.
+- `--force` replaces an existing output file.
+- `--wasm PATH` overrides the bundled binary only when deliberately testing a compatible build.
+
+A project directory is accepted when it contains exactly one `.pptd`. Export is offline for local media; remote image URLs require network access. The writer does not embed fonts, so use fonts available on the intended playback machine.
+
+The command validates the deck, invokes the WASM writer, writes schema-ordered slide transitions, checks PPTX ZIP integrity, and prints a JSON summary. Treat export errors as deck or toolchain errors; there is no browser fallback.
+
+### 6. Deliver accurately
+
+Link the project directory, `.pptd`, `pages/`, `media/` when present, and generated `.pptx` using absolute local paths. Mention unresolved validation warnings or environment limitations. ZIP and XML verification establish package integrity, not guaranteed rendering or playback compatibility in PowerPoint, WPS, or Keynote.

@@ -1,8 +1,10 @@
-# PPT category guide
+# Presentation design guide
 
-1. **Follow the general rules**: the general rules apply to all scenarios and all pages, and take effect together with the style guidance documents
-2. **Determine the scenario**: choose the matching scenario based on the user's input
-3. **Read the scenario document**: read the document for that scenario and design according to its expressive focus and approach
+Use this guide for self-directed design and as the foundation beneath an explicitly selected preset or user-provided style.
+
+1. Follow the general rules on every page.
+2. Choose one primary scenario from the table below; add an auxiliary scenario only when it clarifies a genuinely mixed brief.
+3. Read the matching scenario document before designing. User requirements take priority over every built-in guide.
 
 ## step1. General rules
 

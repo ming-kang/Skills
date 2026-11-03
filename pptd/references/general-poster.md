@@ -222,8 +222,8 @@ In an actual task, regenerate `style.md` from the subject, assets, and reading r
 ## Editable Delivery and Verification
 
 - Keep text, shapes, connectors, data labels, and legends as editable PPTD elements as much as possible; do not merge the entire infographic into a single bitmap.
-- When the user only wants images such as PNG or JPG, still complete the editable source in PPTD first, then screenshot or render it to an image.
-- Check out-of-bounds, overflow, overlap, and structural issues against the pptd format rules; visually review focus, reading order, contrast, font sizes, and image cropping.
+- When the user only wants images such as PNG or JPG, still complete the editable source in PPTD first, then use an available external renderer. The core skill exports PPTX, not images; if no image renderer is available, explain that limitation rather than claiming an image was produced.
+- Check out-of-bounds, overflow, overlap, and structural issues against the pptd format rules. When rendering is available, visually review focus, reading order, contrast, font sizes, and image cropping; otherwise state that rendered review was skipped.
 - Look at the full-page overview first, then the details: the overview should reveal the subject and at least one visual memory point; if the main impression is a title, regular cards, and button-like color blocks, restructure first instead of only fine-tuning font sizes and spacing.
 - After fixing problem pages, validate and review again, and only then package the PPTX or output images.
 
@@ -238,4 +238,4 @@ In an actual task, regenerate `style.md` from the subject, assets, and reading r
 - Do the colors, fonts, image treatment, composition, and graphic language come from the current subject, rather than defaulting to reusing the previous poster case?
 - Are facts, data, dates, locations, units, captions, sources, and copyright boundaries complete and verifiable?
 - Are body text, annotations, and legends readable at the actual output size, without relying on extremely small fonts to cram in information?
-- Does the visual result in the screenshot truly match `style.md`, rather than merely passing the syntax check?
+- If rendered review is available, does the visual result truly match `style.md`, rather than merely passing the syntax check?

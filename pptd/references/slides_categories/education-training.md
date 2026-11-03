@@ -228,7 +228,7 @@ The visual brief states at least:
 
 ### 5. Pre-Delivery Validation
 
-Use the existing PPTD / PPTX validation and screenshot workflow to check overflow, overlap, truncation, garbled text, low contrast, missing page numbers, and missing sources. Review key pages individually at minimum; do not declare completion from thumbnails alone.
+Run `scripts/validate_pptd.py` and the PPTX export checks, then review text length, layering, contrast, page numbers, and sources. When an external renderer is available, inspect key pages individually rather than relying on thumbnails; when it is not, state that rendered visual review was skipped instead of treating structural validation as a substitute.
 
 ## 11. Delivery Acceptance and Reverse Checks
 

@@ -1,5 +1,7 @@
 # Font system
 
+The families below are design recommendations, not fonts bundled with the core skill. The WASM exporter writes font names but does not embed font files or resolve Google Fonts CSS. Install the chosen families on the machine used for rendering or playback. `customFonts` remains part of the PPTD contract for compatible consumers; declaring it does not make the CLI export self-font-contained.
+
 ## Selection principles
 
 1. Language matching: when the user's query is in Chinese or a Chinese PPT deliverable is requested, both Chinese and English fonts need to be specified; otherwise, only English fonts need to be set
@@ -48,6 +50,6 @@
 
 ## Custom fonts (Google Fonts)
 
-Use custom fonts to strengthen expressiveness or to fill font categories the built-in list does not cover (e.g. JetBrains Mono for monospace, Archivo Black for ultra-heavy sans-serif, EB Garamond for classical serif), brought in from Google Fonts via `customFonts`: declare `customFonts` in the `.pptd` entry file (see CustomFont in [pptd.md](./pptd.md)); the `family` name must match Google Fonts exactly, and once declared it can be referenced in `fontFamily`.
+Use custom fonts to strengthen expressiveness or to fill categories the list above does not cover (e.g. JetBrains Mono for monospace, Archivo Black for ultra-heavy sans-serif, EB Garamond for classical serif). The PPTD `customFonts` syntax accepts a Google Fonts CSS URL (see CustomFont in [pptd.md](./pptd.md)); the `family` name must match exactly before it can be referenced in `fontFamily`. The bundled CLI does not download or embed it, so install the family locally for export and playback.
 
 Note: custom fonts follow the same "exactly identical names" requirement
