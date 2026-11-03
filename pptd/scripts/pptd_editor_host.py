@@ -197,7 +197,7 @@ def serve_local_editor(
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     host, port = server.server_address
-    url = f"http://{host}:{port}/?ndExport=1"
+    url = f"http://{host}:{port}/?pptdExport=1"
     if project_root is not None:
         log(f"local editor host: {url} (root={editor_root}, media={project_root})")
     else:

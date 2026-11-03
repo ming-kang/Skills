@@ -349,10 +349,10 @@ function offlineSignature(dataString) {
   return 'offline-bypass-' + sha256Hex(dataString).slice(0, 32);
 }
 
-// ---------- WASM glue (Node port of kimiDesign / wasm-bindgen) ----------
+// ---------- WASM glue (Node port of the in-editor exporter / wasm-bindgen) ----------
 /**
- * wasm-bindgen hashes import names; upstream has shipped the JSON.stringify
- * binding under these two adjacent hashes. One of them must be present.
+ * wasm-bindgen hashes import names; the binding has shipped the JSON.stringify
+ * implementation under these two adjacent hashes. One of them must be present.
  */
 const STRINGIFY_IMPORTS = [
   '__wbg_stringify_b54333f60f1e4ead',
@@ -587,7 +587,7 @@ async function loadWasmExporter(wasmPath) {
         }, arguments);
       },
       // The JSON.stringify binding: wasm-bindgen hashes the import name, and
-      // upstream has shipped this one under two adjacent hashes. Detect which
+      // it has shipped this one under two adjacent hashes. Detect which
       // one this build actually imports (below) and register only that one —
       // an unknown hash is a WASM rebuild that must stop and ask a human,
       // not silently register both and hope.

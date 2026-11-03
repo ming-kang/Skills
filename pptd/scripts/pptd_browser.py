@@ -785,8 +785,8 @@ def switch_state(snapshot: Dict[str, Any]) -> Optional[Tuple[str, bool, bool]]:
 # is "ready" before its images have arrived, and driving the UI too early loses
 # them.
 EDITOR_PENDING_FETCHES_JS = (
-    "!(window.__NEODECK_PENDING_PROJECT_FETCHES__) || "
-    "window.__NEODECK_PENDING_PROJECT_FETCHES__() === 0"
+    "!(window.__PPTD_PENDING_PROJECT_FETCHES__) || "
+    "window.__PPTD_PENDING_PROJECT_FETCHES__() === 0"
 )
 
 

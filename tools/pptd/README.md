@@ -98,7 +98,7 @@ no Chrome or editor-host process behind.
   deck's media under `/__media__/` (media and font extensions only, project-
   relative paths, percent-decoded before the escape check). The editor fetches
   those files asynchronously, so a host must wait for
-  `window.__NEODECK_PENDING_PROJECT_FETCHES__() === 0` before driving the UI —
+  `window.__PPTD_PENDING_PROJECT_FETCHES__() === 0` before driving the UI —
   "deck ready" precedes the media, and clicking earlier loses images. The export
   summary reports `mediaDelivery` and `mediaRequests` so a silent placeholder
   render is visible.
@@ -120,31 +120,29 @@ no Chrome or editor-host process behind.
 - **The bridge must be able to fail.** `local-bridge.js` publishes
   `document.documentElement.dataset.deckStatus` in *every* mode (`booting` →
   `loading` → `ready`, or `failed`/`error`), and an 8s handshake watchdog flips
-  it to `failed` when the official bundle never calls `__NEODECK_CONNECT__`.
+  it to `failed` when the editor bundle never calls `__PPTD_CONNECT__`.
   The first page error is captured by an inline script in `index.html` — it has
   to be inline and first, because a CSP violation against the bundle fires
   before any module script runs — and is surfaced in the UI and in
-  `window.__ND_ERRORS__`. Keep both: without them a blocked bundle is
+  `window.__PPTD_ERRORS__`. Keep both: without them a blocked bundle is
   indistinguishable from a slow one, which is exactly how a blank editor once
   hid behind a green suite.
 - **The editor tree is local and flat; `check-editor.mjs` guards it.**
   `pptd/assets/editor/` is the whole editor: `index.html` + shell files at the
-  root, the bundle under `app/`, fonts under `fonts/`. There is no upstream to
-  refresh from and no patch script to reapply — the bundle is edited in place
-  when it has to change. `npm run pptd:check-editor` runs on every `npm test`
-  and asserts the couplings that would otherwise live in someone's memory: the
-  telemetry SDK and APM screenshot `<script>` URLs are an inert
-  `data:text/javascript,`; every `@font-face` points at `../fonts/web/` and the
-  file exists and is a woff2; Vite's dependency maps and the preload helper are
-  rooted at `app/`; both WASM loaders resolve against `import.meta.url`; no
-  `.js`/`.css` contains a forbidden host (`statics.moonshot.cn`,
-  `lf3-data.volccdn.com`, `apm.volccdn.com`) or the historical `neo-ppt` base
-  prefix. Fonts: 25 woff2 in `fonts/web/` (~50 MB, ASCII slug filenames;
-  `font-family` names are unchanged so decks are unaffected) and the Latin
-  `.fntdata` subset in `fonts/fnt/`. Remaining remote hostnames in the bundle
-  (`www.kimi.com`, `gator.volces.com`, `api.iconify.design`, …) are dead string
-  constants behind `location.origin` checks that are false locally; they never
-  fired in an audit and the policy covers them if they ever do.
+  root, the bundle under `app/`, fonts under `fonts/`. There is no external
+  source tree to refresh from and no patch script to reapply — the bundle is
+  edited in place when it has to change. `npm run pptd:check-editor` runs on
+  every `npm test` and asserts the couplings that would otherwise live in
+  someone's memory: the telemetry SDK and APM screenshot `<script>` URLs are an
+  inert `data:text/javascript,`; every `@font-face` points at `../fonts/web/`
+  and the file exists and is a woff2; Vite's dependency maps and the preload
+  helper are rooted at `app/`; both WASM loaders resolve against
+  `import.meta.url`; every exported PPTX carries the neutral provenance and
+  application metadata baked into the patched WASM. Fonts: 25 woff2 in
+  `fonts/web/` (~50 MB, ASCII slug filenames; `font-family` names are unchanged
+  so decks are unaffected) and the Latin `.fntdata` subset in `fonts/fnt/`.
+  Remote hostnames that remain in third-party library strings are dead
+  constants behind local checks; the CSP covers them if they ever fire.
 - **`fonts/fnt/*.fntdata` is not a web font, but the browser does fetch it.**
   It is a length-prefixed container the editor pulls from `${base}fonts/fnt/`
   (see `ThumbnailSlide-*.js`) to embed fonts on the browser export path, and

@@ -5,25 +5,25 @@ html, body {
   overflow: hidden;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-body.neodeck-local {
+body.pptd-local {
   display: grid;
   grid-template-rows: 48px minmax(0, 1fr);
 }
-/* Agent export host: hide NeoDeck chrome, full-bleed editor UI */
-html.nd-export-mode body.neodeck-local {
+/* Agent export host: hide PPTD chrome, full-bleed editor UI */
+html.pptd-export-mode body.pptd-local {
   grid-template-rows: minmax(0, 1fr);
 }
-html.nd-export-mode .nd-topbar,
-html.nd-export-mode .nd-toast {
+html.pptd-export-mode .pptd-topbar,
+html.pptd-export-mode .pptd-toast {
   display: none !important;
 }
-html.nd-export-mode .editor-app[data-v-ddddc63d] {
+html.pptd-export-mode .editor-app[data-v-ddddc63d] {
   height: 100% !important;
 }
-html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
+html.pptd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   height: 100% !important;
 }
-.nd-topbar {
+.pptd-topbar {
   z-index: 50;
   display: flex;
   align-items: center;
@@ -33,21 +33,21 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   background: rgba(255,255,255,0.96);
   box-sizing: border-box;
 }
-.nd-brand {
+.pptd-brand {
   display: flex;
   align-items: baseline;
   gap: 6px;
   min-width: 96px;
 }
-.nd-brand strong { font-size: 14px; color: #171923; }
-.nd-actions {
+.pptd-brand strong { font-size: 14px; color: #171923; }
+.pptd-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex: 1;
   min-width: 0;
 }
-.nd-btn {
+.pptd-btn {
   height: 32px;
   padding: 0 12px;
   border-radius: 8px;
@@ -58,20 +58,20 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   font-weight: 600;
   cursor: pointer;
 }
-.nd-btn:hover { background: #f7f8fb; }
-.nd-btn:focus-visible,
-.nd-btn-primary:focus-visible {
+.pptd-btn:hover { background: #f7f8fb; }
+.pptd-btn:focus-visible,
+.pptd-btn-primary:focus-visible {
   outline: 2px solid #171923;
   outline-offset: 2px;
 }
-.nd-btn { transition: background-color 120ms ease, border-color 120ms ease; }
-.nd-btn-primary {
+.pptd-btn { transition: background-color 120ms ease, border-color 120ms ease; }
+.pptd-btn-primary {
   border-color: #171923;
   background: #171923;
   color: #fff;
 }
-.nd-btn-primary:hover { background: #2b2f3a; border-color: #2b2f3a; }
-.nd-meta {
+.pptd-btn-primary:hover { background: #2b2f3a; border-color: #2b2f3a; }
+.pptd-meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -79,7 +79,7 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   min-width: 120px;
   max-width: 280px;
 }
-#nd-title {
+#pptd-title {
   font-size: 12px;
   font-weight: 600;
   color: #171923;
@@ -88,7 +88,7 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.nd-status {
+.pptd-status {
   font-size: 11px;
   color: #7a8499;
 }
@@ -98,7 +98,7 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   overflow: hidden;
   position: relative;
 }
-.nd-toast {
+.pptd-toast {
   position: fixed;
   left: 50%;
   bottom: 28px;
@@ -112,8 +112,8 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   font-size: 13px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
-.nd-toast[data-kind="error"] { background: #c0392b; }
-.nd-toast[data-kind="warning"] { background: #b7791f; }
+.pptd-toast[data-kind="error"] { background: #c0392b; }
+.pptd-toast[data-kind="warning"] { background: #b7791f; }
 
 /* Offline: hide share / cloud / Google Drive chrome from the editor UI */
 .share-dialog-trigger,
@@ -128,7 +128,7 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   display: none !important;
 }
 
-.nd-hint {
+.pptd-hint {
   font-size: 12px;
   color: #7a8499;
   white-space: nowrap;
@@ -138,7 +138,7 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
 
 
 /* ===== Fix the editor inside local topbar shell ===== */
-.nd-topbar {
+.pptd-topbar {
   z-index: 50;
   position: relative;
 }
@@ -166,7 +166,7 @@ html.nd-export-mode .editor-app .editor-content[data-v-ddddc63d] {
   z-index: 20000 !important;
 }
 /* Message toasts that are fixed to viewport */
-body .kimi-message,
+body .pptd-message,
 body [class*="message-list"],
 body [class*="MessageList"],
 #app [class*="snackbar"] {

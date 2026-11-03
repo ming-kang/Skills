@@ -1,6 +1,6 @@
 /**
- * NeoDeck Local bridge — no iframe, no cloud.
- * The editor bundle talks to us via window.__NEODECK_CONNECT__ instead of a Penpal parent.
+ * PPTD Local bridge — no iframe, no cloud.
+ * The editor bundle talks to us via window.__PPTD_CONNECT__ instead of a Penpal parent.
  */
 import {
   basename,
@@ -25,7 +25,7 @@ const state = {
   readOnly: false,
   ready: false,
   exportMode: false,
-  // Serve-host project mode (?ndProject=1): the deck is mounted read-only by
+  // Serve-host project mode (?pptdProject=1): the deck is mounted read-only by
   // `node scripts/serve.mjs --project <dir>`, so no folder picker is needed.
   serverProject: false,
   projectBase: "",
@@ -38,7 +38,7 @@ const state = {
 // In-flight project/media fetches, so a host can wait until the editor has
 // everything it needs before driving it (see wait_for_editor_media).
 const pendingProjectFetches = { count: 0 };
-window.__NEODECK_PENDING_PROJECT_FETCHES__ = () => pendingProjectFetches.count;
+window.__PPTD_PENDING_PROJECT_FETCHES__ = () => pendingProjectFetches.count;
 
 /**
  * The editor sometimes asks for an asset as "/media/x.png"; both the mounted
@@ -71,7 +71,7 @@ async function dataUrlFromBase(baseUrl, path) {
       });
     }
   } catch (e) {
-    console.warn("[neodeck] project file read failed", path, e);
+    console.warn("[pptd] project file read failed", path, e);
   } finally {
     pendingProjectFetches.count -= 1;
   }
@@ -93,21 +93,21 @@ startHeartbeat();
 
 const $ = (sel) => document.querySelector(sel);
 const exportMode =
-  new URL(location.href).searchParams.get("ndExport") === "1" ||
+  new URL(location.href).searchParams.get("pptdExport") === "1" ||
   new URL(location.href).searchParams.get("export") === "1";
 state.exportMode = exportMode;
-state.serverProject = new URL(location.href).searchParams.get("ndProject") === "1";
+state.serverProject = new URL(location.href).searchParams.get("pptdProject") === "1";
 state.projectBase = state.serverProject ? "./project/" : "";
 // Always publish a status, in every mode: this dataset is the only thing an
 // automated host can observe, and leaving it undefined outside export mode is
 // what let a blank editor look indistinguishable from a slow one.
 document.documentElement.dataset.deckStatus = "booting";
 if (exportMode) {
-  document.documentElement.classList.add("nd-export-mode");
+  document.documentElement.classList.add("pptd-export-mode");
 }
 
 function toast(msg, kind = "info") {
-  const el = $("#nd-toast");
+  const el = $("#pptd-toast");
   if (!el) return;
   el.hidden = false;
   el.dataset.kind = kind;
@@ -119,13 +119,13 @@ function toast(msg, kind = "info") {
 }
 
 function setStatus(text) {
-  const el = $("#nd-status");
+  const el = $("#pptd-status");
   if (el) el.textContent = text;
 }
 
 function setTitle(text) {
   state.deckTitle = text;
-  const el = $("#nd-title");
+  const el = $("#pptd-title");
   if (el) el.textContent = text;
 }
 
@@ -237,7 +237,7 @@ async function readIndexedImage(candidates) {
         const file = await state.fileIndex.get(candidate).getFile();
         state.imageCache.set(candidate, await fileToDataUrl(file));
       } catch (e) {
-        console.warn("[neodeck] image read failed", candidate, e);
+        console.warn("[pptd] image read failed", candidate, e);
         continue;
       }
     }
@@ -286,7 +286,7 @@ async function resolveImage(requestedPath) {
   const url = await readIndexedImage(candidates);
   if (url) return url;
 
-  console.warn("[neodeck] image not found", requestedPath, "tried", candidates.slice(0, 8));
+  console.warn("[pptd] image not found", requestedPath, "tried", candidates.slice(0, 8));
   return "";
 }
 
@@ -300,7 +300,7 @@ async function getImages(payload = {}) {
     try {
       out.push(await resolveImage(p));
     } catch (e) {
-      console.warn("[neodeck] getImages item failed", p, e);
+      console.warn("[pptd] getImages item failed", p, e);
       out.push("");
     }
   }
@@ -344,7 +344,7 @@ async function onSave(payload) {
   }
 }
 
-// The editor bundle is expected to call __NEODECK_CONNECT__ once it mounts.
+// The editor bundle is expected to call __PPTD_CONNECT__ once it mounts.
 // If it never does, this bridge would otherwise sit on "等待编辑器…" forever —
 // the exact symptom of a CSP that blocks the bundle's module loader. Time the
 // handshake out and say what actually went wrong instead.
@@ -355,15 +355,15 @@ const HANDSHAKE_TIMEOUT_MS = 8000;
 let handshakeWatchdog = setTimeout(() => {
   if (state.ready) return;
   document.documentElement.dataset.deckStatus = "failed";
-  const [firstError] = window.__ND_ERRORS__ ?? [];
+  const [firstError] = window.__PPTD_ERRORS__ ?? [];
   setStatus("编辑器内核未加载");
   const detail = firstError ? `：${firstError}` : "（无 JS 错误，检查编辑器资源是否完整）";
-  console.error(`[neodeck] editor never connected within ${HANDSHAKE_TIMEOUT_MS}ms${detail}`);
+  console.error(`[pptd] editor never connected within ${HANDSHAKE_TIMEOUT_MS}ms${detail}`);
   toast(`编辑器内核未加载${detail}`, "error");
 }, HANDSHAKE_TIMEOUT_MS);
 
 /** Called by the editor bundle instead of Penpal connect */
-window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
+window.__PPTD_CONNECT__ = function pptdConnect(options) {
   clearTimeout(handshakeWatchdog);
   const methods = options?.methods;
   if (!methods || typeof methods !== "object") {
@@ -371,7 +371,7 @@ window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
     // then fail on the first setPPTD. Treat it as a failed handshake.
     document.documentElement.dataset.deckStatus = "failed";
     setStatus("编辑器握手异常");
-    console.error("[neodeck] __NEODECK_CONNECT__ called without methods", options);
+    console.error("[pptd] __PPTD_CONNECT__ called without methods", options);
     toast("编辑器握手异常：未提供接口", "error");
     const failure = Promise.reject(new Error("no editor methods"));
     failure.catch(() => {}); // the caller may never attach a handler
@@ -383,7 +383,7 @@ window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
   // Force light chrome immediately (bundle default is system → OS dark FOUC).
   Promise.resolve(
     methods.setSlideConfig?.({ editable: true, locale: "zh-CN", theme: "light" }),
-  ).catch((e) => console.warn("[neodeck] setSlideConfig", e));
+  ).catch((e) => console.warn("[pptd] setSlideConfig", e));
   // host methods the editor will call via connection.promise
   const host = {
     close() {
@@ -400,7 +400,7 @@ window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
           if (isFs && document.exitFullscreen) await document.exitFullscreen();
         }
       } catch (e) {
-        console.warn("[neodeck] fullscreen", e);
+        console.warn("[pptd] fullscreen", e);
       }
       return Boolean(document.fullscreenElement);
     },
@@ -424,14 +424,14 @@ window.__NEODECK_CONNECT__ = function neoDeckConnect(options) {
 
   if (state.exportMode) {
     loadExportPayload().catch((error) => {
-      console.error("[neodeck] export payload failed", error);
+      console.error("[pptd] export payload failed", error);
       document.documentElement.dataset.deckStatus = "error";
       window.exportHostError = String(error?.stack || error);
       setStatus("导出载荷加载失败");
     });
   } else if (state.serverProject) {
     loadProjectFromServer().catch((error) => {
-      console.error("[neodeck] server project failed", error);
+      console.error("[pptd] server project failed", error);
       document.documentElement.dataset.deckStatus = "error";
       setStatus("项目载入失败");
       toast(`项目载入失败：${error.message || error}`, "error");
@@ -732,23 +732,23 @@ async function openFallbackFiles(fileList) {
 function wireUi() {
   if (state.serverProject) {
     // The deck is mounted by the host; a folder picker would only confuse.
-    const openButton = $("#nd-open");
+    const openButton = $("#pptd-open");
     if (openButton) openButton.hidden = true;
   }
-  $("#nd-open")?.addEventListener("click", async () => {
+  $("#pptd-open")?.addEventListener("click", async () => {
     try {
       if (window.showDirectoryPicker) {
         const handle = await window.showDirectoryPicker({ mode: "readwrite" });
         await openDirectoryHandle(handle);
       } else {
-        $("#nd-folder")?.click();
+        $("#pptd-folder")?.click();
       }
     } catch (e) {
       if (e?.name === "AbortError") return;
       toast(e.message || String(e), "error");
     }
   });
-  $("#nd-folder")?.addEventListener("change", async (ev) => {
+  $("#pptd-folder")?.addEventListener("change", async (ev) => {
     const files = ev.target.files;
     if (!files?.length) return;
     try {
@@ -766,7 +766,7 @@ function wireUi() {
   let changed = false;
   const params = {
     sdkMode: "ppt-editor",
-    pptPlatform: "neodeck-local",
+    pptPlatform: "pptd-local",
     functional: JSON.stringify({
       fullscreen: true,
       present: true,

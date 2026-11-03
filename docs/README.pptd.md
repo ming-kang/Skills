@@ -7,9 +7,6 @@ PPT Design is an unofficial agent Skill for creating, editing, replicating, read
 
 It ships an offline local browser editor plus a local WASM PPTX writer, so creation, editing, QA, and export all run without any cloud service. Works with any agent that supports SKILL.md skills — Claude Code, Codex, Cursor, WorkBuddy, and others.
 
-> [!IMPORTANT]
-> This skill was built by reverse-engineering the public Kimi Slides behavior, the PPTD format, and the editor's frontend. It is **not** an official Moonshot AI / Kimi project. The editor shipped inside the skill is a locally owned build that is maintained here and no longer tracks the upstream service.
-
 ## Install
 
 Install from the repository with any skills manager:
@@ -90,4 +87,4 @@ Windows note: the browser paths (image QA, `--browser` export) drive one persist
 
 ## License and Attribution
 
-Kimi, Kimi Slides, and related trademarks belong to their owners. This repository is MIT-licensed; see [../LICENSE](../LICENSE).
+This is an independent, unofficial project. It is not affiliated with, endorsed by, or sponsored by any third-party product or company. Third-party product names and trademarks belong to their owners. This repository is MIT-licensed; see [../LICENSE](../LICENSE).

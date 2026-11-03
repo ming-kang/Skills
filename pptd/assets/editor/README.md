@@ -2,8 +2,8 @@
 
 The single-page, fully offline editor for PPTD projects. It is a locally owned
 build: the bundle under `app/`, the fonts under `fonts/`, and the shell files
-next to them are maintained in this repository and are not refreshed from any
-upstream. Served by `pptd/scripts/serve.mjs`.
+next to them are maintained here as the only copy. Served by
+`pptd/scripts/serve.mjs`.
 
 - No iframe, no cloud sync / share / drive / AI endpoints — every legacy cloud
   request the bundle still knows about is answered locally in `index.html`
@@ -64,11 +64,10 @@ editor therefore works from any host that serves this directory as its root.
   placeholders, feedback tips, font sample text, default deck names, document
   title suffixes, version-history labels, and PPTX author/company metadata are
   all neutral.
-- **Functional identifiers left as built** — the `KimiBridge` window API,
-  `KIMI_LOCALE` / `kimi-ppt-LOCALE` storage keys, `kimi-*` CSS classes,
-  `kimi-*.js` chunk filenames (they are import specifiers), icon registry keys,
-  and UA-sniffing regexes are part of the bundle's internal wiring. Renaming
-  any of them means rebuilding the bundle, not editing it.
+- **Stable internal names** — `PptdBridge`, `PPT_DESIGN_LOCALE`, `pptd-*` CSS
+  classes, `pptd-*.js` chunk filenames (they are import specifiers), icon
+  registry keys, and UA-sniffing regexes are part of the bundle's internal
+  wiring. Keep code and CSS in sync when changing them.
 
 Development notes, test suites, and invariants: `../../../tools/pptd/README.md`
 (relative to this file, from the repository root).

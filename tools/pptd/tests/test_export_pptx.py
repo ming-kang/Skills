@@ -222,9 +222,9 @@ class ExportPptxTests(unittest.TestCase):
             Path("/tmp/downloads"),
         )
         with patch.object(session, "run") as run:
-            session.open("http://127.0.0.1:9/?ndExport=1")
+            session.open("http://127.0.0.1:9/?pptdExport=1")
         run.assert_called_once_with(
-            ["open", "http://127.0.0.1:9/?ndExport=1"],
+            ["open", "http://127.0.0.1:9/?pptdExport=1"],
             timeout=90,
         )
 
@@ -432,6 +432,13 @@ class LocalExportEndToEndTests(unittest.TestCase):
             self.assertEqual(summary["slides"], summary["fadeTransitions"])
             with zipfile.ZipFile(output) as archive:
                 self.assertIn("ppt/presentation.xml", archive.namelist())
+                app = archive.read("docProps/app.xml").decode("utf-8")
+                provenance = archive.read("customXml/provenance.xml").decode("utf-8")
+                slide = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+                self.assertIn("<Application>PPT Design</Application>", app)
+                self.assertIn("urn:pptd:prov:provenance", provenance)
+                self.assertIn("<producer>PPT Design (local)</producer>", provenance)
+                self.assertIn('xmlns:pptd="https://pptd.local/ns/2026/pptd/schema"', slide)
 
     def test_build_local_project_shape(self):
         project = MODULE.build_local_project(self.FIXTURE / "minimal.pptd")

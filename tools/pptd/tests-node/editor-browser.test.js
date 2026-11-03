@@ -3,7 +3,7 @@
  *
  * Every other suite here exercises the host and the exporters, which is how a
  * CSP that blanked the editor could sit behind 57 green tests: the bridge still
- * reported progress, so nothing noticed the official bundle had never mounted.
+ * reported progress, so nothing noticed the editor bundle had never mounted.
  * These assertions are deliberately about the *page*, not about the bridge's
  * opinion of itself.
  *
@@ -101,7 +101,7 @@ test("the editor mounts, stays offline, and loads the mounted deck", async (t) =
       if (isExternal(request.url()) && /\.woff2?($|\?)/.test(request.url())) remoteFonts.push(request.url());
     });
 
-    await page.goto(`${url}?ndProject=1`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${url}?pptdProject=1`, { waitUntil: "domcontentloaded" });
     // Wait for a *terminal* status, not for success: the bridge's handshake
     // watchdog publishes "failed" after 8s, so a broken editor reports itself
     // in seconds with a reason attached instead of burning a long timeout on
@@ -113,7 +113,7 @@ test("the editor mounts, stays offline, and loads the mounted deck", async (t) =
     );
 
     const status = await page.evaluate(() => document.documentElement.dataset.deckStatus);
-    const pageErrors = await page.evaluate(() => window.__ND_ERRORS__ ?? []);
+    const pageErrors = await page.evaluate(() => window.__PPTD_ERRORS__ ?? []);
     assert.equal(status, "ready", `deck status is "${status}" — page errors: ${pageErrors.join(" | ") || "none"}`);
 
     // The bundle only mounts if every module loaded. The bridge cannot see this:
@@ -127,7 +127,7 @@ test("the editor mounts, stays offline, and loads the mounted deck", async (t) =
     assert.deepEqual(externalResponses, [], "the editor reached an external origin");
     assert.deepEqual(remoteFonts, [], "the editor requested a remote font");
 
-    const title = await page.locator("#nd-title").textContent();
+    const title = await page.locator("#pptd-title").textContent();
     assert.match(title ?? "", /浏览器冒烟/);
   } finally {
     await browser.close();

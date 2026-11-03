@@ -30,7 +30,7 @@
       // fetched, which is before local-bridge.js gets to run. Without this the
       // watchdog can only report "the editor never connected" with no reason.
       (function () {
-        var errors = (window.__ND_ERRORS__ = []);
+        var errors = (window.__PPTD_ERRORS__ = []);
         function record(kind, detail) {
           if (errors.length < 20) errors.push(kind + ": " + detail);
         }
@@ -67,12 +67,7 @@
         // so no request ever leaves the machine.
         const blocked = [
           /\/apiv2\//,
-          /www\.kimi\.com/,
-          /kimi\.ai/,
-          /slides\.kimi\./,
-          /gator\.volces\.com/,
-          /volces\.com/,
-          /byteimg\.com\/obj\/.*log/,
+          /pptd\.local/,
           /\/list$/,
           /accounts\.google\.com/,
           /googleapis\.com/,
@@ -108,7 +103,7 @@
         };
       })();
     </script>
-    <!-- Local bridge MUST load before the editor bundle (defines __NEODECK_CONNECT__) -->
+    <!-- Local bridge MUST load before the editor bundle (defines __PPTD_CONNECT__) -->
     <script type="module" src="./local-bridge.js"></script>
     <script type="module" crossorigin src="./app/index-jtNAhQeK.js"></script>
     <link rel="modulepreload" crossorigin href="./app/rolldown-runtime-DWdDZTNf.js" />
@@ -116,32 +111,32 @@
     <link rel="modulepreload" crossorigin href="./app/common-utils-G6HD4Ji1.js" />
     <link rel="modulepreload" crossorigin href="./app/_plugin-vue_export-helper-B67ILkmu.js" />
     <link rel="modulepreload" crossorigin href="./app/preload-helper-NECkhNH4.js" />
-    <link rel="modulepreload" crossorigin href="./app/kimi-DRwOD7EI.js" />
+    <link rel="modulepreload" crossorigin href="./app/pptd-proto-DRwOD7EI.js" />
     <link rel="modulepreload" crossorigin href="./app/icons-CgDhqj4h.js" />
     <link rel="modulepreload" crossorigin href="./app/const-BjfH-jZe.js" />
     <link rel="stylesheet" crossorigin href="./app/index-Bn1xM_xZ.css" />
     <link rel="stylesheet" href="./local-shell.css" />
   
-    <style id="neodeck-layout-fix">
+    <style id="pptd-layout-fix">
       /* editor-app height fix: avoid 100vh under local topbar */
       .editor-app[data-v-ddddc63d] { height: 100% !important; width: 100% !important; }
       .editor-app .editor-content[data-v-ddddc63d] { height: calc(100% - var(--topbar-height, 52px)) !important; }
       .feedback-snackbar-wrap[data-v-ddddc63d] { z-index: 20000 !important; }
     </style>
 </head>
-  <body class="neodeck-local">
-    <header class="nd-topbar" id="nd-topbar">
-      <div class="nd-brand"><strong>PPT Design</strong></div>
-      <div class="nd-actions">
-        <button type="button" class="nd-btn nd-btn-primary" id="nd-open">打开项目文件夹</button>
+  <body class="pptd-local">
+    <header class="pptd-topbar" id="pptd-topbar">
+      <div class="pptd-brand"><strong>PPT Design</strong></div>
+      <div class="pptd-actions">
+        <button type="button" class="pptd-btn pptd-btn-primary" id="pptd-open">打开项目文件夹</button>
       </div>
-      <div class="nd-meta">
-        <span id="nd-title">未打开文稿</span>
-        <span id="nd-status" class="nd-status">初始化中</span>
+      <div class="pptd-meta">
+        <span id="pptd-title">未打开文稿</span>
+        <span id="pptd-status" class="pptd-status">初始化中</span>
       </div>
-      <input type="file" id="nd-folder" webkitdirectory directory multiple hidden />
+      <input type="file" id="pptd-folder" webkitdirectory directory multiple hidden />
     </header>
     <div id="app"></div>
-    <div id="nd-toast" class="nd-toast" hidden></div>
+    <div id="pptd-toast" class="pptd-toast" hidden></div>
   </body>
 </html>

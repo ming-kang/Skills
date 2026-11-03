@@ -113,7 +113,7 @@ async function main() {
       if (isExternal(response.url())) externalResponses.push(`${response.status()} ${response.url()}`);
     });
 
-    await page.goto(`${info.url}?ndProject=1`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${info.url}?pptdProject=1`, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(
       () => document.documentElement.dataset.deckStatus === "ready",
       undefined,
@@ -121,11 +121,11 @@ async function main() {
     );
     await page.waitForTimeout(2_000);
 
-    const title = await page.locator("#nd-title").textContent();
+    const title = await page.locator("#pptd-title").textContent();
     if (!title?.includes("冒烟测试文稿") && !title?.includes(project.split(/[\\/]/).pop())) {
       failures.push(`unexpected deck title: ${title}`);
     }
-    if (!(await page.locator("#nd-open").isHidden())) {
+    if (!(await page.locator("#pptd-open").isHidden())) {
       failures.push("the folder-picker button should be hidden in project mode");
     }
     const missingImages = consoleLines.filter((line) => line.includes("image not found"));
@@ -143,7 +143,7 @@ async function main() {
     const ping = await page.evaluate(() => fetch("./__ping__", { cache: "no-store" }).then((r) => r.status));
     if (ping !== 204) failures.push(`heartbeat returned ${ping}`);
 
-    // The official bundle only mounts if every module loaded. A CSP that is too
+    // The editor bundle only mounts if every module loaded. A CSP that is too
     // strict (script-src without `data:`) blocks its loader and leaves a blank
     // page behind a bridge that still reports "ready" — assert the DOM instead.
     const appSize = await page.evaluate(() => document.querySelector("#app")?.innerHTML.length ?? 0);
@@ -171,7 +171,7 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  console.log(`OK  editor loaded the mounted project (${info.url}?ndProject=1)`);
+  console.log(`OK  editor loaded the mounted project (${info.url}?pptdProject=1)`);
 }
 
 main().catch((error) => {
