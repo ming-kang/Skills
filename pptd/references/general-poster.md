@@ -113,9 +113,9 @@ When the core message is process, hierarchy, system, propagation, causality, con
 - Body text, annotations, legends, and sources must be readable in the actual output scenario. When there is too much information, cut, layer, or split pages; do not solve it with tiny font sizes.
 - Data, facts, dates, locations, labels, units, and sources must stay faithful to the user's materials or verifiable information. For precise figures that cannot be confirmed, use qualitative statements, approximations, or omit them; do not fabricate statistics, coordinates, issue numbers, or publication details for an "archival feel."
 
-### Few-shot: Multiple Complete Briefs and Anonymous Visual-Move Fragments
+### Few-shot: One Complete Brief and Five Visual Moves
 
-The following complete samples are used to expand the design moves, primary visual media, and risk awareness you can draw on; they are not fixed visual families, subject mappings, or templates awaiting selection. The concept name, visual DNA, colors, fonts, canvas, and composition of an actual brief must be re-derived from the current subject, assets, and reading relationships; you may recombine a few compatible moves across samples, or devise your own entirely — do not just pick the most similar label and copy the whole set.
+The following brief and examples expand the design moves, primary visual media, and risk awareness you can draw on; they are not fixed visual families, subject mappings, or templates awaiting selection. Re-derive the concept, visual DNA, colors, fonts, canvas, and composition from the current subject, assets, and reading relationships. Recombine compatible moves or devise your own rather than copying the most similar label.
 
 #### Poster Editorial
 
@@ -136,77 +136,17 @@ The following complete samples are used to expand the design moves, primary visu
 - Reason for choosing: when the subject needs to be highly memorable while retaining traceable details, this direction is superior to a generic commercial infographic.
 ```
 
-#### Geometric Composition
+#### Five Additional Visual Moves
 
-```markdown
-# Style Brief — Geometric Composition
-- Visual concept: translate the core concept into tension among circles, squares, lines, proportions, and glyphs; do not use geometric blocks to decorate empty space.
-- Primary visual focus: one geometric relationship or glyph composition occupying the main area, not multiple evenly distributed colored rectangles.
-- Poster-level visual move: let the title pass through, embed into, or cut across the main geometry, so text and composition together become the image, instead of the title hovering above the content.
-- Visual DNA: decide color roles and typographic temperament from the subject; establish order with proportion, axes, numbering, and scale, with factual information taking its place along the geometric relationships.
-- Information organization: bind concept differences, proportions, stages, or a work index to shape relationships; secondary material is tucked into the edges or a narrow index band.
-- Must avoid: evenly tiling primary colors, a children's-building-block feel, random circles and squares unrelated to the content, and degenerating the geometric composition into a colored card wall.
-```
+| Direction | Focus and poster-level move | Information organization | Main failure to avoid |
+|---|---|---|---|
+| Geometric Composition | Make one geometric relationship or glyph dominant; let the title pass through, embed into, or cut across it. | Bind differences, proportions, stages, or indexes to shape relationships; place secondary material at the edges or in a narrow index band. | Random geometry, evenly tiled colors, and a colored card wall unrelated to the content. |
+| Material Evidence | Let a macro, scan, section, texture, or artifact span the canvas; anchor captions directly to visible details. | Use source labels, local zooms, material genealogy, craft steps, or propagation paths while preserving one breathing area. | Uniform brown retro styling, forged archives, decorative seals, and equal-sized specimen cards. |
+| Dark-Field Signals | Use a lit object, motion image, trail, or glyph as the focus; let a signal line, path, or band of light connect fact nodes. | Organize route, time, frequency, cohort, or status data along one coordinate field with a high-contrast reading zone. | Full-page neon, cyber dashboards, small gray text, and glowing panels for every data group. |
+| Scientific Observation | Make a specimen, ecological section, system relationship, or local zoom dominant; let scale, hierarchy, flow, or causality unify image and annotations. | Organize mechanisms and evidence through spatial adjacency, with readable units, legends, sources, and confidence boundaries. | Technical-report formulas, white dashboards, decorative data, and unverifiable precision. |
+| Dynamic Collage | Interweave a cropped title or object with a diagonal or offset structure; keep one dominant contrast and a unified angle, weight, and spacing logic. | Compress viewpoints, impacts, events, or stages into directional bands while returning body text to a stable grid. | Promotional clichés, meaningless torn paper, slogan stacking, competing angles, and uniformly enlarged text. |
 
-#### Material Evidence
-
-```markdown
-# Style Brief — Material Evidence
-- Visual concept: treat materials, artifacts, surface traces, or the making process as evidence, letting tactile quality and provenance relationships tell the content together.
-- Primary visual focus: a sufficiently large macro, scan, section, or artifact detail; other images relate to it as slices, sequences, or provenance evidence.
-- Poster-level visual move: let the texture or object span the main extent of the canvas, with captions anchored directly to visible details; do not shrink high-quality assets into specimen cards.
-- Visual DNA: extract color, grain, and line language from the actual object; fonts and labels serve the material's temperament; maps, genealogies, or processes appear only when relationships need them.
-- Information organization: organize facts through source labels, local zooms, material genealogy, craft steps, or propagation paths, keeping one clear breathing area.
-- Must avoid: uniform brown retro templates, travel souvenir albums, forged old archives, decorative seals, and a row of equally sized object cards.
-```
-
-#### Dark-Field Signals
-
-```markdown
-# Style Brief — Dark-Field Signals
-- Visual concept: in a dark field, use localized light sources, trajectories, scales, or rhythmic signals to establish a sense of direction; black is space, not background fill.
-- Primary visual focus: one brightly lit object, motion image, glowing trail, or high-contrast glyph form, with other elements building distance and speed around it.
-- Poster-level visual move: let a signal line, path, or band of light cross the canvas and connect fact nodes, so the subject and direction of motion remain recognizable from a distance.
-- Visual DNA: accent colors serve only nodes, directions, numbers, or warnings; numeric fonts, coordinates, and scanning elements must serve reading rather than create tech noise.
-- Information organization: organize route, time, frequency, cohort, or status data along a common coordinate field; keep a stable high-contrast safe zone for body text.
-- Must avoid: full-page neon, bloom effects, cyber dashboards, small gray text on black, and packing every data group into a glowing panel.
-```
-
-#### Scientific Observation
-
-```markdown
-# Style Brief — Scientific Observation
-- Visual concept: treat the page as a verifiable observation field, using objects, sections, relationships, and scale to explain a mechanism, rather than presenting a popular-science column.
-- Primary visual focus: a main specimen, an ecological section, a system relationship, or a local zoom; readers see the object first, then understand the mechanism along the annotations.
-- Poster-level visual move: let scale, depth, hierarchy, flow direction, or causality run through the whole page, with imagery and legend sharing the same spatial coordinates.
-- Visual DNA: colors distinguish objects, relationships, and risks; annotation lines, units, legends, sources, and confidence boundaries stay readable and checkable.
-- Information organization: mechanisms, specimens, and evidence are organized through spatial adjacency and connecting relationships; use a small amount of comparison when necessary, and do not default to three-column cards.
-- Must avoid: technical-report front pages, white dashboards, equal-width info boxes, decorative data, and unverifiable precise figures.
-```
-
-#### Dynamic Collage
-
-```markdown
-# Style Brief — Dynamic Collage
-- Visual concept: use directional glyphs, cropped imagery, color bands, and event fragments to create a manifesto feel, with rhythm coming from content conflicts rather than decorative noise.
-- Primary visual focus: one boldly cropped title, figure/object silhouette, or high-contrast image; do not let multiple assets compete evenly for attention.
-- Poster-level visual move: interweave the title, imagery, and a diagonal or offset structure to form a direction and posture recognizable from a distance.
-- Visual DNA: maintain one dominant contrast relationship; collage edges, numbering, event nodes, and short phrases share a unified logic of angle, weight, and spacing.
-- Information organization: compress viewpoints, impacts, events, or stages into a few directional band sequences; body text returns to a stable grid to stay readable.
-- Must avoid: promotional ads, price tags, meaningless torn paper, slogan stacking, too many angles, and enlarging all text at once.
-```
-
-#### Detachable Anonymous Move Fragments
-
-The following provide only local compositional knowledge, not complete directions; do not name the fragments, and do not match subjects to them one by one. First state the current page's core message and dominant relationship, then adapt one or two of these moves as needed, or devise your own entirely:
-
-- Let the title pass through, embed into, or cut across a main geometry that carries information; facts take their place along proportions, axes, numbering, or shape relationships — the geometry is not just space-filling decoration.
-- Let objects, textures, macros, or sections span the main extent of the canvas, with captions anchored directly to visible details; other images form slice, sequence, or provenance relationships rather than shrinking into a row of specimen cards.
-- Let routes, light bands, or motion trails cross the canvas and connect fact nodes while retaining the necessary geographic, scene, branch, and time information; paths can be formed by imagery, terrain, or spatial relationships rather than defaulting to thin-line charts.
-- Let specimens, sections, scale, legends, and causal relationships share one continuous observation field; when immersion matters, preserve the continuity of the environment rather than degenerating into a "main image left + evidence box right" technical report.
-- Interweave a recognizable title or object, cropped imagery, and a directional structure; events and viewpoints unfold along a unified rhythm, and avoid letting the title's recognizability drown in collage noise.
-
-In an actual task, regenerate `style.md` from the subject, assets, and reading relationships, using a concept name unique to the current task. Do not first look through the fragments for the "most similar category," and do not write "selected the so-and-so family" in the brief. Keep one dominant visual grammar, with other moves only as compatible support; the final direction must explain why it suits the current content, rather than merely swapping the sample's subject text and accent color.
+Regenerate `style.md` from the subject, assets, and reading relationships rather than naming a direction from this table. The final brief must explain why its dominant visual grammar suits the content, not merely swap a sample's subject and accent color.
 
 ## Imagery, Copyright, and Authenticity
 

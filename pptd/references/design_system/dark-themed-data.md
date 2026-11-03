@@ -82,7 +82,7 @@ Content pages keep their main hues to black-white-gray + 1 brand accent + 2–4 
 
 ## 6. Fonts and Text Hierarchy
 
-Fonts are modern sans-serif: titles use Archivo Black (via customFonts); body is dominated by Inter (via customFonts), with weights handled through the bold field. Do not mix in serif or handwritten fonts; special sponsor/logo fonts exist only as images or marks.
+Fonts are modern sans-serif: titles use Archivo Black (via customFonts); body is dominated by Inter (via customFonts), with weights handled through the bold field. Chart axis/category labels may use a serif italic (e.g. EB Garamond Italic via customFonts); everywhere else, do not mix in serif or handwritten fonts; special sponsor/logo fonts exist only as images or marks.
 
 With body note text = 1x:
 
@@ -158,6 +158,4 @@ Images/screenshots are not the core language of the body; if they must be used, 
 - Tables: are headers, alignment, dividers, key rows/columns, and positive/negative colors consistent; is text readable; is over-compression avoided?
 - Components: do rounded cards, labels, timelines, wordmarks, and the mascot appear only on appropriate pages; do they serve information rather than decoration?
 - Prohibited items: no photo backgrounds, emoji, 3D, glow, heavy shadows, complex textures, meaningless icons, or large stretches of centered copy.
-- Quality: check overflow, truncation, garbled text, overlap, low contrast, occlusion, empty content, wrong chart proportions, missing page numbers, missing sources, and mechanical template repetition.
-- No default use of cards: unless the user explicitly requests it, it is strictly forbidden to use rounded rectangles or rectangular cards to build hierarchy or alignment — line segments, whitespace, and font and font-size differences are better solutions.
-- No equal-division composition: unless no other layout is available, do not default to three-way splits, four-way splits, or 2×2 matrices — including three-part structures such as three-way split + title + conclusion.
+- Quality: review chart proportions, page-number/source placement, and mechanical template repetition.

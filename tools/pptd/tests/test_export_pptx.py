@@ -3,6 +3,7 @@
 import hashlib
 import io
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -260,13 +261,10 @@ class ReferenceCoverageTests(unittest.TestCase):
     def test_all_44_presets_are_retained_and_indexed(self):
         root = SKILL_ROOT / "references" / "design_system"
         index = (root / "README.md").read_text(encoding="utf-8")
-        primary = sorted(root.glob("*/*/design.md"))
-        extra = sorted((root / "extra").glob("*.md"))
-        self.assertEqual(len(primary), 30)
-        self.assertEqual(len(extra), 14)
-        for path in primary + extra:
-            relative = path.relative_to(root).as_posix()
-            self.assertIn(f"`{relative}`", index)
+        presets = {path.stem for path in root.glob("*.md") if path.name != "README.md"}
+        indexed = set(re.findall(r"`([a-z0-9-]+)`", index))
+        self.assertEqual(len(presets), 44)
+        self.assertEqual(indexed, presets)
 
     def test_all_seven_scenarios_are_retained_and_routed(self):
         root = SKILL_ROOT / "references" / "slides_categories"

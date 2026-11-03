@@ -1,29 +1,23 @@
 # Presentation design guide
 
-Use this guide for self-directed design and as the foundation beneath an explicitly selected preset or user-provided style.
+Use these general rules for every deck. For self-directed work, choose one primary scenario and read its guide; add an auxiliary scenario only for a genuinely mixed brief. User requirements and an explicitly selected preset's signature rules take priority over these visual defaults, but not over evidence boundaries.
 
-1. Follow the general rules on every page.
-2. Choose one primary scenario from the table below; add an auxiliary scenario only when it clarifies a genuinely mixed brief.
-3. Read the matching scenario document before designing. User requirements take priority over every built-in guide.
+## Step 1. General rules
 
-## step1. General rules
+1. **Give every page a reader task**: decide what the reader should understand, believe, decide, or do before designing.
+2. **Give the deck rhythm**: use contents and section dividers only when they help; alternate pages meant for quick scanning with pages that reward close reading.
+3. **Make relationships visible**: use charts, diagrams, and shape combinations when they express the content better than prose, including structures beyond the built-in chart syntax.
+4. **Use imagery with purpose**: prefer useful images from user materials or authoritative sources; do not add images to meet a decoration quota.
+5. **Attribute external facts and data**: state the source, date or period, and measurement basis where appropriate. Link source text and footnotes with `<a href="url">` to the original report or data page.
+6. **Use containers only for semantics**: do not use rounded rectangles or card walls merely to create hierarchy or alignment. Prefer lines, whitespace, and type contrast; cards are appropriate when grouping, state, or an operable region genuinely needs a boundary.
+7. **Let content justify the composition**: do not default to thirds, quarters, or 2×2 layouts when the information has no corresponding structure. Natural comparisons and frameworks may use equal splits.
+8. **Derive the palette and components from the subject**: avoid ungrounded rainbow colors, blue-purple gradients, cyan-purple neon, glassmorphism, and glowing borders. Keep icons, lines, corners, and effects within one coherent visual language.
 
-### Requirements
-1. **Every page has a clear reader task**: what this page should make the reader understand, believe, decide, or do — think this through before designing.
-2. **Paging has rhythm**: decide for yourself whether a table of contents or section dividers are needed; the reader should feel a change of rhythm as they flip through — some pages are taken in at a glance, others are worth stopping to read carefully.
-3. **Use charts and shape combinations flexibly**: if a body of information can be expressed through a complex chart that goes beyond what the current chart syntax can express, you are encouraged to flexibly use shapes and other means to construct the expression.
-4. **Master-level output**: every PPT is a carefully crafted work of art that could be entered into a competition; pay close attention to every detail of layout, typography, and color — details determine success or failure.
-5. **Use image search/generation sensibly**: use image search/generation tools to obtain images and place them in suitable positions. But image abuse is strictly forbidden. If the user's uploaded files contain useful images, use them on suitable pages.
-6. **Defer to the user and the subject**: user-specified templates, brand guidelines, color schemes, fonts, and style references take priority over this guide.
-7. **Source attribution**: pages involving external facts and data must state the source, date or time period, and measurement basis. Source text should use an <a href="url"> hyperlink pointing to the original report or data page. When citing specific sources in footnotes, likewise use <a href="url"> hyperlinks to the original source to strengthen professional credibility.
+**Evidence boundaries**: never fabricate data, citations, customer cases, experimental results, or sources. Mark missing material as a placeholder, assumption, or to-be-supplied information.
 
-### Strictly forbidden
-- **Evidence boundaries**: do not fabricate data, citations, customer cases, experimental results, or sources; when material is missing, clearly mark it as a placeholder, an assumption, or to-be-supplied information.
-- **Classic AI patterns**: it is strictly forbidden to use cards to build hierarchy or alignment (rounded rectangles, rectangular cards, cards with a colored side strip): lines, whitespace, and font-size contrast are better solutions; it is strictly forbidden to use the AI color scheme where red, purple, yellow, and green are all gathered on one page;
+## Step 2. Scenario determination
 
-## step2. Scenario determination
-Based on the user's input, analyze the presentation's audience and reader tasks, determine the scenario it belongs to, and read the corresponding style document.
-> Choose one primary scenario. When truly necessary, you may add one auxiliary scenario, but the primary scenario must prevail.
+Analyze the audience and reader tasks, then read the matching scenario guide. The primary scenario must prevail when an auxiliary guide is needed.
 
 | Scenario type | Typical queries | Reader task | Style document |
 |---|---|---|---|

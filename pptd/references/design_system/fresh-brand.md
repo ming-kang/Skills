@@ -149,4 +149,4 @@ Overall adopts a flat, friendly, branded, lightly decorated texture, establishin
 - Tables: are headers, rows/columns, number alignment, and footnotes clear; is there no overcrowding, truncation, or low contrast?
 - Components: do rounded-corner cards, wave lines, buttons, and illustrations serve a clear informational function; is icon overuse in place of text avoided?
 - Prohibited items: is there no photo background, emoji, complex decoration, strong shadows, glow, textures, glassmorphism, or large centered long text?
-- Output quality: check for no overflow, garbled characters, overlap, occlusion, empty cards, low contrast, or wrong proportions; navigation should not mechanically repeat to the point of covering body text, and illustrations should not press onto text.
+- Output quality: keep navigation clear of body text and prevent illustrations from pressing into text.

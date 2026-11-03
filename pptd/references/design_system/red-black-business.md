@@ -181,4 +181,4 @@ Usable on special pages: the cover may use a dark background, dark-red watermark
 - Tables: are headers, separators, key rows/columns, and number alignment consistent; are long cell paragraphs and overly dense line frames avoided?
 - Components: do red key cards, light gray cards, capsule labels, numbering, and separators have clear functions; are no components added merely for decoration?
 - Prohibited items: are photo backgrounds, emoji, 3D, glow, heavy shadows, complex textures, colorful icons, and rainbow palettes absent?
-- Quality: check for text overflow, truncation, garbled characters, overlap, low contrast, chart occlusion, empty cards, wrong proportions, excessive template sameness, or too many red focal points.
+- Quality: check chart occlusion, excessive red focal points, and monotonous template rhythm.

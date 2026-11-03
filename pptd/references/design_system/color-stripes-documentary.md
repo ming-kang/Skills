@@ -155,7 +155,6 @@ The overall feel is flat, restrained, and report-like — typesetting, color blo
 - Is the copy issue-styled short titles + report paragraphs/parallel subheadings, rather than stacked marketing slogans?
 - Is body text based on Arial 1x, with title, number, and footnote levels relatively clear and free of absolute font-size dependencies?
 - Is the single-page primary color controlled to 1 chapter color + a neutral base, with restrained link/data emphasis?
-- Is the multi-column body free of edge-touching, overlap, truncation, garbled characters, over-tight line spacing, or low contrast?
 - Are photos real, relevant, and rectangularly cropped, without thick shadows or complex masks?
 - Do data cards highlight only a few key numbers, with number/unit/explanation complete?
 - Are charts light-gridded, weakly axised, and directly labeled, without 3D, multiple axes, or too many series colors?
@@ -163,5 +162,3 @@ The overall feel is flat, restrained, and report-like — typesetting, color blo
 - Do components come from the system — capsule navigation, chapter strips, data cards, quote boxes, photo frames, hairline dividers — rather than newly added decoration?
 - Are emoji, complex illustrations, glows, gradients, thick shadows, large blocks of centered body text, and empty-content placeholders avoided?
 - Do cover, body, chapter, case, and closing pages vary while still keeping the same report skeleton?
-- No cards by default: unless the user explicitly requests them, never use rounded rectangles or rectangular cards to build hierarchy or alignment: line segments, whitespace, and font-size differences are the better solution
-- No evenly divided compositions: unless no other layout is available, do not default to thirds, quarters, or two-by-two matrices. This includes three-part structures such as three columns + a heading + a conclusion

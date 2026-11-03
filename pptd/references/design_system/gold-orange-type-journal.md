@@ -146,7 +146,5 @@ Overall flat, editorial, restrained, and type-driven; visual intensity comes fro
 - Tables: white/light-gray base, thin separators, aligned numbers, little conditional color? Are they used only for reference or appendix information?
 - Components: are authentic style components used — giant titles, geometric symbols, letterform specimens, rectangular images, restrained footers?
 - Forbidden items: have emoji, colorful icons, glow, complex shadows, gradient buttons, thick borders, and template SmartArt been removed?
-- Readability: have overflow, truncation, garbled text, overlap, low contrast, images covering text, empty content, wrong proportions, and footer-position drift been checked?
+- Readability: check image/text separation and footer-position stability.
 - Consistency: do page variations serve the section rhythm rather than vary for its own sake? Can the whole report still be recognized as the same type-trend report?
-- No cards by default: unless the user explicitly requests them, it is strictly forbidden to use rounded-rectangle or rectangular cards to build hierarchy or alignment: line segments, whitespace, and font-size differences are better solutions
-- No evenly divided compositions: unless no other layout is available, do not default to thirds, quarters, or two-by-two matrices. This includes three-part conclusions such as a three-way split plus a title plus a conclusion

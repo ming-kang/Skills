@@ -181,7 +181,5 @@ The overall texture is flat, restrained, and editorial-magazine-like, with pages
 - Tables: are headers, rows/columns, divider lines, number alignment, and footnotes standardized? Are heavy black grids or highly saturated fills used?
 - Components: do deep-blue sidebars, light-blue carrier boxes, contents arrows, quotation marks, and metric lists carry information rather than mere decoration?
 - Prohibited items: are emoji, complex illustrations, large colorful icons, strong shadows, glows, 3D, complex textures, and large blocks of centered copy avoided?
-- Readability: are there problems such as overflow, truncation, garbled characters, overlap, low contrast, occlusion, empty content, wrong image aspect ratios, or the footer pressing into the body?
+- Readability: preserve image aspect ratios and keep the footer clear of body content.
 - Consistency: pages may vary, but do they still keep the blue system, footer, right-angled rectangles, left alignment, and the report-magazine character? Avoid making each page an unrelated template.
-- No cards by default: unless the user explicitly requests them, never use rounded rectangles or rectangular cards to build hierarchy or alignment: line segments, whitespace, and font-size differences are the better solution
-- No evenly divided compositions: unless no other layout is available, do not default to thirds, quarters, or two-by-two matrices. This includes three-part structures such as three columns + a heading + a conclusion

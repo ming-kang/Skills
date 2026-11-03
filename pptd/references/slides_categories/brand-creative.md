@@ -13,18 +13,16 @@ Even if all text content were removed, the association with the subject should s
 ### Take the essence, discard the dross
 Not every subject has an aesthetic aligned with top magazines like Monocle, Wallpaper, or Vogue. When extracting the subject's style, accurately identify which items may be referenced and which are prohibited. Designs that fail to meet the benchmark's standard must be explicitly forbidden. If the brand itself lacks design quality, you may keep only the brand's primary color as the theme or accent color, or keep icons as decoration.
 
-### Build a top-tier visual experience
-Use strong font-size contrast and extreme asymmetric layouts to build an exaggerated style and a top-tier visual experience. Reject every safe, mediocre, conservative option: better ugly than mediocre.
-1. **Make extreme choices**: oversized type, giant images, intense whitespace, high-density multi-columns, a single vivid color, or heavy lines. Build an ultimate style: old-newspaper front page, Memphis, Constructivism, Swiss style...
+### Build a distinctive visual experience
+Use strong font-size contrast and asymmetric layouts to create a recognizable style without sacrificing coherence.
+1. **Make deliberate choices**: oversized type, giant images, intense whitespace, high-density multi-columns, a single vivid color, or heavy lines can define a style such as old-newspaper, Memphis, Constructivism, or Swiss design.
 2. **Vary the pages**: cover, opinion, data, and image pages each have different compositions. There is no need to strictly follow one identical "page skeleton," but the deck's consistency should still be recognizable through palette, typeface, font sizes, same-style decorative elements, and the same grid alignment.
 3. **Have a visual rationale**: the visual language must come from the deck's subject, brand, industry, era, or material, and must help the audience understand the content.
 4. **Animation strengthens impact**: live launches, brand proposals, events, or portfolio presentations may use animation to strengthen rhythm, emotion, and brand narrative, but motion direction, speed, and amplitude must follow a unified visual motif, with only one main dynamic idea per page.
 
-## Prohibitions
-1. **No cards by default**: unless the user explicitly requests it, strictly forbid using rounded rectangles or rectangular cards to build hierarchy or alignment: line segments, whitespace, and font/size differences are better solutions.
-2. **No evenly divided compositions**: unless no other layout is available, do not default to one-third splits, four-way splits, or 2×2 matrices — including three-part formulas such as "three columns + title + conclusion."
-3. **No mediocre, common, or AI-typical color schemes**: strictly forbid any blue-and-white pairing, blue-purple gradients, cyan-purple neon, rainbow flares, glassmorphism cards, or glowing borders — unless the user explicitly requests them.
-4. **No elements that clash with the overall style**: no styles from outside the chosen style may appear, such as using rounded icons or rounded rectangles within a sharp style.
+## Scenario-specific constraint
+
+Do not introduce elements that clash with the chosen visual language, such as rounded icons or rounded rectangles within an otherwise sharp-edged style.
 
 ## Visual References
 

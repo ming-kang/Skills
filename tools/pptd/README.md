@@ -50,5 +50,5 @@ The Python suite includes real Node + WASM exports and skips those cases only wh
 - **No browser fallback.** Deck, dependency, and export errors are reported directly. The runtime does not auto-install packages or start background processes.
 - **Single transition owner.** `export_pptx.py` patches and verifies root-level slide transitions after WASM export. `p:transition` must follow `cSld`/optional `clrMapOvr` and precede `timing`/`extLst`.
 - **Honest verification.** ZIP/XML checks do not establish rendering fidelity or application compatibility. The core does not claim font embedding or rendered visual QA.
-- **Design reference coverage.** Keep all seven scenario guides and all 44 presets. `references/design_system/README.md` is the preset index; update it whenever a preset is added, removed, or renamed.
+- **Design reference coverage.** Keep all seven scenario guides and all 44 presets. `references/design_system/README.md` maps each theme ID to `<theme-id>.md` beside the index; update it whenever a preset is added, removed, or renamed.
 - **Clean distribution.** Runtime helpers and assets stay inside `pptd/`; repository-only tests stay here. Remove `__pycache__` and generated exports before packaging.

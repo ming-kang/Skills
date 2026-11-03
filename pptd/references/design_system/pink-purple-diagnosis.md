@@ -141,6 +141,3 @@ The whole deck is organized around a "diagnostic narrative arc," with a reusable
 - [ ] The footer copyright line has been replaced with your own institution or removed; no source-deck marks remain; page-number style is compliant.
 - [ ] The document contains no third-party brands, screenshots, people, original text, or original data; approximate values have been calibrated to actual needs.
 - [ ] Pure-white pages retain ≥35% whitespace, with no crowded pagination; code line counts and list-item counts stay within the limits.
-
-- No cards by default: unless the user explicitly requests it, it is strictly forbidden to use rounded rectangles or rectangular cards to build hierarchy or alignment: lines, whitespace, and font-size differences are the superior solution
-- No evenly-divided composition: unless there is no other usable layout, do not default to three-way splits, four-way splits, or 2×2 matrices. This includes three-part conclusions such as three-column + title + conclusion

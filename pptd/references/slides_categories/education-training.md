@@ -17,14 +17,9 @@ Before production, write down the following information; if any of it is missing
 
 Do not first decide "use blue, use rounded corners, use some Sample" and then cram content into the pages. Every visual choice must be explainable as: it helped the learner see which relationship, remember which step, or complete which judgment.
 
-## 2. General Prohibitions
+## 2. Learning-Specific Constraints
 
-The following are red lines running through the entire deck; they take effect before all layout and visual rules, and unless the user explicitly requests otherwise, none may be violated.
-
-- **No cards by default:** unless the user explicitly requests it, strictly forbid using rounded rectangles or rectangular cards to build hierarchy or alignment. Line segments, whitespace, and font-size/weight differences are better solutions.
-- **No evenly divided compositions:** unless no other layout is available, do not default to one-third splits, four-way splits, or 2×2 matrices — including formulaic patterns such as "title + three parallel blocks + conclusion."
-- **No mediocre, common, or AI-typical color schemes:** unless the user explicitly requests them, strictly forbid blue-and-white pairings, blue-purple gradients, cyan-purple neon, rainbow flares, glassmorphism cards, and glowing borders.
-- **No elements that clash with the overall style:** no styles from outside the chosen style may appear, such as using rounded icons or rounded rectangles within a sharp style.
+Do not turn teaching content into posters or remove definitions, examples, practice, and feedback for the sake of visual minimalism. Every visual choice must support a learning action.
 
 ## 3. The Teaching Loop: Every Chapter and Every Page Needs a Take-Away Action
 
@@ -228,7 +223,7 @@ The visual brief states at least:
 
 ### 5. Pre-Delivery Validation
 
-Run `scripts/validate_pptd.py` and the PPTX export checks, then review text length, layering, contrast, page numbers, and sources. When an external renderer is available, inspect key pages individually rather than relying on thumbnails; when it is not, state that rendered visual review was skipped instead of treating structural validation as a substitute.
+Run the PPTX export, which includes structural validation, then review text length, layering, contrast, page numbers, and sources. When an external renderer is available, inspect key pages individually rather than relying on thumbnails; when it is not, state that rendered visual review was skipped instead of treating structural validation as a substitute.
 
 ## 11. Delivery Acceptance and Reverse Checks
 

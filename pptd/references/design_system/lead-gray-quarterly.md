@@ -185,8 +185,4 @@ Contrast floor: on `ink`, only white/light-teal text; data labels on deep `teal`
 - [ ] All colors come from the §4 tokens; chart coloring follows the §7 recipes; no gradients/shadows.
 - [ ] Only two font families: serif `{Oranienbaum, 思源宋体}` and sans-serif `MiSans`; sizes follow §3.
 - [ ] The header wordmark, beige footer band + page number, and under-chart source notes are present on every page at consistent positions.
-- [ ] Structural validation and PPTX export pass; text length, layering, unexpected wrapping, and dark-background contrast are reviewed. If an external renderer is available, inspect every page for overlap, cropping, and overflow.
 - [ ] Final directory: `deck.pptx` (the only PPTX) + the complete PPTD bundle. Add rendered page images only when requested and produced by an available external renderer.
-
-- No default use of cards: unless the user explicitly requests it, it is strictly forbidden to use rounded rectangles or rectangular cards to build hierarchy or alignment — line segments, whitespace, and font and font-size differences are better solutions.
-- No equal-division composition: unless no other layout is available, do not default to three-way splits, four-way splits, or 2×2 matrices — including three-part structures such as three-way split + title + conclusion.

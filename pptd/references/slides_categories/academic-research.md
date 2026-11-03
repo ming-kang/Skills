@@ -33,13 +33,10 @@ Academic presentations in different research fields have different emphases: thi
 - Use shapes, lines, and arrows as annotations to emphasize or explain chart and image content.
 - When needed, click-triggered animations may progressively present formula derivations, experimental workflows, mechanism explanations, and image annotations.
 
-## Prohibitions
+## Scenario-specific constraints
 
-1. **No cards by default**: unless the user explicitly requests it, strictly forbid using rounded rectangles or rectangular cards to build hierarchy or alignment: line segments, whitespace, and font/size differences are better solutions.
-2. **No evenly divided compositions**: unless no other layout is available, do not default to one-third splits, four-way splits, or 2×2 matrices — including three-part formulas such as "three columns + title + conclusion."
-3. **No mediocre, common, or AI-typical color schemes**: strictly forbid any blue-and-white pairing, blue-purple gradients, cyan-purple neon, rainbow flares, glassmorphism cards, or glowing borders — unless the user explicitly requests them.
-4. **No overly small font sizes**: unless the user requests it or the deliverable is a reading-type artifact (posters, etc.), body text must not use small font sizes.
-5. **No whitespace inside regions**: strictly forbid any case where the content cannot fill its planned region. It is not enough for the text box to be full — the actual text content, as seen in a screenshot, must fill the region. Failure to fill is the most serious kind of crudeness; it feels like no care went into the layout at all.
+1. **No overly small font sizes**: unless the user requests it or the deliverable is a reading-type artifact such as a poster, keep body text readable for the actual presentation setting.
+2. **Avoid underfilled planned regions**: size each region to its real content rather than leaving a large unintended void inside an otherwise dense page.
 
 ## Visual References
 

@@ -183,4 +183,4 @@ Keep it flat, high-contrast, and consulting-style restrained; decoration comes o
 - Tables: if a table is used, is it white-background with thin gray lines, with red only highlighting the header/summary; is there no heavy grid or multi-colored background.
 - Components: do the red title band, bottom conclusion bar, circular crops, and black-and-white photos serve information function rather than piling up as decoration.
 - Prohibited items: is there no emoji, 3D, glow, complex gradients, colorful icon sets, glassmorphism, or large centered copy.
-- Quality: check for text overflow, truncation, garbled characters, overlap, low contrast, photos occluding text, empty placeholders, stretched proportions, distorted logos, and monotonous rhythm from template repetition.
+- Quality: check photo/text separation, logo proportions, and monotonous rhythm from template repetition.

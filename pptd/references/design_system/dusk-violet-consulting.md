@@ -171,7 +171,4 @@ A flat, restrained, report-like tech-consulting style that builds visual focus t
 - Do tables use thin lines, unified alignment, and restrained base colors, with consistent number units?
 - Are images real photography and zoned apart from text, without long text pressed onto busy backgrounds?
 - Are emoji, 3D, heavy shadows, complex decoration, rainbow colors, and meaningless icons avoided?
-- Have you checked for text overflow, truncation, garbled characters, overlap, low contrast, occlusion, empty content, covered footers, and wrong proportions?
 - Does each page have one main topic and a clear reading path, without information weakened by template repetition or element stacking?
-- No cards by default: unless the user explicitly requests it, it is strictly forbidden to use rounded rectangles or rectangular cards to build hierarchy or alignment: line segments, whitespace, and font-size differences are the superior solution
-- No evenly-divided composition: unless there is no other usable layout, do not default to three-way splits, four-way splits, or 2×2 matrices. This includes three-part conclusions such as three-column + title + conclusion

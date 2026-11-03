@@ -12,20 +12,14 @@
 
 **Progress, data, responsibilities, risks, and dependencies are the core relationships of a management report — extract the various relationships from the content and express them with structural diagrams and frameworks.**
 
-## Key Requirements
-1. Create a top-tier visual experience: treat every detail of typesetting, fonts, and colors with care, crafting it like a work of art.
-2. Unless the user explicitly requests it, **strictly forbid using rounded rectangles or rectangular cards** to build hierarchy or alignment: line segments, whitespace, and font/size differences are better solutions.
-3. Unless no other layout is available, forbid evenly divided compositions; do not default to one-third splits, four-way splits, or 2×2 matrices — including three-part formulas such as "three columns + title + conclusion."
-
 ## Visual References
 
 1. Fonts split into families: display type and body type have a clear division of labor (different weights of the same sans-serif family, or sans-serif titles paired with another family for body text); hierarchy is built on font-size and weight ratios; functional text such as numbering, labels, and footnotes is uniformly set small in caps / with added letter spacing; font sizes flex with content volume while the hierarchy ratios stay unchanged.
 2. Fonts and the color scheme must be matched and harmonious; reference each other when designing.
-3. Information-position discipline: conclusion/title → fixed title position; evidence (charts, numbered cards, photos) → a fixed area in the right column or lower half; measurement basis, sources, footnotes → small type in a fixed corner.
+3. Information-position discipline: conclusion/title → fixed title position; evidence (charts, numbered callouts, photos) → a fixed area in the right column or lower half; measurement basis, sources, footnotes → small type in a fixed corner.
 4. De-default charts: remove axes, grids, legend boxes, and default colors; reassign all series colors to same-family shades; bars are flat and rounded, with no stroke and no shadow; data labels keep only key points or move to the text column; key metrics are marked directly with big-number callouts; charts and interpretive text are strictly zoned — no overprinting, no interleaving.
-5. Encourage using rich SmartArt to improve information efficiency and convey professionalism.
-6. Unified corner radius and texture: all rectangular components (cards, panels, photos, bar tops) share one corner-radius scale with no mixing throughout the deck; flat, no drop shadows, no 3D, no gradient text; atmospheric layers such as grain or light flares, if used, stay low-intensity, fixed in position, and beneath the content.
-7. Motifs run through the whole deck: establish 1–2 visual motifs (numbered badges, connecting dashed lines, decorative shapes, etc.) and reuse their variants across page types; when a page lacks a visual anchor, reuse a motif first instead of introducing new elements.
+5. Unified component geometry and texture: rectangular components (panels, photos, bar tops) share one corner-radius scale with no mixing throughout the deck; flat, no drop shadows, no 3D, no gradient text; atmospheric layers such as grain or light flares, if used, stay low-intensity, fixed in position, and beneath the content.
+6. Motifs run through the whole deck: establish 1–2 visual motifs (numbered badges, connecting dashed lines, decorative shapes, etc.) and reuse their variants across page types; when a page lacks a visual anchor, reuse a motif first instead of introducing new elements.
 
 ### Color Palette Reference
 

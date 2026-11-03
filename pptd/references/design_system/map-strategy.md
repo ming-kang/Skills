@@ -122,4 +122,3 @@ Prohibited: default consulting blue card walls, random world-map watermarks, fak
 - Does the page keep the stable grammar of paper white, navy, cobalt, and vermilion?
 - Are the title, legend, sources, units, and assumptions complete?
 - Are card walls, 3D globes, random decorative lines, and template-like slogans avoided?
-- Have you checked for overlap, cropping, garbled characters, low contrast, and text wrapping?

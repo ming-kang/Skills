@@ -169,4 +169,4 @@ Special pages may use black-base light effects, concentric circles, low-contrast
 - Tables: are the header, rows and columns, and key rows clear; are lines light and thin; are numbers aligned; is detail overload avoided?
 - Components: do light-gray cards, black capsules, orange nodes, and thin lines serve information; were page numbers, navigation, and watermarks never force-added?
 - Prohibited items: no emoji, cartoon illustrations, heavy shadows, complex decoration, large image backgrounds, thick borders, or glowing text.
-- Quality: check for text overflow, truncation, garbled text, overlap, low contrast, occlusion, empty content, wrong proportions, and an overly repetitive template feel.
+- Quality: avoid an overly repetitive template rhythm.

@@ -39,7 +39,7 @@ Open my deck.pptd project and redo only the section divider pages.
 Use the pine-green-strategy preset for this consulting deck.
 ```
 
-The skill retains **44 named design-system presets** and seven scenario guides. A preset is used only when explicitly named; self-directed work uses the scenario guides. See the [preset index](../pptd/references/design_system/README.md).
+The skill retains **44 named design-system presets** and seven scenario guides. Every deck uses the shared design baseline; self-directed work adds one scenario guide, while an explicitly named preset adds only that preset's signature file. See the [preset index](../pptd/references/design_system/README.md).
 
 Existing `.pptx` files cannot be imported. Export them to PDF or page images first so the agent can rebuild the pages as PPTD.
 
@@ -55,19 +55,7 @@ deck/
 
 Keep all page and media paths relative to the manifest directory. The complete private format contract is documented in [pptd/references/pptd.md](../pptd/references/pptd.md).
 
-## Validate
-
-Run the browser-free structural validator from the installed skill folder:
-
-```bash
-python scripts/validate_pptd.py /absolute/path/deck/deck.pptd
-```
-
-It checks YAML syntax, the v2 manifest, page files, project-contained paths, element IDs and bounds, required text content, and local media references. The JSON summary separates errors from canvas-overflow warnings; intentional bleed can remain a warning.
-
-Structural validation cannot detect every visual problem. Text overflow, occlusion, contrast, and final appearance still need judgment or an external rendering tool when the user requires rendered visual QA.
-
-## Export PPTX
+## Validate and export
 
 ```bash
 python scripts/export_pptx.py \
@@ -81,14 +69,22 @@ Options:
 - `--force` replaces an existing output;
 - `--wasm PATH` deliberately tests another compatible writer build.
 
-A project directory can be passed instead of the manifest when it contains exactly one `.pptd`. The command validates the project, calls the bundled WASM writer, writes transitions in valid OOXML slide order, and verifies PPTX ZIP/XML structure. It prints a JSON summary and leaves no temporary output on failure.
+A project directory can be passed instead of the manifest when it contains exactly one `.pptd`. The command checks YAML syntax, the v2 manifest, page files, project-contained paths, element IDs and bounds, required text content, and local media references before calling the bundled WASM writer. It then writes transitions in valid OOXML slide order, verifies PPTX ZIP/XML structure, prints a JSON summary, and leaves no temporary output on failure.
+
+For PPTD-only output or a standalone structural check, run:
+
+```bash
+python scripts/validate_pptd.py /absolute/path/deck/deck.pptd
+```
+
+The JSON summary separates errors from canvas-overflow warnings; intentional bleed can remain a warning. Structural validation cannot detect every visual problem, so text overflow, occlusion, contrast, and final appearance still need judgment or an external rendering tool when rendered visual QA is required.
 
 Export is offline for local media. Remote image URLs still require network access. Fonts are referenced by name but not embedded; install the selected fonts on the intended rendering or playback machine. Package verification alone does not prove identical rendering in PowerPoint, WPS, or Keynote.
 
 ## Design and format references
 
 - [PPTD format](../pptd/references/pptd.md)
-- [Scenario guide router](../pptd/references/slides_categories.md)
+- [Design baseline and scenario router](../pptd/references/slides_categories.md)
 - [44 design-system presets](../pptd/references/design_system/README.md)
 - [Fonts](../pptd/references/fonts.md)
 - [Shapes](../pptd/references/shapes.md)

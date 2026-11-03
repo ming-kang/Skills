@@ -14,14 +14,9 @@ Readers may be fellow engineers, but they may also be product partners or custom
 - **Evidence first**: every page advances one judgment. The title gives the conclusion, the body gives the evidence, and it explains what the evidence means for the solution, the risks, or the next steps.
 - **Restrained**: the wow factor comes from making a complex problem clear — not from glow, particles, walls of cards, and hollow "tech vibes."
 
-## 2. General Prohibitions
+## 2. Technical Visual Discipline
 
-The following are red lines running through the entire deck; they take effect before all layout and visual rules, and unless the user explicitly requests otherwise, none may be violated.
-
-- **No cards by default**: unless the user explicitly requests it, strictly forbid using rounded rectangles or rectangular cards to build hierarchy or alignment. Line segments, whitespace, and font-size/weight differences are better solutions.
-- **No evenly divided compositions**: unless no other layout is available, do not default to one-third splits, four-way splits, or 2×2 matrices — including formulaic patterns such as "title + three parallel blocks + conclusion."
-- **No mediocre, common, or AI-typical color schemes**: unless the user explicitly requests them, strictly forbid blue-and-white pairings, blue-purple gradients, cyan-purple neon, rainbow flares, glassmorphism cards, and glowing borders.
-- **No elements that clash with the overall style**: no styles from outside the chosen style may appear, such as using rounded icons or rounded rectangles within a sharp style.
+Do not substitute decoration for technical evidence. Keep connectors, nodes, icons, and effects within the chosen system, and use emphasis only for critical paths, states, or conclusions.
 
 ## 3. How to Present Technical Content
 

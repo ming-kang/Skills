@@ -13,14 +13,8 @@
 1. Data is the core support of the argument: search thoroughly around the topic to obtain real data, and present it fully through all kinds of charts and tables; the source of every piece of data must be stated — never fabricate data.
 2. Charts come complete with axes, units, legends, sources, and measurement basis, so that a chart stands on its own apart from the body text.
 3. Mark data inflection points and key values on charts and explain their meaning; accompany each chart with text stating the judgment it proves, the findings visible on it, the implications for the decision, and the source and boundaries.
-4. Encourage using SmartArt shape combinations to present information; when structural relationships exist between pieces of content — sequence, comparison, cycle, causality, and so on — prefer making them visible with a structural diagram rather than describing them in text.
-5. Encourage drawing and combining shapes to build complex charts and SmartArt, supported by text explanations — plain text alone is too flat.
-
-## Key Requirements
-1. Create a top-tier visual experience: every detail of typesetting, fonts, colors, and alignment must be treated with care; accept no defaults — details determine success or failure.
-2. Unless explicitly requested, strictly forbid using rounded rectangles or rectangular cards to build hierarchy or alignment: line segments, whitespace, and font/size differences are better solutions.
-3. A single basic chart must not occupy half or more of the width; encourage laying out multiple charts or other content on one page.
-4. Unless no other layout is available, forbid evenly divided compositions; do not default to one-third splits, four-way splits, or 2×2 matrices — including three-part formulas such as "three columns + title + conclusion."
+4. When structural relationships exist between pieces of content — sequence, comparison, cycle, causality, and so on — make them visible with a structural diagram rather than describing them only in text.
+5. Avoid letting one basic chart occupy half or more of the page width; combine multiple charts or supporting evidence when the argument needs them.
 
 ## Visual References
 

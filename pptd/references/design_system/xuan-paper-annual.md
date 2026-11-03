@@ -174,6 +174,4 @@ Overall flat, publication-grade, restrained, high-density, with strong brand-col
 - Tables: are headers, dividers, number alignment, and unit bases clear; is highlighting used only for key rows and columns?
 - Components: are pixel blocks used only on the cover/table of contents/section dividers or for sparse navigation; do cards serve explanation; do icons have real-object meaning?
 - Prohibited items: no large image backgrounds, emoji, complex illustrations, heavy shadows, glassmorphism, excessive gradients, or large stretches of centered copy.
-- Quality: check overflow, truncation, garbled text, overlap, low contrast, occlusion, empty content, wrong proportions, and mechanical template repetition.
-- No default use of cards: unless the user explicitly requests it, it is strictly forbidden to use rounded rectangles or rectangular cards to build hierarchy or alignment — line segments, whitespace, and font and font-size differences are better solutions.
-- No equal-division composition: unless no other layout is available, do not default to three-way splits, four-way splits, or 2×2 matrices — including three-part structures such as three-way split + title + conclusion.
+- Quality: avoid mechanical template repetition.
