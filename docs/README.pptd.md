@@ -7,7 +7,7 @@ Every task delivers two artifacts by default:
 1. a self-contained, editable **PPTD project**;
 2. the matching **.pptx**, with a fade slide transition on every slide.
 
-The core is deliberately small: PPTD authoring, structural validation, and one-way PPTX export. It does not include a browser editor, renderer, image-export pipeline, font embedding, or PPTX importer.
+The core provides PPTD authoring, structural validation, and one-way PPTX export, including a browser-free SVG renderer for advanced charts. It does not include a browser editor, full-slide renderer, slide image-export pipeline, font embedding, or PPTX importer.
 
 ## Install
 
@@ -81,6 +81,17 @@ The JSON summary separates errors from canvas-overflow warnings; intentional ble
 
 Export is offline for local media. Remote image URLs still require network access. Fonts are referenced by name but not embedded; install the selected fonts on the intended rendering or playback machine. Package verification alone does not prove identical rendering in PowerPoint, WPS, or Keynote.
 
+## Advanced charts
+
+`heatmap`, `treemap`, `sunburst`, and `sankey` are rendered locally with the bundled ECharts SVG renderer and embedded as correctly typed `.svg` pictures. No browser, cloud service, runtime npm install, or second WASM binary is needed. Other chart types retain their native PowerPoint chart export.
+
+- Keep authoring these as normal PPTD `chart` elements; no extra files or options are required.
+- The exporter preserves their bounds, labels, and element animations. The chart frame (fill, border, shadow) becomes native PowerPoint rectangles around the picture and animates with it.
+- Series without an explicit `fill` use the same default color cycle as native charts. Labels inside cells and sectors switch between white and dark text for contrast unless `dataLabels.color` is set, and treemap/sunburst nodes are separated by a 1px white line unless `border` is set.
+- Chart data remains editable in the original `.page` files and is retained in the SVG metadata. The resulting PowerPoint picture is **not** a native chart with an **Edit Data** worksheet.
+- Missing heatmap values stay transparent. Hierarchy totals are computed before limiting visible levels. Cycles, invalid column mappings, and invalid values fail with the page and chart ID, rather than silently falling back to a bar chart.
+- Playback requires SVG-capable presentation software; no PNG fallback is bundled. Package checks alone still do not establish cross-application rendering fidelity.
+
 ## Design and format references
 
 - [PPTD format](../pptd/references/pptd.md)
@@ -96,4 +107,4 @@ The only required binary is [`assets/wasm/pptd_wasm_bg.wasm`](../pptd/assets/was
 
 ## License and attribution
 
-This is an independent, unofficial project. Third-party product names and trademarks belong to their owners. This repository is MIT-licensed; see [../LICENSE](../LICENSE).
+This is an independent, unofficial project. Third-party product names and trademarks belong to their owners. Repository-authored code is MIT-licensed; see [../LICENSE](../LICENSE). The bundled ECharts renderer and its subcomponents retain their upstream licenses and notices under [assets/charts/](../pptd/assets/charts/README.md).

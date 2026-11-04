@@ -26,6 +26,7 @@ import validate_pptd as VALIDATE  # noqa: E402
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 MINIMAL = FIXTURES / "minimal"
 QA_DECK = FIXTURES / "qa-deck"
+ADVANCED_CHARTS = FIXTURES / "advanced-charts"
 WASM_HASH = "589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e"
 
 
@@ -255,6 +256,33 @@ class ExportTests(unittest.TestCase):
             self.assertEqual(summary["fontParts"], 0)
             with zipfile.ZipFile(output) as archive:
                 self.assertTrue(any(name.startswith("ppt/media/") for name in archive.namelist()))
+
+    @unittest.skipUnless(shutil.which("node"), "node is required")
+    def test_advanced_charts_export_as_framed_svg_pictures(self):
+        with tempfile.TemporaryDirectory() as name:
+            output = Path(name) / "charts.pptx"
+            summary = EXPORT.export_pptx(ADVANCED_CHARTS, output)
+            self.assertEqual(summary["slides"], 5)
+            with zipfile.ZipFile(output) as archive:
+                svgs = [n for n in archive.namelist() if n.startswith("ppt/media/") and n.endswith(".svg")]
+                for svg in svgs:
+                    # PowerPoint ignores dominant-baseline; text must carry explicit offsets.
+                    self.assertNotIn("dominant-baseline", archive.read(svg).decode())
+                for index in range(1, 5):
+                    slide = archive.read(f"ppt/slides/slide{index}.xml").decode()
+                    shapes = dict(re.findall(r'<p:cNvPr id="(\d+)" name="([^"]+)"', slide))
+                    chart_id = f"chart-{index}"
+                    self.assertIn(chart_id, shapes.values())
+                    self.assertIn(f"{chart_id}-frame", shapes.values())
+                    # The picture is bare: no alpha-traced shadow, no split border shape.
+                    picture = re.search(r"<p:pic>.*?</p:pic>", slide, re.S).group(0)
+                    self.assertNotIn("effectLst", picture)
+                    self.assertFalse(any(value.endswith("-border") for value in shapes.values()))
+                    self.assertNotIn('<a:ln w="0">', slide)
+                    # Every frame layer animates together with the chart.
+                    timing = slide[slide.index("<p:timing") :]
+                    animated = set(re.findall(r'spTgt spid="(\d+)"', timing))
+                    self.assertEqual(animated, set(shapes))
 
 
 class ReferenceCoverageTests(unittest.TestCase):

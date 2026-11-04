@@ -16,7 +16,7 @@ Unless the user explicitly requests PPTD-only output, deliver:
 1. A complete PPTD project: one `.pptd`, its `pages/`, and every referenced local asset.
 2. The matching `.pptx`, exported locally with a fade slide transition by default.
 
-The exporter is one-way: **PPTD → PPTX**. There is no PPTX importer, editor, renderer, or image exporter. To edit or replicate an existing `.pptx`, ask for a PDF or page images and rebuild it as PPTD. The pipeline performs structural and PPTX package checks, not rendered visual QA, and does not embed fonts.
+The exporter is one-way: **PPTD → PPTX**. There is no PPTX importer, browser editor, full-slide renderer, or slide image exporter. To edit or replicate an existing `.pptx`, ask for a PDF or page images and rebuild it as PPTD. A bundled, browser-free SVG renderer handles advanced charts only; the pipeline performs structural and PPTX package checks, not rendered slide QA, and does not embed fonts.
 
 `references/pptd.md` is the authoritative format contract. Do not invent fields or substitute another YAML schema.
 
@@ -85,6 +85,8 @@ python scripts/validate_pptd.py /absolute/path/deck/deck.pptd
 ```
 
 Export is offline for local media; remote image URLs require network access. Use fonts available on the intended playback machine.
+
+`heatmap`, `treemap`, `sunburst`, and `sankey` are exported automatically as SVG pictures, not native PowerPoint charts. Their data stays editable in the PPTD source and is retained in SVG metadata. Other chart types keep the native WASM path. Use SVG-capable presentation software; there is no raster fallback. Invalid advanced-chart data is reported with its page and element ID instead of silently exporting a different chart type.
 
 ### 5. Deliver accurately
 

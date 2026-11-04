@@ -1,0 +1,17 @@
+version: v2
+title: Advanced chart export review
+size:
+- 960
+- 540
+theme:
+  colors:
+    primary: '#2563EB'
+    secondary: '#0D9488'
+    negative: '#DB2777'
+    text: '#1F2937'
+pages:
+- pages/01.page
+- pages/02.page
+- pages/03.page
+- pages/04.page
+- pages/05.page

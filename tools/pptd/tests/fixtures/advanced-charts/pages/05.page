@@ -1,0 +1,40 @@
+elements:
+- title: 普通柱图仍为原生图表
+  data:
+    cols:
+    - 季度
+    - 收入
+    rows:
+    - - Q1
+      - 10
+    - - Q2
+      - 20
+    - - Q3
+      - 15
+  series:
+  - type: bar
+    encode:
+      x: 季度
+      y: 收入
+  elementId: chart-5
+  elementType: chart
+  bounds:
+  - 80
+  - 60
+  - 800
+  - 420
+  fontFamily:
+    latin: Arial
+    ea: Microsoft YaHei
+  border:
+    color: '#CBD5E1'
+    width: 1
+  shadow:
+    blur: 4
+    color: '#00000022'
+    offset:
+    - 1
+    - 2
+animations:
+- elementId: chart-5
+  effect: fade-in

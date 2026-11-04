@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadWasmExporter } from './wasm-exporter.mjs';
+import { prepareAdvancedCharts } from './advanced-charts.mjs';
 
 const DEFAULT_WASM = new URL('../assets/wasm/pptd_wasm_bg.wasm', import.meta.url);
 
@@ -182,6 +183,7 @@ async function main(argv) {
   const payload = JSON.parse(fs.readFileSync(args.json, 'utf8'));
   const project = buildProject(payload);
   const images = await resolveImages(project, path.dirname(payload.manifestPath));
+  await prepareAdvancedCharts(project, images);
   const signature = offlineSignature(JSON.stringify(project));
   const { exportPPTDToPPTXBytes } = await loadWasmExporter(args.wasm);
   const bytes = exportPPTDToPPTXBytes(

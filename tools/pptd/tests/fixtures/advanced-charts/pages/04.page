@@ -1,0 +1,71 @@
+elements:
+- title: 桑基图 / 来源与去向
+  data:
+    cols:
+    - 来源
+    - 去向
+    - 数量
+    rows:
+    - - 自然搜索
+      - 访问
+      - 55
+    - - 广告
+      - 访问
+      - 30
+    - - 推荐
+      - 访问
+      - 15
+    - - 访问
+      - 购买
+      - 40
+    - - 访问
+      - 离开
+      - 60
+  series:
+  - type: sankey
+    encode:
+      source: 来源
+      target: 去向
+      flow: 数量
+    nodeAlign: justify
+    fill:
+      自然搜索: $primary
+      广告: $secondary
+      推荐: $negative
+      访问: '#64748B'
+      购买: $secondary
+      离开: '#94A3B8'
+    dataLabels:
+      show: true
+      content: category
+      color: $text
+  fill:
+    type: image
+    src: media/background.svg
+    crop:
+      left: 0.1
+    fit:
+      mode: cover
+    opacity: 0.35
+  elementId: chart-4
+  elementType: chart
+  bounds:
+  - 80
+  - 60
+  - 800
+  - 420
+  fontFamily:
+    latin: Arial
+    ea: Microsoft YaHei
+  border:
+    color: '#CBD5E1'
+    width: 1
+  shadow:
+    blur: 4
+    color: '#00000022'
+    offset:
+    - 1
+    - 2
+animations:
+- elementId: chart-4
+  effect: fade-in

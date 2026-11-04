@@ -1053,6 +1053,8 @@ PPTD v2's chart element follows the ECharts philosophy: **the chart top level ca
 
 `bar` / `line` / `area` / `scatter` / `bubble` / `candlestick` / `pie` / `radar` / `waterfall` / `heatmap` / `treemap` / `sunburst` / `sankey`
 
+> **Local PPTX export:** `heatmap`, `treemap`, `sunburst`, and `sankey` use the bundled browser-free SVG renderer. They become SVG pictures, not native PowerPoint chart objects; the other types retain the WASM writer's native chart path. Keep the normal `chart` schema below: rendering is automatic, the `.page` source stays unchanged, and the chart definition is retained in the SVG's `pptd:source` metadata. The four advanced types each require a single series. Like native charts, series without an explicit `fill` use the writer's default color cycle (`#1783FF`, `#68B8A8`, `#C9A86A`, `#8C84C9`, …); `Theme.colors` tokens apply where referenced. The chart's `fill`, `border`, and `shadow` are exported as native rectangles around the picture and share its animations. Labels without an explicit `color` are white or dark depending on the fill beneath them. Export errors include the page and element ID; they are never replaced silently with a bar chart. SVG-capable playback software is required, with no PNG fallback.
+
 Each type declares its **series constraint** on the first line of its own subsection: the maximum count allowed within the same chart + which other types it may coexist with.
 
 #### Chart
@@ -1478,7 +1480,7 @@ interface HeatmapSeries {
 > - `linear`: `colorScheme` length ≥ 2, interpolated between the endpoints;
 > - `diverging`: `colorScheme` length = 3 (low / mid / high); the midpoint is determined by the middle of `domain`, often used in "negative-neutral-positive" scenarios.
 >
-> **Data layout**: the x / y columns are fixed as categories (string); category order on the axes follows first-appearance order in `rows`; (x, y) combinations that do not appear in `rows` are treated as missing cells, rendered transparent (the background color in PPTX). For a complete matrix, explicitly listing all (x, y) combinations and using null for missing values is recommended.
+> **Data layout**: the x / y columns are fixed as categories (string); category order on the axes follows first-appearance order in `rows`; (x, y) combinations that do not appear in `rows`, or whose value is `null`, are missing cells and remain transparent. Zero is a real value, not a missing cell. Each (x, y) pair must occur at most once. For a complete matrix, explicitly listing all (x, y) combinations and using null for missing values is recommended.
 >
 > heatmap does not use `chart.legend`; it is replaced by `colorbar`; `colorbar: false` turns off the color-scale bar.
 
@@ -1507,6 +1509,8 @@ interface TreemapSeries {
 > - `fill: Color | GradientFill` (single value): all root nodes share this color; child nodes are derived by decreasing lightness by 10% per level (along the HSL.L dimension).
 > - `fill: (Color | GradientFill)[]` (1-D array): cycles in the order the root nodes appear; each root node's child nodes are derived by decreasing lightness by 10% per level.
 > - `fill: (Color | GradientFill)[][]` (2-D array): the outer dimension cycles by root node, the inner dimension specifies levels directly (bypassing automatic derivation); if an inner array is not long enough to cover all levels, the remaining levels are still derived by decreasing lightness by 10%.
+
+> **Local hierarchy export (treemap and sunburst):** node names must be unique, values must be non-negative or `null`, and parent links must be acyclic. A parent referenced without its own row becomes a grouping node. A `null` grouping-node value is derived from its children; an explicit zero remains zero. When `border` is omitted, nodes are separated by a 1px white line so same-colored siblings stay distinguishable. Totals include all descendants before `levels` limits the visible depth, so hiding deeper levels does not discard their values.
 
 #### sunburst
 
@@ -1544,7 +1548,7 @@ interface SankeySeries {
 }
 ```
 
-> **Graph constraint**: sankey is restricted to a **directed acyclic graph (DAG)**; when the source/target columns form a cycle, the checker raises `CyclicGraphError`.
+> **Graph constraint**: sankey is restricted to a **directed acyclic graph (DAG)**. Local export rejects cycles and negative or non-numeric flows with the page and chart ID. Zero and `null` flows have no visible ribbon.
 >
 > **Node order**: the `source` and `target` columns are deduplicated and arranged in topological order. When `fill` is an array, it cycles in this order; when the array length < node count, it wraps around and reuses; when > node count, it truncates. The object form matches by node name exactly.
 

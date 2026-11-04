@@ -1,0 +1,77 @@
+elements:
+- title: 热力图 / 缺失值透明
+  data:
+    cols:
+    - 季度
+    - 区域
+    - 增长
+    rows:
+    - - Q1
+      - 华东
+      - 12
+    - - Q2
+      - 华东
+      - 30
+    - - Q3
+      - 华东
+      - null
+    - - Q1
+      - 华南
+      - -8
+    - - Q2
+      - 华南
+      - 0
+    - - Q3
+      - 华南
+      - 15
+    - - Q1
+      - 华北
+      - -20
+    - - Q2
+      - 华北
+      - 8
+    - - Q3
+      - 华北
+      - 24
+  series:
+  - type: heatmap
+    encode:
+      x: 季度
+      y: 区域
+      value: 增长
+    colorScale:
+      type: diverging
+    colorScheme:
+    - $negative
+    - '#FFFFFF'
+    - $primary
+    dataLabels:
+      show: true
+      numberFormat: '0.0'
+  xAxis:
+    reverse: true
+  yAxis:
+    label:
+      color: $text
+  elementId: chart-1
+  elementType: chart
+  bounds:
+  - 80
+  - 60
+  - 800
+  - 420
+  fontFamily:
+    latin: Arial
+    ea: Microsoft YaHei
+  border:
+    color: '#CBD5E1'
+    width: 1
+  shadow:
+    blur: 4
+    color: '#00000022'
+    offset:
+    - 1
+    - 2
+animations:
+- elementId: chart-1
+  effect: fade-in

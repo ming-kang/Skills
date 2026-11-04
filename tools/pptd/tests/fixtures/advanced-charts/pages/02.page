@@ -1,0 +1,65 @@
+elements:
+- title: 树图 / 多根和层级聚合
+  data:
+    cols:
+    - 节点
+    - 上级
+    - 收入
+    rows:
+    - - 业务A
+      - null
+      - null
+    - - 业务B
+      - null
+      - null
+    - - 产品A1
+      - 业务A
+      - 50
+    - - 产品A2
+      - 业务A
+      - 30
+    - - 产品B1
+      - 业务B
+      - 20
+    - - 产品B2
+      - 业务B
+      - 15
+  series:
+  - type: treemap
+    encode:
+      category: 节点
+      parent: 上级
+      value: 收入
+    fill:
+    - - $primary
+    - - $secondary
+    border:
+      color: '#475569'
+      width: 2
+      style: dash
+    dataLabels:
+      show: true
+      content: category
+      color: '#FFFFFF'
+  elementId: chart-2
+  elementType: chart
+  bounds:
+  - 80
+  - 60
+  - 800
+  - 420
+  fontFamily:
+    latin: Arial
+    ea: Microsoft YaHei
+  border:
+    color: '#CBD5E1'
+    width: 1
+  shadow:
+    blur: 4
+    color: '#00000022'
+    offset:
+    - 1
+    - 2
+animations:
+- elementId: chart-2
+  effect: fade-in
