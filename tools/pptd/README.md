@@ -10,6 +10,8 @@ Everything in `pptd/scripts/` runs inside a single Node.js process with zero ext
 pptd/scripts/
   export.mjs          public CLI: read, prepare, WASM export, patch, verify
   validate.mjs        structural check only
+  render_slides.py    optional installed Office QA renderer (PDF + PyMuPDF PNG)
+  render_powerpoint.ps1
   lib/deck/           yaml.mjs, contract.mjs, schema.mjs, project.mjs
   lib/prepare/        font_data, fonts, icons, media, images, formulas, charts, svg_text
   lib/pptx/           writer.mjs, zip.mjs, patch.mjs, verify.mjs
@@ -26,8 +28,8 @@ pptd/assets/
   parser shared by media preparation, native table image fills, and package verification.
 - `lib/pptx/zip.mjs` implements ZIP reading, updating and IEEE CRC-32 verification on
   `node:zlib`; `patch.mjs` and `verify.mjs` reuse the vendored `@xmldom/xmldom`.
-- `render_slides.py` and `render_powerpoint.ps1` are repository-only review helpers; they
-  are not distributed with the skill and never run during export.
+- `render_slides.py` and `render_powerpoint.ps1` ship inside `pptd/scripts/` as optional
+  runtime QA helpers (never invoked automatically during export).
 
 ## Rebuild runtime assets
 
@@ -66,7 +68,7 @@ silent damage.
 
 ```bash
 node pptd/scripts/export.mjs tools/pptd/tests/fixtures/advanced-charts -o .artifacts/pptd/charts.pptx --force --offline
-python -B tools/pptd/render_slides.py .artifacts/pptd/charts.pptx -o .artifacts/pptd/charts-powerpoint --if-available --force
+python -B pptd/scripts/render_slides.py .artifacts/pptd/charts.pptx -o .artifacts/pptd/charts-powerpoint --if-available --force
 ```
 
 Review every page PNG for font identity/styles, text fit, chart labels, image crop, tables, formulas and layering. After fixing source or adapter problems, export/render again. Compare against frozen reference outputs or inspect the underlying SVG/XML; no browser is required. PowerPoint fixed-format PDF preserves embedded-font playback; direct PNG export does not and must not be used as a font-fidelity oracle. Repository QA dependencies are recorded in `requirements-review.txt` at the root; they are not mandatory PPTX-export dependencies. If dependencies are absent, report `skipped`; do not claim a visual review. Render failures must be diagnosed rather than called passes.

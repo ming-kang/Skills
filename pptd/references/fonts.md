@@ -59,4 +59,4 @@ Google CSS uses a fixed non-browser user agent and must return one complete norm
 
 `--no-embed-fonts` deliberately leaves fonts external. Otherwise complete eligible faces are wrapped as valid EOT; RIBBI variants are bound under one family in regular/bold/italic/boldItalic order. Embedding does not permit redistributing loose system fonts. If a license prohibits editable outline embedding, or a variable/CFF face cannot be embedded, install that font on the intended rendering/playback machine and disclose the dependency.
 
-When local Office is available, review the actual PPTX typography using the repository helper `tools/pptd/render_slides.py --if-available`. Native font names, style bindings and font-part integrity are separate from visual acceptance.
+When local Office is available, review the actual PPTX typography using `scripts/render_slides.py --if-available`. Native font names, style bindings and font-part integrity are separate from visual acceptance.

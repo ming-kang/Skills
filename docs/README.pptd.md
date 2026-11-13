@@ -89,7 +89,7 @@ Export is offline for local media and bundled/local/cached fonts. Remote images 
 When a local engine is available:
 
 ```bash
-python tools/pptd/render_slides.py /absolute/path/deck/deck.pptx \
+python scripts/render_slides.py /absolute/path/deck/deck.pptx \
   --output /absolute/path/deck/.qa-images --if-available
 ```
 

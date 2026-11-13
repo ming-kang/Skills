@@ -26,12 +26,14 @@ The exporter is one-way: **PPTD → PPTX**. There is no PPTX importer, browser e
 scripts/
   export.mjs           # public CLI: read, prepare, WASM export, patch, verify
   validate.mjs         # structural check without exporting
+  render_slides.py     # optional local Office/LibreOffice QA renderer
+  render_powerpoint.ps1
   lib/deck/            # YAML 1.2 reader and the v2 schema
   lib/prepare/         # fonts, icons, images, formulas, advanced charts, SVG text
   lib/pptx/            # version-locked WASM writer, ZIP, OOXML patch & verify
 ```
 
-Node.js 18+ is the only runtime requirement.
+Node.js 18+ is the only mandatory runtime requirement. Python 3 + PyMuPDF are only needed when running the optional `render_slides.py` visual review helper.
 
 ## Workflow
 
@@ -108,10 +110,10 @@ Export is offline for local media and bundled/local/cached fonts. Remote images 
 
 ### 5. Review quality; render when conditions allow
 
-Always inspect text length, hierarchy, contrast, alignment, cropping, layering, sources, and deck rhythm. When local rendering is available, run the repository review helper:
+Always inspect text length, hierarchy, contrast, alignment, cropping, layering, sources, and deck rhythm. When local rendering is available, run:
 
 ```bash
-python tools/pptd/render_slides.py \
+python scripts/render_slides.py \
   /absolute/path/deck/deck.pptx \
   --output /absolute/path/deck/.qa-images \
   --if-available
