@@ -5,8 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { textStyleReference, tableCells } from '../deck/schema.mjs';
-import { embeddingAllowed, extractTtcFace, readFontFaces, ttfToEot } from './font_data.mjs';
+import { tableCells, textStyleReference } from '../deck/schema.mjs';
+import { embeddingAllowed, extractTtcFace, readFontFaces, readFontFacesFromFile, ttfToEot } from './font_data.mjs';
 
 const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const ASSETS = path.join(SKILL_DIR, 'assets', 'fonts');
@@ -18,7 +18,7 @@ const LOCAL_ALIASES = {
   '宋体': 'SimSun',
   '黑体': 'SimHei',
 };
-const CJK = /[\u3400-\u9fff\uf900-\ufaff]/;
+export const EAST_ASIAN = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Bopomofo}\u3000-\u303f\uff00-\uffef]/u;
 const VOID_TAGS = new Set(['br', 'img', 'hr']);
 const MAX_FONT_BYTES = 64 * 1024 * 1024;
 const ALLOWED_GOOGLE_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
@@ -161,10 +161,12 @@ export class FontStore {
       this.aliases.set(key(alias), target);
     }
     this.extraDirs = fontDirs.map((dir) => path.resolve(String(dir).replace(/^~(?=$|[\\/])/, os.homedir())));
+    this.scannedDirs = new Set();
     this.scanned = false;
     this.warnings = [];
     this.needed = new Map();
     this.resolved = new Map();
+    this.fileBytes = new Map();
 
     for (const entry of this.catalog.faces) {
       this.faces.push({ ...entry, path: path.join(ASSETS, entry.src), priority: 1 });
@@ -183,8 +185,7 @@ export class FontStore {
 
   add(filePath, priority, family = null) {
     try {
-      const data = fs.readFileSync(filePath);
-      const faces = readFontFaces(data);
+      const faces = readFontFacesFromFile(filePath);
       if (family && !faces.some((face) => key(family) === key(face.family) || face.aliases.some((alias) => key(alias) === key(family)))) {
         throw new Error(`custom font family does not match its file: ${family} / ${path.basename(filePath)}`);
       }
@@ -198,6 +199,15 @@ export class FontStore {
 
   scan(directory, priority) {
     if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) return;
+    let realDir;
+    try {
+      realDir = fs.realpathSync(directory);
+    } catch {
+      realDir = directory;
+    }
+    if (this.scannedDirs.has(realDir)) return;
+    this.scannedDirs.add(realDir);
+
     let entries;
     try {
       entries = fs.readdirSync(directory, { withFileTypes: true, recursive: true });
@@ -209,6 +219,13 @@ export class FontStore {
       .map((entry) => path.join(entry.parentPath ?? entry.path, entry.name))
       .sort();
     for (const file of files) this.add(file, priority);
+  }
+
+  readBytes(filePath) {
+    if (!this.fileBytes.has(filePath)) {
+      this.fileBytes.set(filePath, fs.readFileSync(filePath));
+    }
+    return this.fileBytes.get(filePath);
   }
 
   resolve(rawName, requested, eastAsian = false) {
@@ -223,7 +240,7 @@ export class FontStore {
       available = candidates();
     }
     if (!available.length) {
-      const fallback = this.catalog.fallbacks[eastAsian || name === 'MiSans' ? 'ea' : 'latin'];
+      const fallback = this.catalog.fallbacks[eastAsian ? 'ea' : 'latin'];
       this.warn(`font '${name}' is unavailable; exported text uses '${fallback}'`);
       return this.resolve(fallback, requested, eastAsian);
     }
@@ -239,7 +256,7 @@ export class FontStore {
       this.warn(`font '${name}' has no ${requested} face; presentation software must synthesize that style`);
     }
     if (entry.face === undefined) {
-      const raw = fs.readFileSync(entry.path);
+      const raw = this.readBytes(entry.path);
       if (sha256(raw) !== entry.sha256) {
         throw new Error(`bundled font does not match its catalog: ${path.basename(entry.path)}`);
       }
@@ -267,8 +284,9 @@ export class FontStore {
         ea: this.resolve(parts.at(-1), requested, true),
       };
     }
-    const family = this.resolve(name, requested, CJK.test(text));
-    if (CJK.test(text) && !this.resolved.get(`${family}\0${requested}`)?.cjk) {
+    const hasEastAsian = EAST_ASIAN.test(text);
+    const family = this.resolve(name, requested, hasEastAsian);
+    if (hasEastAsian && !this.resolved.get(`${family}\0${requested}`)?.cjk) {
       this.warn(`font '${family}' does not cover CJK; East Asian text uses 'Noto Sans SC'`);
       return { latin: family, ea: this.resolve('Noto Sans SC', requested, true) };
     }
@@ -331,83 +349,141 @@ function tokenizeHtml(html) {
   return tokens;
 }
 
+function parseCssDeclarations(styleText) {
+  const css = new Map();
+  for (const [, prop, val] of (styleText ?? '').matchAll(/([\w-]+)\s*:\s*([^;]+)/g)) {
+    css.set(prop.trim().toLowerCase(), val.trim());
+  }
+  return css;
+}
+
 function textFonts(holder, style, store) {
-  const baseFamily = store.family(
-    style.fontFamily ?? 'MiSans',
-    Boolean(style.bold),
-    Boolean(style.italic),
-    holder.text ?? '',
-  );
-  holder.fontFamily = baseFamily;
   const html = holder.text ?? '';
-  if (!html) return;
+  if (!html) {
+    holder.fontFamily = store.family(style.fontFamily ?? 'MiSans', Boolean(style.bold), Boolean(style.italic), '');
+    return;
+  }
 
   const tokens = tokenizeHtml(html);
-  // Pre-compute descendant decoded text for every start token.
+  // Pre-compute descendant decoded text and un-overridden base text (ignoring comments/tags/URLs).
   const descendants = new Map();
   const textStack = [];
+  let baseText = '';
+  let overrideDepth = 0;
+
   for (const token of tokens) {
     if (token.type === 'start') {
       descendants.set(token, '');
-      if (!VOID_TAGS.has(token.tag) && !token.selfClosing) textStack.push(token);
+      const attrMap = new Map(token.attrs);
+      const css = parseCssDeclarations(attrMap.get('style'));
+      const overridesFamily = css.has('font-family');
+      token._attrMap = attrMap;
+      token._css = css;
+      token._overridesFamily = overridesFamily;
+      if (!VOID_TAGS.has(token.tag) && !token.selfClosing) {
+        textStack.push(token);
+        if (overridesFamily) overrideDepth += 1;
+      }
     } else if (token.type === 'end') {
-      if (!VOID_TAGS.has(token.tag) && textStack.length) textStack.pop();
+      if (!VOID_TAGS.has(token.tag) && textStack.length) {
+        const popped = textStack.pop();
+        if (popped._overridesFamily) overrideDepth -= 1;
+      }
     } else if (token.type === 'text') {
       const decoded = decodeHtmlEntities(token.raw);
+      token._decoded = decoded;
+      if (overrideDepth === 0) baseText += decoded;
       for (const ancestor of textStack) {
         descendants.set(ancestor, descendants.get(ancestor) + decoded);
       }
     }
   }
 
+  const baseFamily = store.family(
+    style.fontFamily ?? 'MiSans',
+    Boolean(style.bold),
+    Boolean(style.italic),
+    baseText,
+  );
+  holder.fontFamily = baseFamily;
+
   const stateStack = [{ family: baseFamily, bold: Boolean(style.bold), italic: Boolean(style.italic) }];
   const output = [];
+  let rewroteInlineFont = false;
+
   for (const token of tokens) {
     if (token.type === 'start') {
       const parent = stateStack.at(-1);
       let family = parent.family;
       let bold = parent.bold || token.tag === 'strong' || token.tag === 'b';
       let italic = parent.italic || token.tag === 'em' || token.tag === 'i';
-      const attrMap = new Map(token.attrs);
-      const css = new Map();
-      for (const [, prop, val] of (attrMap.get('style') ?? '').matchAll(/([\w-]+)\s*:\s*([^;]+)/g)) {
-        css.set(prop.trim().toLowerCase(), val.trim());
-      }
+      const css = token._css;
       if (['bold', '700', '800', '900'].includes(css.get('font-weight') ?? '')) bold = true;
       if ((css.get('font-style') ?? '') === 'italic') italic = true;
-      if (css.has('font-family')) {
+      if (token._overridesFamily) {
         const inlineName = css.get('font-family').replace(/^['"]+|['"]+$/g, '');
         family = store.family(inlineName, bold, italic, descendants.get(token) ?? '');
         css.set('font-family', typeof family === 'object' ? Object.values(family).join(', ') : family);
-        attrMap.set('style', [...css.entries()].map(([k, v]) => `${k}:${v}`).join(';'));
+        token._attrMap.set('style', [...css.entries()].map(([k, v]) => `${k}:${v}`).join(';'));
+        rewroteInlineFont = true;
+        const attrsText = [...token._attrMap.entries()].map(([k, v]) => ` ${k}="${escapeAttr(v)}"`).join('');
+        output.push(`<${token.tag}${attrsText}${token.selfClosing ? '/>' : '>'}`);
+      } else {
+        output.push(token.raw);
       }
-      store.family(family, bold, italic);
       if (!VOID_TAGS.has(token.tag) && !token.selfClosing) stateStack.push({ family, bold, italic });
-      const attrsText = [...attrMap.entries()].map(([k, v]) => ` ${k}="${escapeAttr(v)}"`).join('');
-      output.push(`<${token.tag}${attrsText}${token.selfClosing ? '/>' : '>'}`);
     } else if (token.type === 'end') {
       if (!VOID_TAGS.has(token.tag) && stateStack.length > 1) stateStack.pop();
       output.push(token.raw);
     } else if (token.type === 'text') {
       const current = stateStack.at(-1);
-      store.family(current.family, current.bold, current.italic, decodeHtmlEntities(token.raw));
+      const decoded = token._decoded ?? decodeHtmlEntities(token.raw);
+      if (decoded) store.family(current.family, current.bold, current.italic, decoded);
       output.push(token.raw);
     } else {
       output.push(token.raw);
     }
   }
-  if (html.includes('font-family')) holder.text = output.join('');
+  if (rewroteInlineFont) holder.text = output.join('');
 }
 
-function visitChartFonts(value, store, chartText) {
+function chartVisibleText(chart) {
+  const parts = [];
+  const addText = (v) => {
+    if (typeof v === 'string') parts.push(v);
+  };
+  addText(typeof chart.title === 'string' ? chart.title : chart.title?.text);
+  for (const axisKey of ['xAxis', 'yAxis', 'spokeAxis']) {
+    const axes = Array.isArray(chart[axisKey]) ? chart[axisKey] : [chart[axisKey]];
+    for (const axis of axes) {
+      if (axis && typeof axis === 'object') {
+        addText(typeof axis.title === 'string' ? axis.title : axis.title?.text);
+      }
+    }
+  }
+  for (const s of chart.series ?? []) {
+    if (s && typeof s === 'object') addText(s.name);
+  }
+  for (const row of chart.data?.rows ?? []) {
+    if (!Array.isArray(row)) continue;
+    for (const cell of row) {
+      if (typeof cell === 'string') parts.push(cell);
+    }
+  }
+  return parts.join(' ');
+}
+
+function visitChartFonts(value, store, chartText, skipRootFontFamily = false) {
   if (Array.isArray(value)) {
     for (const child of value) visitChartFonts(child, store, chartText);
   } else if (value && typeof value === 'object') {
-    if ('fontFamily' in value) {
+    if (!skipRootFontFamily && 'fontFamily' in value) {
       value.fontFamily = store.family(value.fontFamily, Boolean(value.bold), Boolean(value.italic), chartText);
     }
     for (const [k, child] of Object.entries(value)) {
-      if (k !== 'data') visitChartFonts(child, store, chartText);
+      if (k !== 'data' && !(skipRootFontFamily && k === 'fontFamily')) {
+        visitChartFonts(child, store, chartText);
+      }
     }
   }
 }
@@ -438,9 +514,9 @@ export async function prepareFonts(project, { fontDirs = [], embed = true, offli
           if (holder.text !== (cellInfo.cell.text ?? '')) cellInfo.cell.text = holder.text;
         }
       } else if (item.elementType === 'chart') {
-        const chartText = JSON.stringify(item);
+        const chartText = chartVisibleText(item);
         item.fontFamily = store.family(item.fontFamily ?? 'MiSans', false, false, chartText);
-        visitChartFonts(item, store, chartText);
+        visitChartFonts(item, store, chartText, true);
       }
     }
   }
@@ -454,7 +530,7 @@ export async function prepareFonts(project, { fontDirs = [], embed = true, offli
         store.warn(`font '${entry.family}' / ${entry.slot} cannot be embedded for editable output; install it on the playback machine`);
         continue;
       }
-      const raw = fs.readFileSync(entry.path);
+      const raw = store.readBytes(entry.path);
       const faceBytes = entry.eot ? raw : extractTtcFace(raw, entry.face);
       const eotBytes = ttfToEot(faceBytes);
       data.push({ typeface: entry.family, data: new Uint8Array(eotBytes) });

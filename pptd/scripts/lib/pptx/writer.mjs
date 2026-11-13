@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 
 const STRINGIFY_IMPORTS = [
@@ -14,8 +15,20 @@ const REQUIRED_WASM_EXPORTS = [
   '__wbindgen_export3',
 ];
 
-export async function loadWasmExporter(wasmPath) {
-  const wasmBytes = fs.readFileSync(wasmPath);
+const MODULE_CACHE = new Map();
+
+async function compileWasmModule(wasmPath, wasmBytes = null) {
+  const bytes = wasmBytes ?? fs.readFileSync(wasmPath);
+  const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+  let compiled = MODULE_CACHE.get(digest);
+  if (!compiled) {
+    compiled = await WebAssembly.compile(bytes);
+    MODULE_CACHE.set(digest, compiled);
+  }
+  return compiled;
+}
+
+export async function loadWasmExporter(wasmPath, wasmBytes = null) {
   let exportsRef;
   let memory;
   let cachedUint8;
@@ -119,7 +132,7 @@ export async function loadWasmExporter(wasmPath) {
     }
   }
 
-  const compiled = await WebAssembly.compile(wasmBytes);
+  const compiled = await compileWasmModule(wasmPath, wasmBytes);
   const importedNames = new Set(WebAssembly.Module.imports(compiled).map((entry) => entry.name));
   const stringifyImport = STRINGIFY_IMPORTS.find((name) => importedNames.has(name));
   if (!stringifyImport) {

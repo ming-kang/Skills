@@ -2,6 +2,13 @@
 import { DOMParser } from '../../../assets/vendor/xmldom.mjs';
 import { fail } from '../deck/contract.mjs';
 
+export const MIME_TYPES = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+};
+
 const PNG_HEADER = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const PNG_IEND = Buffer.from([73, 69, 78, 68, 174, 66, 96, 130]);
 const JPEG_HEADER = Buffer.from([255, 216, 255]);
@@ -96,10 +103,6 @@ export function imageInfo(bytes, label = 'image') {
   fail(`${label}: bytes are not a supported PNG/JPEG/GIF/SVG image`);
 }
 
-export function imageExtension(bytes) {
-  return imageInfo(bytes).extension;
-}
-
 /** Every image holder, including table-cell and background image fills, not just elements. */
 export function* imageHolders(value) {
   if (Array.isArray(value)) {
@@ -108,9 +111,4 @@ export function* imageHolders(value) {
     if (value.elementType === 'image' || value.type === 'image') yield value;
     for (const item of Object.values(value)) yield* imageHolders(item);
   }
-}
-
-export function imageSignature(bytes) {
-  const info = imageInfo(bytes);
-  return { extension: info.extension, info, bytes };
 }

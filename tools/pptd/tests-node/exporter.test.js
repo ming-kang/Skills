@@ -170,3 +170,60 @@ test('vendored bundles resolve without node_modules', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('English decks omitting fontFamily fall back to Liter instead of 11MB Noto Sans SC', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-english-fallback-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'pages'));
+    fs.writeFileSync(path.join(dir, 'deck.pptd'), 'version: v2\nsize: [960, 540]\npages: [pages/01.page]\n');
+    fs.writeFileSync(path.join(dir, 'pages/01.page'), JSON.stringify({
+      elements: [
+        { elementId: 'en', elementType: 'text', bounds: [40, 40, 400, 60], content: { text: '<p><!-- 中文注释 -->Hello World</p>' } },
+      ],
+    }));
+    const output = path.join(dir, 'en.pptx');
+    const summary = await exportPptx(dir, { output, offline: true, quiet: true });
+    assert.deepEqual(summary.fontFamilies, ['Liter']);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('resolveImages deduplicates identical payloads and formulas support cases/asymmetric fences/mpadded', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-dedup-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'media'));
+    const bytes = fs.readFileSync(new URL('../tests/fixtures/qa-deck/media/pixel.png', import.meta.url));
+    fs.writeFileSync(path.join(dir, 'media', 'a.png'), bytes);
+    fs.writeFileSync(path.join(dir, 'media', 'b.png'), bytes);
+    const project = {
+      pages: [{
+        elements: [
+          { elementType: 'image', src: 'media/a.png' },
+          { elementType: 'image', src: 'media/b.png' },
+        ],
+      }],
+    };
+    const images = await resolveImages(project, dir);
+    assert.equal(Object.keys(images).length, 1);
+    assert.equal(project.pages[0].elements[0].src, project.pages[0].elements[1].src);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  const slash = String.fromCharCode(92);
+  const casesOmml = latexToOmml(slash + 'begin{cases}1&x>0' + slash.repeat(2) + '0&x' + slash + 'le 0' + slash + 'end{cases}');
+  assert.match(casesOmml, /<m:d>/);
+  assert.match(casesOmml, /m:begChr m:val="{"/);
+  assert.match(latexToOmml(slash + 'left. ' + slash + 'frac{df}{dx} ' + slash + 'right|'), /<m:d>/);
+  assert.match(latexToOmml(slash + 'left[ 0, 1 ' + slash + 'right)'), /<m:d>/);
+  assert.match(latexToOmml(slash + 'xrightarrow{f}'), /<m:limUpp>/);
+});
+
+test('readFontFacesFromFile matches readFontFaces for bundled CJK and Latin fonts', async () => {
+  const { readFontFaces, readFontFacesFromFile } = await import('../../../pptd/scripts/lib/prepare/font_data.mjs');
+  for (const rel of ['notosanssc/NotoSansSC-Regular.ttf', 'unna/Unna-Regular.ttf']) {
+    const file = path.join(SKILL_ROOT, 'assets', 'fonts', rel);
+    assert.deepEqual(readFontFacesFromFile(file), readFontFaces(fs.readFileSync(file)));
+  }
+});

@@ -1,39 +1,15 @@
 // OOXML slide transition patching and full PPTX package integrity verification.
 import path from 'node:path';
-import { DOMParser } from '../../../assets/vendor/xmldom.mjs';
-import { imageInfo } from '../prepare/media.mjs';
-import { readZip, updateZip } from './zip.mjs';
+import { imageInfo, MIME_TYPES } from '../prepare/media.mjs';
+import { childElements, firstChild, parseXml } from './xml.mjs';
+import { readZip, updateArchive } from './zip.mjs';
 
 export const PPTX_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml';
 const FADE_TRANSITION_XML = '<p:transition spd="fast" advClick="1"><p:fade/></p:transition>';
 const SLIDE_NAME_PATTERN = /^ppt\/slides\/slide\d+\.xml$/;
+const P_NS = 'http://schemas.openxmlformats.org/presentationml/2006/main';
 const R_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-const MIME = { png: 'image/png', jpg: 'image/jpeg', gif: 'image/gif', svg: 'image/svg+xml' };
-const XML_FORBIDDEN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/;
-
-function parseXml(buffer, label) {
-  const text = Buffer.isBuffer(buffer) ? buffer.toString('utf8') : String(buffer);
-  if (XML_FORBIDDEN.test(text)) throw new Error(`invalid XML part ${label}: forbidden control character`);
-  let failure = null;
-  const doc = new DOMParser({
-    onError(level, message) {
-      if (level !== 'warning' && !failure) failure = message;
-    },
-  }).parseFromString(text, 'application/xml');
-  if (failure || !doc?.documentElement) {
-    throw new Error(`invalid XML part ${label}: ${failure ?? 'missing root element'}`);
-  }
-  return doc;
-}
-
-function childElements(node) {
-  const out = [];
-  for (let child = node.firstChild; child; child = child.nextSibling) {
-    if (child.nodeType === 1) out.push(child);
-  }
-  return out;
-}
 
 export function replaceTransition(slideXml, transition) {
   let text = Buffer.isBuffer(slideXml) ? slideXml.toString('utf8') : String(slideXml);
@@ -85,18 +61,24 @@ export function validateTransitionOrder(facts, transition) {
   }
 }
 
-export function patchTransitions(pptxBuffer, transition) {
-  const archive = readZip(pptxBuffer);
-  const updates = new Map();
+export function patchTransitionsInArchive(archive, updates, transition) {
   let slideCount = 0;
   for (const name of archive.names()) {
     if (SLIDE_NAME_PATTERN.test(name)) {
-      updates.set(name, replaceTransition(archive.read(name), transition));
+      const current = updates.has(name) ? updates.get(name) : archive.read(name);
+      updates.set(name, replaceTransition(current, transition));
       slideCount += 1;
     }
   }
   if (slideCount === 0) throw new Error('exported PPTX contains no slide XML');
-  return { buffer: updateZip(pptxBuffer, updates), slideCount };
+  return slideCount;
+}
+
+export function patchTransitions(pptxBuffer, transition) {
+  const archive = readZip(pptxBuffer);
+  const updates = new Map();
+  const slideCount = patchTransitionsInArchive(archive, updates, transition);
+  return { buffer: updateArchive(archive, updates), slideCount };
 }
 
 function verifyXmlRelationships(node, owner, relationships) {
@@ -118,6 +100,14 @@ function verifyXmlRelationships(node, owner, relationships) {
   }
 }
 
+function decodeTarget(target, relsName) {
+  try {
+    return decodeURIComponent(target.split('#')[0]);
+  } catch {
+    throw new Error(`${relsName}: malformed URI target ${target}`);
+  }
+}
+
 function verifyParts(archive) {
   const names = new Set(archive.names());
   const xml = new Map();
@@ -132,15 +122,15 @@ function verifyParts(archive) {
   const overrides = new Map();
   for (const item of childElements(typesDoc.documentElement)) {
     if (item.localName === 'Default') {
-      defaults.set(item.getAttribute('Extension'), item.getAttribute('ContentType'));
+      defaults.set((item.getAttribute('Extension') ?? '').toLowerCase(), item.getAttribute('ContentType'));
     } else if (item.localName === 'Override') {
-      const partName = decodeURIComponent(item.getAttribute('PartName') ?? '').replace(/^\/+/, '');
+      const partName = decodeTarget(item.getAttribute('PartName') ?? '', '[Content_Types].xml').replace(/^\/+/, '');
       overrides.set(partName, item.getAttribute('ContentType'));
     }
   }
   for (const name of names) {
     if (name === '[Content_Types].xml') continue;
-    const ext = name.includes('.') ? name.split('.').at(-1) : '';
+    const ext = name.includes('.') ? name.split('.').at(-1).toLowerCase() : '';
     if (!overrides.has(name) && !defaults.has(ext)) {
       throw new Error(`PPTX part has no declared content type: ${name}`);
     }
@@ -150,6 +140,7 @@ function verifyParts(archive) {
   }
 
   const relationships = new Map();
+  const relTargets = new Map();
   for (const [name, doc] of xml.entries()) {
     if (!name.endsWith('.rels')) continue;
     let owner = '';
@@ -161,20 +152,23 @@ function verifyParts(archive) {
       owner = base ? `${base}/${path.posix.basename(name).slice(0, -5)}` : path.posix.basename(name).slice(0, -5);
     }
     const ids = new Set();
+    const targets = new Map();
     for (const rel of childElements(doc.documentElement)) {
       const id = rel.getAttribute('Id');
       const target = rel.getAttribute('Target');
       if (!id || ids.has(id) || !target) throw new Error(`invalid or duplicate relationship in ${name}`);
       ids.add(id);
       if (rel.getAttribute('TargetMode') === 'External') continue;
-      const rawPath = decodeURIComponent(target.split('#')[0]);
+      const rawPath = decodeTarget(target, name);
       const joined = rawPath.startsWith('/') ? rawPath.replace(/^\/+/, '') : (base ? `${base}/${rawPath}` : rawPath);
       const resolved = path.posix.normalize(joined).replace(/^\/+/, '');
       if (!names.has(resolved)) {
         throw new Error(`${name}: relationship ${id} targets missing part ${resolved}`);
       }
+      targets.set(id, resolved);
     }
     relationships.set(owner, ids);
+    relTargets.set(owner, targets);
   }
 
   for (const [name, doc] of xml.entries()) {
@@ -182,12 +176,33 @@ function verifyParts(archive) {
     verifyXmlRelationships(doc.documentElement, name, relationships);
   }
 
+  // Verify presentation.xml sldIdLst covers every slide part when sldIdLst is present.
+  const presDoc = xml.get('ppt/presentation.xml');
+  const sldIdLst = presDoc ? firstChild(presDoc.documentElement, P_NS, 'sldIdLst') : null;
+  if (sldIdLst) {
+    const presTargets = relTargets.get('ppt/presentation.xml') ?? new Map();
+    const linkedSlides = new Set();
+    for (const sldId of childElements(sldIdLst, P_NS, 'sldId')) {
+      const rId = sldId.getAttributeNS(R_NS, 'id');
+      const target = presTargets.get(rId);
+      if (!target || !SLIDE_NAME_PATTERN.test(target)) {
+        throw new Error(`ppt/presentation.xml: sldId ${rId} does not resolve to a slide part`);
+      }
+      linkedSlides.add(target);
+    }
+    for (const name of names) {
+      if (SLIDE_NAME_PATTERN.test(name) && !linkedSlides.has(name)) {
+        throw new Error(`PPTX contains an unlinked slide part: ${name}`);
+      }
+    }
+  }
+
   for (const name of names) {
     if (!name.startsWith('ppt/media/')) continue;
     const info = imageInfo(archive.read(name), name);
-    const ext = name.includes('.') ? name.split('.').at(-1) : '';
+    const ext = name.includes('.') ? name.split('.').at(-1).toLowerCase() : '';
     const declared = overrides.get(name) ?? defaults.get(ext);
-    if (declared !== MIME[info.ext]) {
+    if (declared !== MIME_TYPES[info.ext]) {
       throw new Error(`${name}: media bytes do not match declared content type ${declared}`);
     }
   }

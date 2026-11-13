@@ -1,0 +1,533 @@
+{
+  "rect": {
+    "adjustments": 0
+  },
+  "roundRect": {
+    "adjustments": 1
+  },
+  "ellipse": {
+    "adjustments": 0
+  },
+  "triangle": {
+    "adjustments": 1
+  },
+  "rtTriangle": {
+    "adjustments": 0
+  },
+  "parallelogram": {
+    "adjustments": 1
+  },
+  "trapezoid": {
+    "adjustments": 1
+  },
+  "nonIsoscelesTrapezoid": {
+    "adjustments": 2
+  },
+  "diamond": {
+    "adjustments": 0
+  },
+  "pentagon": {
+    "adjustments": 2
+  },
+  "hexagon": {
+    "adjustments": 2
+  },
+  "heptagon": {
+    "adjustments": 2
+  },
+  "octagon": {
+    "adjustments": 1
+  },
+  "decagon": {
+    "adjustments": 1
+  },
+  "dodecagon": {
+    "adjustments": 0
+  },
+  "plus": {
+    "adjustments": 1
+  },
+  "homePlate": {
+    "adjustments": 1
+  },
+  "chevron": {
+    "adjustments": 1
+  },
+  "pie": {
+    "adjustments": 2
+  },
+  "pieWedge": {
+    "adjustments": 0
+  },
+  "arc": {
+    "adjustments": 2
+  },
+  "chord": {
+    "adjustments": 2
+  },
+  "blockArc": {
+    "adjustments": 3
+  },
+  "teardrop": {
+    "adjustments": 1
+  },
+  "frame": {
+    "adjustments": 1
+  },
+  "halfFrame": {
+    "adjustments": 2
+  },
+  "corner": {
+    "adjustments": 2
+  },
+  "diagStripe": {
+    "adjustments": 1
+  },
+  "foldedCorner": {
+    "adjustments": 0
+  },
+  "donut": {
+    "adjustments": 1
+  },
+  "noSmoking": {
+    "adjustments": 1
+  },
+  "heart": {
+    "adjustments": 0
+  },
+  "lightningBolt": {
+    "adjustments": 0
+  },
+  "sun": {
+    "adjustments": 1
+  },
+  "moon": {
+    "adjustments": 1
+  },
+  "cloud": {
+    "adjustments": 0
+  },
+  "smileyFace": {
+    "adjustments": 1
+  },
+  "bevel": {
+    "adjustments": 1
+  },
+  "can": {
+    "adjustments": 1
+  },
+  "cube": {
+    "adjustments": 1
+  },
+  "funnel": {
+    "adjustments": 0
+  },
+  "gear6": {
+    "adjustments": 2
+  },
+  "gear9": {
+    "adjustments": 2
+  },
+  "plaque": {
+    "adjustments": 1
+  },
+  "doubleWave": {
+    "adjustments": 2
+  },
+  "wave": {
+    "adjustments": 2
+  },
+  "lineInv": {
+    "adjustments": 0
+  },
+  "round1Rect": {
+    "adjustments": 1
+  },
+  "round2DiagRect": {
+    "adjustments": 2
+  },
+  "round2SameRect": {
+    "adjustments": 2
+  },
+  "snip1Rect": {
+    "adjustments": 1
+  },
+  "snip2DiagRect": {
+    "adjustments": 2
+  },
+  "snip2SameRect": {
+    "adjustments": 2
+  },
+  "snipRoundRect": {
+    "adjustments": 2
+  },
+  "star4": {
+    "adjustments": 1
+  },
+  "star5": {
+    "adjustments": 3
+  },
+  "star6": {
+    "adjustments": 2
+  },
+  "star7": {
+    "adjustments": 3
+  },
+  "star8": {
+    "adjustments": 1
+  },
+  "star10": {
+    "adjustments": 2
+  },
+  "star12": {
+    "adjustments": 1
+  },
+  "star16": {
+    "adjustments": 1
+  },
+  "star24": {
+    "adjustments": 1
+  },
+  "star32": {
+    "adjustments": 1
+  },
+  "irregularSeal1": {
+    "adjustments": 0
+  },
+  "irregularSeal2": {
+    "adjustments": 0
+  },
+  "rightArrow": {
+    "adjustments": 2
+  },
+  "leftArrow": {
+    "adjustments": 2
+  },
+  "upArrow": {
+    "adjustments": 2
+  },
+  "downArrow": {
+    "adjustments": 2
+  },
+  "leftRightArrow": {
+    "adjustments": 2
+  },
+  "upDownArrow": {
+    "adjustments": 4
+  },
+  "quadArrow": {
+    "adjustments": 3
+  },
+  "leftRightUpArrow": {
+    "adjustments": 3
+  },
+  "leftUpArrow": {
+    "adjustments": 3
+  },
+  "bentArrow": {
+    "adjustments": 4
+  },
+  "bentUpArrow": {
+    "adjustments": 3
+  },
+  "uturnArrow": {
+    "adjustments": 5
+  },
+  "circularArrow": {
+    "adjustments": 5
+  },
+  "leftCircularArrow": {
+    "adjustments": 5
+  },
+  "leftRightCircularArrow": {
+    "adjustments": 5
+  },
+  "curvedRightArrow": {
+    "adjustments": 3
+  },
+  "curvedLeftArrow": {
+    "adjustments": 3
+  },
+  "curvedUpArrow": {
+    "adjustments": 3
+  },
+  "curvedDownArrow": {
+    "adjustments": 3
+  },
+  "stripedRightArrow": {
+    "adjustments": 2
+  },
+  "notchedRightArrow": {
+    "adjustments": 2
+  },
+  "swooshArrow": {
+    "adjustments": 2
+  },
+  "rightArrowCallout": {
+    "adjustments": 4
+  },
+  "leftArrowCallout": {
+    "adjustments": 4
+  },
+  "upArrowCallout": {
+    "adjustments": 4
+  },
+  "downArrowCallout": {
+    "adjustments": 4
+  },
+  "leftRightArrowCallout": {
+    "adjustments": 4
+  },
+  "upDownArrowCallout": {
+    "adjustments": 4
+  },
+  "quadArrowCallout": {
+    "adjustments": 4
+  },
+  "wedgeRectCallout": {
+    "adjustments": 2
+  },
+  "wedgeRoundRectCallout": {
+    "adjustments": 3
+  },
+  "wedgeEllipseCallout": {
+    "adjustments": 2
+  },
+  "cloudCallout": {
+    "adjustments": 2
+  },
+  "borderCallout1": {
+    "adjustments": 4
+  },
+  "borderCallout2": {
+    "adjustments": 6
+  },
+  "borderCallout3": {
+    "adjustments": 8
+  },
+  "accentCallout1": {
+    "adjustments": 4
+  },
+  "accentCallout2": {
+    "adjustments": 6
+  },
+  "accentCallout3": {
+    "adjustments": 8
+  },
+  "accentBorderCallout1": {
+    "adjustments": 4
+  },
+  "accentBorderCallout2": {
+    "adjustments": 6
+  },
+  "accentBorderCallout3": {
+    "adjustments": 8
+  },
+  "callout1": {
+    "adjustments": 4
+  },
+  "callout2": {
+    "adjustments": 6
+  },
+  "callout3": {
+    "adjustments": 8
+  },
+  "leftBrace": {
+    "adjustments": 2
+  },
+  "rightBrace": {
+    "adjustments": 2
+  },
+  "leftBracket": {
+    "adjustments": 1
+  },
+  "rightBracket": {
+    "adjustments": 1
+  },
+  "bracePair": {
+    "adjustments": 1
+  },
+  "bracketPair": {
+    "adjustments": 1
+  },
+  "ribbon": {
+    "adjustments": 2
+  },
+  "ribbon2": {
+    "adjustments": 2
+  },
+  "ellipseRibbon": {
+    "adjustments": 3
+  },
+  "ellipseRibbon2": {
+    "adjustments": 3
+  },
+  "leftRightRibbon": {
+    "adjustments": 3
+  },
+  "horizontalScroll": {
+    "adjustments": 1
+  },
+  "verticalScroll": {
+    "adjustments": 1
+  },
+  "mathPlus": {
+    "adjustments": 1
+  },
+  "mathMinus": {
+    "adjustments": 1
+  },
+  "mathMultiply": {
+    "adjustments": 1
+  },
+  "mathDivide": {
+    "adjustments": 3
+  },
+  "mathEqual": {
+    "adjustments": 2
+  },
+  "mathNotEqual": {
+    "adjustments": 3
+  },
+  "chartPlus": {
+    "adjustments": 0
+  },
+  "chartStar": {
+    "adjustments": 0
+  },
+  "chartX": {
+    "adjustments": 0
+  },
+  "cornerTabs": {
+    "adjustments": 0
+  },
+  "squareTabs": {
+    "adjustments": 0
+  },
+  "plaqueTabs": {
+    "adjustments": 0
+  },
+  "actionButtonBackPrevious": {
+    "adjustments": 0
+  },
+  "actionButtonBeginning": {
+    "adjustments": 0
+  },
+  "actionButtonBlank": {
+    "adjustments": 0
+  },
+  "actionButtonDocument": {
+    "adjustments": 0
+  },
+  "actionButtonEnd": {
+    "adjustments": 0
+  },
+  "actionButtonForwardNext": {
+    "adjustments": 0
+  },
+  "actionButtonHelp": {
+    "adjustments": 0
+  },
+  "actionButtonHome": {
+    "adjustments": 0
+  },
+  "actionButtonInformation": {
+    "adjustments": 0
+  },
+  "actionButtonMovie": {
+    "adjustments": 0
+  },
+  "actionButtonReturn": {
+    "adjustments": 0
+  },
+  "actionButtonSound": {
+    "adjustments": 0
+  },
+  "flowChartProcess": {
+    "adjustments": 0
+  },
+  "flowChartAlternateProcess": {
+    "adjustments": 0
+  },
+  "flowChartDecision": {
+    "adjustments": 0
+  },
+  "flowChartDocument": {
+    "adjustments": 0
+  },
+  "flowChartMultidocument": {
+    "adjustments": 0
+  },
+  "flowChartInputOutput": {
+    "adjustments": 0
+  },
+  "flowChartPredefinedProcess": {
+    "adjustments": 0
+  },
+  "flowChartInternalStorage": {
+    "adjustments": 0
+  },
+  "flowChartManualInput": {
+    "adjustments": 0
+  },
+  "flowChartManualOperation": {
+    "adjustments": 0
+  },
+  "flowChartPreparation": {
+    "adjustments": 0
+  },
+  "flowChartDelay": {
+    "adjustments": 0
+  },
+  "flowChartTerminator": {
+    "adjustments": 0
+  },
+  "flowChartConnector": {
+    "adjustments": 0
+  },
+  "flowChartOffpageConnector": {
+    "adjustments": 0
+  },
+  "flowChartPunchedCard": {
+    "adjustments": 0
+  },
+  "flowChartPunchedTape": {
+    "adjustments": 0
+  },
+  "flowChartCollate": {
+    "adjustments": 0
+  },
+  "flowChartSort": {
+    "adjustments": 0
+  },
+  "flowChartExtract": {
+    "adjustments": 0
+  },
+  "flowChartMerge": {
+    "adjustments": 0
+  },
+  "flowChartOr": {
+    "adjustments": 0
+  },
+  "flowChartSummingJunction": {
+    "adjustments": 0
+  },
+  "flowChartOnlineStorage": {
+    "adjustments": 0
+  },
+  "flowChartMagneticDisk": {
+    "adjustments": 0
+  },
+  "flowChartMagneticDrum": {
+    "adjustments": 0
+  },
+  "flowChartMagneticTape": {
+    "adjustments": 0
+  },
+  "flowChartOfflineStorage": {
+    "adjustments": 0
+  },
+  "flowChartDisplay": {
+    "adjustments": 0
+  }
+}

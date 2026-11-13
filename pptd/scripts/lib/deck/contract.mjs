@@ -1,7 +1,12 @@
-// Shared invariants for every deck value that can reach OOXML, plus the JSON/YAML
-// boundary. Python and Node both consume this module's output, so the rules live here once.
+// Shared invariants for every deck value that can reach OOXML, plus path containment
+// and the JSON/YAML boundary.
+
+import fs from 'node:fs';
+import path from 'node:path';
 
 const XML_FORBIDDEN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ud800-\udfff\ufffe\uffff]/;
+
+export const ADVANCED_CHART_TYPES = new Set(['heatmap', 'treemap', 'sunburst', 'sankey']);
 
 export class DeckError extends Error {}
 
@@ -53,6 +58,11 @@ export function checkBounds(value, label) {
   return value;
 }
 
+/** Strip relative `file://` prefix without masking absolute `file:///...` paths. */
+export function normalizeLocalPath(value) {
+  return String(value).replace(/^file:\/\//i, '');
+}
+
 /** Project paths stay inside the manifest directory and stay relative. */
 export function checkRelativePath(value, label) {
   if (typeof value !== 'string' || !value.trim()) fail(`${label} must be a non-empty relative path`);
@@ -66,6 +76,20 @@ export function checkRelativePath(value, label) {
   }
   if (!parts.length) fail(`${label} must name a file inside the PPTD directory`);
   return parts.join('/');
+}
+
+/** Verify a project-relative path exists as a real regular file without symlink escape. */
+export function checkContainedFile(root, realRoot, relative, label, missingMessage = null) {
+  const resolved = path.join(root, relative);
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+    fail(missingMessage ?? `${label}: missing local file: ${relative}`);
+  }
+  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : realRoot + path.sep;
+  const realTarget = fs.realpathSync(resolved);
+  if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+    fail(`${label} escapes the PPTD directory: ${relative}`);
+  }
+  return realTarget;
 }
 
 export function requireString(value, label) {

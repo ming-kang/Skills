@@ -348,6 +348,12 @@ test('package verification catches invalid notes XML and missing internal relati
     const badRels = goodArchive.read('ppt/_rels/presentation.xml.rels').toString('utf8').replace('slides/slide1.xml', 'slides/missing.xml');
     const brokenRels = updateZip(goodBytes, { 'ppt/_rels/presentation.xml.rels': Buffer.from(badRels) });
     assert.throws(() => verifyOutput(brokenRels, 'fade'), /missing part/);
+
+    const extraSlide = updateZip(goodBytes, {
+      'ppt/slides/slide2.xml': goodArchive.read('ppt/slides/slide1.xml'),
+      'ppt/slides/_rels/slide2.xml.rels': goodArchive.read('ppt/slides/_rels/slide1.xml.rels'),
+    });
+    assert.throws(() => verifyOutput(extraSlide, 'fade'), /unlinked slide part/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

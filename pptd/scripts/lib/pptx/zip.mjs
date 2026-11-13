@@ -8,7 +8,10 @@ for (let i = 0; i < 256; i++) {
   CRC_TABLE[i] = c >>> 0;
 }
 
+const nativeCrc32 = typeof zlib.crc32 === 'function' ? zlib.crc32 : null;
+
 export function crc32(buffer) {
+  if (nativeCrc32) return nativeCrc32(buffer) >>> 0;
   let crc = 0xffffffff;
   for (let i = 0; i < buffer.length; i++) {
     crc = CRC_TABLE[(crc ^ buffer[i]) & 0xff] ^ (crc >>> 8);
@@ -121,6 +124,7 @@ export function readZip(buffer) {
 }
 
 export function writeZip(items, comment = Buffer.alloc(0)) {
+  if (items.length > 0xffff) throw new Error('ZIP entry count exceeds 65535 limit');
   const localParts = [];
   const centralParts = [];
   let offset = 0;
@@ -149,6 +153,8 @@ export function writeZip(items, comment = Buffer.alloc(0)) {
         compressed = zlib.deflateRawSync(raw);
       }
     }
+
+    if (offset > 0xffffffff) throw new Error('ZIP archive exceeds 4 GiB limit');
 
     const dosTime = item.dosTime ?? 0;
     const dosDate = item.dosDate ?? 0x0021;
@@ -205,12 +211,8 @@ export function writeZip(items, comment = Buffer.alloc(0)) {
   return Buffer.concat([...localParts, cdBuf, eocd, comment]);
 }
 
-export function updateZip(buffer, updates) {
-  if (!updates || (updates instanceof Map ? updates.size === 0 : Object.keys(updates).length === 0)) {
-    return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
-  }
-  const map = updates instanceof Map ? updates : new Map(Object.entries(updates));
-  const archive = readZip(buffer);
+export function updateArchive(archive, updates) {
+  const map = updates instanceof Map ? updates : new Map(Object.entries(updates ?? {}));
   const items = [];
   const seen = new Set();
   for (const entry of archive.entries) {
@@ -232,4 +234,11 @@ export function updateZip(buffer, updates) {
     if (!seen.has(name)) items.push({ name, data, method: 8 });
   }
   return writeZip(items, archive.comment);
+}
+
+export function updateZip(buffer, updates) {
+  if (!updates || (updates instanceof Map ? updates.size === 0 : Object.keys(updates).length === 0)) {
+    return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  }
+  return updateArchive(readZip(buffer), updates);
 }

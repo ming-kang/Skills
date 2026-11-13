@@ -1,9 +1,11 @@
 // OOXML postprocessing for capabilities the WASM writer cannot express natively:
 // grouped RIBBI font bindings and native table/cell image fills.
 import crypto from 'node:crypto';
-import { DOMImplementation, DOMParser, XMLSerializer } from '../../../assets/vendor/xmldom.mjs';
+import { DOMImplementation } from '../../../assets/vendor/xmldom.mjs';
 import { tableCells } from '../deck/schema.mjs';
-import { readZip, updateZip } from './zip.mjs';
+import { MIME_TYPES } from '../prepare/media.mjs';
+import { childElements, firstChild, parseXml, serializeXml } from './xml.mjs';
+import { readZip, updateArchive } from './zip.mjs';
 
 const P = 'http://schemas.openxmlformats.org/presentationml/2006/main';
 const A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
@@ -11,49 +13,17 @@ const R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const REL = 'http://schemas.openxmlformats.org/package/2006/relationships';
 const CT = 'http://schemas.openxmlformats.org/package/2006/content-types';
 
-const MIME = { png: 'image/png', jpg: 'image/jpeg', gif: 'image/gif', svg: 'image/svg+xml' };
 const FILL_NAMES = new Set(['noFill', 'solidFill', 'gradFill', 'blipFill', 'pattFill', 'grpFill']);
 const AFTER_FILL = new Set(['effectLst', 'effectDag', 'tableStyle', 'tableStyleId', 'extLst']);
 const SLOTS = ['regular', 'bold', 'italic', 'boldItalic'];
 
-const serializer = new XMLSerializer();
-
-function parseXml(buffer, label = 'XML') {
-  const text = Buffer.isBuffer(buffer) ? buffer.toString('utf8') : String(buffer);
-  return new DOMParser({
-    onError(level, message) {
-      if (level !== 'warning') throw new Error(`invalid ${label}: ${message}`);
-    },
-  }).parseFromString(text, 'application/xml');
+function readPart(archive, updates, name) {
+  return updates.has(name) ? updates.get(name) : archive.read(name);
 }
 
-function serializeXml(doc) {
-  let xml = serializer.serializeToString(doc);
-  if (!xml.startsWith('<?xml')) {
-    xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + xml;
-  }
-  return Buffer.from(xml, 'utf8');
-}
-
-function childElements(node, ns = null, localName = null) {
-  const out = [];
-  for (let child = node.firstChild; child; child = child.nextSibling) {
-    if (child.nodeType !== 1) continue;
-    if (ns && child.namespaceURI !== ns) continue;
-    if (localName && child.localName !== localName) continue;
-    out.push(child);
-  }
-  return out;
-}
-
-function firstChild(node, ns, localName) {
-  return childElements(node, ns, localName)[0] ?? null;
-}
-
-export function patchFontBindings(pptxBuffer, bindings) {
-  if (!bindings?.length) return pptxBuffer;
-  const archive = readZip(pptxBuffer);
-  const doc = parseXml(archive.read('ppt/presentation.xml'), 'ppt/presentation.xml');
+export function patchFontBindingsInArchive(archive, updates, bindings) {
+  if (!bindings?.length) return;
+  const doc = parseXml(readPart(archive, updates, 'ppt/presentation.xml'), 'ppt/presentation.xml');
   const root = doc.documentElement;
   const listing = firstChild(root, P, 'embeddedFontLst');
   const entries = listing ? childElements(listing) : [];
@@ -103,7 +73,15 @@ export function patchFontBindings(pptxBuffer, bindings) {
   root.setAttribute('embedTrueTypeFonts', '1');
   root.setAttribute('saveSubsetFonts', '0');
 
-  return updateZip(pptxBuffer, { 'ppt/presentation.xml': serializeXml(doc) });
+  updates.set('ppt/presentation.xml', serializeXml(doc));
+}
+
+export function patchFontBindings(pptxBuffer, bindings) {
+  if (!bindings?.length) return pptxBuffer;
+  const archive = readZip(pptxBuffer);
+  const updates = new Map();
+  patchFontBindingsInArchive(archive, updates, bindings);
+  return updateArchive(archive, updates);
 }
 
 function replaceFill(doc, properties, fillNode) {
@@ -174,43 +152,63 @@ function buildImageFill(doc, fill, relationship, info, width, height) {
   return result;
 }
 
-export function patchTableImages(pptxBuffer, project, mediaRecords) {
+export function patchTableImagesInArchive(archive, updates, project, mediaRecords) {
+  const theme = project.manifest.theme ?? {};
+  const pageJobs = [];
+  for (let i = 0; i < project.pages.length; i++) {
+    const page = project.pages[i];
+    const tableTasks = [];
+    for (const table of page.data.elements) {
+      if (table.elementType !== 'table') continue;
+      const tableFill = table.fill && typeof table.fill === 'object' && table.fill.type === 'image' ? table.fill : null;
+      const cellFills = [];
+      for (const cell of tableCells(table, theme, table.elementId)) {
+        const fill = cell.style.fill;
+        if (fill && typeof fill === 'object' && fill.type === 'image') {
+          cellFills.push({ cell, fill });
+        }
+      }
+      if (tableFill || cellFills.length) {
+        tableTasks.push({ table, tableFill, cellFills });
+      }
+    }
+    if (tableTasks.length) {
+      pageJobs.push({ pageIndex: i + 1, pagePath: page.path, tableTasks });
+    }
+  }
+  if (!pageJobs.length) return 0;
+
   const sources = new Map();
   for (const record of mediaRecords) {
     sources.set(record.source, record);
     sources.set(record.key, record);
   }
-  const archive = readZip(pptxBuffer);
-  const typesDoc = parseXml(archive.read('[Content_Types].xml'), '[Content_Types].xml');
+  const typesDoc = parseXml(readPart(archive, updates, '[Content_Types].xml'), '[Content_Types].xml');
   const extensions = new Set(
-    childElements(typesDoc.documentElement, null, 'Default').map((el) => el.getAttribute('Extension')),
+    childElements(typesDoc.documentElement, null, 'Default').map((el) => el.getAttribute('Extension')?.toLowerCase()),
   );
   const known = new Map();
   for (const name of archive.names()) {
     if (name.startsWith('ppt/media/')) {
-      const digest = crypto.createHash('sha256').update(archive.read(name)).digest('hex');
+      const digest = crypto.createHash('sha256').update(readPart(archive, updates, name)).digest('hex');
       known.set(digest, name);
     }
   }
 
-  const updates = new Map();
   let count = 0;
-  const theme = project.manifest.theme ?? {};
-
-  for (let i = 0; i < project.pages.length; i++) {
-    const page = project.pages[i];
-    const pageIndex = i + 1;
+  for (const { pageIndex, pagePath, tableTasks } of pageJobs) {
     const slideName = `ppt/slides/slide${pageIndex}.xml`;
-    const slideDoc = parseXml(archive.read(slideName), slideName);
+    const slideDoc = parseXml(readPart(archive, updates, slideName), slideName);
     const relsName = `ppt/slides/_rels/slide${pageIndex}.xml.rels`;
-    const relsDoc = archive.has(relsName)
-      ? parseXml(archive.read(relsName), relsName)
+    const relsDoc = archive.has(relsName) || updates.has(relsName)
+      ? parseXml(readPart(archive, updates, relsName), relsName)
       : new DOMImplementation().createDocument(REL, 'Relationships', null);
-    let changed = false;
+    const existingIds = new Set(childElements(relsDoc.documentElement).map((el) => el.getAttribute('Id')));
+    let relIdx = 1;
 
     const apply = (properties, fill, width, height) => {
       const record = sources.get(fill.src);
-      if (!record) throw new Error(`${page.path}: table image was not resolved: ${fill.src}`);
+      if (!record) throw new Error(`${pagePath}: table image was not resolved: ${fill.src}`);
       const data = Buffer.isBuffer(record.bytes) ? record.bytes : Buffer.from(record.bytes);
       const info = record.info;
       const digest = crypto.createHash('sha256').update(data).digest('hex');
@@ -220,10 +218,10 @@ export function patchTableImages(pptxBuffer, project, mediaRecords) {
         known.set(digest, target);
         updates.set(target, data);
       }
-      const existingIds = new Set(childElements(relsDoc.documentElement).map((el) => el.getAttribute('Id')));
-      let idx = 1;
-      while (existingIds.has(`rIdPptdTableImage${idx}`)) idx += 1;
-      const relationship = `rIdPptdTableImage${idx}`;
+      while (existingIds.has(`rIdPptdTableImage${relIdx}`)) relIdx += 1;
+      const relationship = `rIdPptdTableImage${relIdx}`;
+      existingIds.add(relationship);
+
       const relEl = relsDoc.createElementNS(REL, 'Relationship');
       relEl.setAttribute('Id', relationship);
       relEl.setAttribute('Type', `${R}/image`);
@@ -233,41 +231,37 @@ export function patchTableImages(pptxBuffer, project, mediaRecords) {
       if (!extensions.has(info.ext)) {
         const defEl = typesDoc.createElementNS(CT, 'Default');
         defEl.setAttribute('Extension', info.ext);
-        defEl.setAttribute('ContentType', MIME[info.ext]);
+        defEl.setAttribute('ContentType', MIME_TYPES[info.ext]);
         typesDoc.documentElement.appendChild(defEl);
         extensions.add(info.ext);
       }
       replaceFill(slideDoc, properties, buildImageFill(slideDoc, fill, relationship, info, width, height));
       count += 1;
-      changed = true;
     };
 
     const frames = [...slideDoc.getElementsByTagNameNS(P, 'graphicFrame')];
-    for (const table of page.data.elements) {
-      if (table.elementType !== 'table') continue;
+    for (const { table, tableFill, cellFills } of tableTasks) {
       const frame = frames.find((candidate) => {
         const nv = firstChild(candidate, P, 'nvGraphicFramePr');
         const cNvPr = nv ? firstChild(nv, P, 'cNvPr') : null;
         return cNvPr?.getAttribute('name') === table.elementId;
       });
-      if (!frame) throw new Error(`${page.path}: writer omitted table ${table.elementId}`);
+      if (!frame) throw new Error(`${pagePath}: writer omitted table ${table.elementId}`);
       const native = frame.getElementsByTagNameNS(A, 'tbl')[0];
-      if (!native) throw new Error(`${page.path}: writer emitted no native table for ${table.elementId}`);
+      if (!native) throw new Error(`${pagePath}: writer emitted no native table for ${table.elementId}`);
       const nativeRows = childElements(native, A, 'tr');
       const [, , width, height] = table.bounds;
 
-      if (table.fill && typeof table.fill === 'object' && table.fill.type === 'image') {
+      if (tableFill) {
         let tblPr = firstChild(native, A, 'tblPr');
         if (!tblPr) {
           tblPr = slideDoc.createElementNS(A, 'a:tblPr');
           native.insertBefore(tblPr, native.firstChild);
         }
-        apply(tblPr, table.fill, width, height);
+        apply(tblPr, tableFill, width, height);
       }
 
-      for (const cell of tableCells(table, theme, table.elementId)) {
-        const fill = cell.style.fill;
-        if (!fill || typeof fill !== 'object' || fill.type !== 'image') continue;
+      for (const { cell, fill } of cellFills) {
         const rowEl = nativeRows[cell.row];
         const colEl = childElements(rowEl, A, 'tc')[cell.column];
         let tcPr = firstChild(colEl, A, 'tcPr');
@@ -281,12 +275,17 @@ export function patchTableImages(pptxBuffer, project, mediaRecords) {
       }
     }
 
-    if (changed) {
-      updates.set(slideName, serializeXml(slideDoc));
-      updates.set(relsName, serializeXml(relsDoc));
-    }
+    updates.set(slideName, serializeXml(slideDoc));
+    updates.set(relsName, serializeXml(relsDoc));
   }
 
   if (count > 0) updates.set('[Content_Types].xml', serializeXml(typesDoc));
-  return { buffer: updateZip(pptxBuffer, updates), count };
+  return count;
+}
+
+export function patchTableImages(pptxBuffer, project, mediaRecords) {
+  const archive = readZip(pptxBuffer);
+  const updates = new Map();
+  const count = patchTableImagesInArchive(archive, updates, project, mediaRecords);
+  return { buffer: updates.size ? updateArchive(archive, updates) : Buffer.from(pptxBuffer), count };
 }

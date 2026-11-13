@@ -1,5 +1,7 @@
 // Validate and shape the four chart types that the WASM writer cannot emit natively.
-export const ADVANCED_CHART_TYPES = new Set(['heatmap', 'treemap', 'sunburst', 'sankey']);
+import { ADVANCED_CHART_TYPES } from '../deck/contract.mjs';
+
+export { ADVANCED_CHART_TYPES };
 
 const CHANNELS = {
   heatmap: ['x', 'y', 'value'],
@@ -69,6 +71,56 @@ export function readChartData(chart) {
       }));
     }),
   };
+}
+
+export function heatmapDomain(rows, scale = {}) {
+  scale ??= {};
+  if (!['linear', 'diverging'].includes(scale.type ?? 'linear')) {
+    throw new Error('heatmap colorScale.type must be linear or diverging');
+  }
+  if (scale.domain !== undefined) {
+    if (!Array.isArray(scale.domain) || scale.domain.length !== 2 ||
+        !scale.domain.every(Number.isFinite) || scale.domain[0] >= scale.domain[1]) {
+      throw new Error('heatmap colorScale.domain must be two increasing finite numbers');
+    }
+    return scale.domain;
+  }
+  let min = Infinity;
+  let max = -Infinity;
+  for (const { value } of rows) {
+    if (value === null) continue;
+    min = Math.min(min, value);
+    max = Math.max(max, value);
+  }
+  if (!Number.isFinite(min)) return scale.type === 'diverging' ? [-1, 1] : [0, 1];
+  if (scale.type === 'diverging') {
+    const bound = Math.max(Math.abs(min), Math.abs(max)) || 1;
+    return [-bound, bound];
+  }
+  return min === max ? [min, min + (Math.abs(min) * 0.01 || 1)] : [min, max];
+}
+
+export function validateHeatmapSeries(series, rows) {
+  const domain = heatmapDomain(rows, series.colorScale);
+  const diverging = series.colorScale?.type === 'diverging';
+  if (series.colorScheme !== undefined) {
+    if (!Array.isArray(series.colorScheme) || (diverging ? series.colorScheme.length !== 3 : series.colorScheme.length < 2)) {
+      throw new Error('heatmap colorScheme needs three diverging colors or at least two linear colors');
+    }
+  }
+  const bar = series.colorbar ?? true;
+  if (bar !== false && typeof bar === 'object' && bar !== null && bar.position !== undefined) {
+    if (!['top', 'bottom', 'left', 'right'].includes(bar.position)) {
+      throw new Error(`invalid colorbar position: ${bar.position}`);
+    }
+  }
+  const occupied = new Set();
+  for (const { x, y } of rows) {
+    const key = JSON.stringify([x, y]);
+    if (occupied.has(key)) throw new Error(`duplicate heatmap cell: ${key}`);
+    occupied.add(key);
+  }
+  return domain;
 }
 
 function topologicalOrder(names, links, kind) {

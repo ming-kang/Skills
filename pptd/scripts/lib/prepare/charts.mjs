@@ -1,10 +1,10 @@
-import { ADVANCED_CHART_TYPES, readChartData, hierarchyData, sankeyData } from './chart_data.mjs';
+import { ADVANCED_CHART_TYPES, hierarchyData, readChartData, sankeyData, validateHeatmapSeries } from './chart_data.mjs';
 import { chartStyle, lineStyle } from './chart_style.mjs';
 
 // Matches the previous editor: same-colored hierarchy nodes need a separator to stay readable.
 const DEFAULT_HIERARCHY_BORDER = { width: 1, color: '#FFFFFF' };
 // Chromium resolves `dominant-baseline: central` to (ascent - descent) / 2 of the primary font;
-// for Arial that is 0.347em. Office ignores the attribute, so the shift is baked into `y`.
+// for Arial that is 0.347em. When no font outliner runs, the shift is baked into `y`.
 const CENTRAL_BASELINE_EM = 0.35;
 // Frame layers repeat the chart's animations; these effects would recolor a frame instead.
 const UNMIRRORED_EFFECTS = new Set(['fill-color', 'color-pulse']);
@@ -56,53 +56,19 @@ function axisOption(config, categories, style) {
   };
 }
 
-function heatmapDomain(rows, scale = {}) {
-  scale ??= {};
-  if (!['linear', 'diverging'].includes(scale.type ?? 'linear')) {
-    throw new Error('heatmap colorScale.type must be linear or diverging');
-  }
-  if (scale.domain !== undefined) {
-    if (!Array.isArray(scale.domain) || scale.domain.length !== 2 ||
-        !scale.domain.every(Number.isFinite) || scale.domain[0] >= scale.domain[1]) {
-      throw new Error('heatmap colorScale.domain must be two increasing finite numbers');
-    }
-    return scale.domain;
-  }
-  let min = Infinity;
-  let max = -Infinity;
-  for (const { value } of rows) {
-    if (value === null) continue;
-    min = Math.min(min, value);
-    max = Math.max(max, value);
-  }
-  if (!Number.isFinite(min)) return scale.type === 'diverging' ? [-1, 1] : [0, 1];
-  if (scale.type === 'diverging') {
-    const bound = Math.max(Math.abs(min), Math.abs(max)) || 1;
-    return [-bound, bound];
-  }
-  return min === max ? [min, min + (Math.abs(min) * 0.01 || 1)] : [min, max];
-}
-
 function heatmapOption(chart, series, rows, style, top) {
   const xs = [...new Set(rows.map((row) => row.x))];
   const ys = [...new Set(rows.map((row) => row.y))];
   const xIndex = new Map(xs.map((value, index) => [value, index]));
   const yIndex = new Map(ys.map((value, index) => [value, index]));
-  const domain = heatmapDomain(rows, series.colorScale);
+  const domain = validateHeatmapSeries(series, rows);
   const diverging = series.colorScale?.type === 'diverging';
   const colors = series.colorScheme ?? (diverging
     ? [style.palette[1] ?? style.palette[0], '#FFFFFF', style.palette[0]]
     : ['#EFF6FF', style.palette[0]]);
-  if (!Array.isArray(colors) || (diverging ? colors.length !== 3 : colors.length < 2)) {
-    throw new Error('heatmap colorScheme needs three diverging colors or at least two linear colors');
-  }
   const scale = colors.map(style.color);
-  const occupied = new Set();
   const data = [];
   for (const { x, y, value } of rows) {
-    const key = JSON.stringify([x, y]);
-    if (occupied.has(key)) throw new Error(`duplicate heatmap cell: ${key}`);
-    occupied.add(key);
     // Missing values are transparent, not zero-valued cells.
     if (value === null) continue;
     data.push({
@@ -120,8 +86,8 @@ function heatmapOption(chart, series, rows, style, top) {
     left: { left: 4, top: 'middle', orient: 'vertical' },
     right: { right: 4, top: 'middle', orient: 'vertical' },
   };
-  if (!Object.hasOwn(placements, position)) throw new Error(`invalid colorbar position: ${position}`);
-  const grid = { top, left: chart.yAxis?.title ? 60 : 36, right: 16, bottom: 36, containLabel: true };
+  const yAxisCfg = Array.isArray(chart.yAxis) ? chart.yAxis[0] : chart.yAxis;
+  const grid = { top, left: yAxisCfg?.title ? 60 : 36, right: 16, bottom: 36, containLabel: true };
   if (show) grid[position] += ['left', 'right'].includes(position) ? 64 : 40;
   return {
     grid,
@@ -272,10 +238,13 @@ function treemapDashGrid(svg, dash) {
   };
   let rects = 0;
   // The treemap series is laid out with zero border/gap width, so node rectangles tile exactly.
+  const NUM = '[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e[+-]?\\d+)?';
+  const sizePattern = new RegExp(`\\sd="M0 0l(${NUM}) 0l0 (${NUM})l-${NUM} 0Z"`, 'i');
+  const translatePattern = new RegExp(`\\stransform="translate\\((${NUM})[ ,](${NUM})\\)"`, 'i');
   for (const [tag] of svg.matchAll(/<path\b[^>]*\becmeta_data_index="\d+"[^>]*>/g)) {
-    const size = /\sd="M0 0l([\d.]+) 0l0 ([\d.]+)l-[\d.]+ 0Z"/.exec(tag);
+    const size = sizePattern.exec(tag);
     if (!size) continue;
-    const offset = /\stransform="translate\(([-\d.e]+)[ ,]([-\d.e]+)\)"/.exec(tag);
+    const offset = translatePattern.exec(tag);
     if (/\stransform="/.test(tag) && !offset) continue;
     const [x, y] = offset ? [Number(offset[1]), Number(offset[2])] : [0, 0];
     const [w, h] = [Number(size[1]), Number(size[2])];
@@ -323,13 +292,15 @@ function officeTextBaselines(svg) {
   });
 }
 
-function chartSvg(svg, chart, dash) {
+function chartSvg(svg, chart, dash, outlineText) {
   if (!/^<svg\b/.test(svg)) throw new Error('chart renderer did not return SVG');
   if (dash) svg = treemapDashGrid(svg, dash);
-  svg = officeTextBaselines(svg);
+  // Keep dominant-baseline intact when a font outliner runs so it uses real ascent/descent metrics.
+  if (!outlineText) svg = officeTextBaselines(svg);
   const source = Buffer.from(JSON.stringify(chart), 'utf8').toString('base64url');
   const metadata = `<metadata><pptd:source xmlns:pptd="https://pptd.local/ns/2026/pptd/schema" kind="chart" encoding="base64url">${source}</pptd:source></metadata>`;
-  return svg.replace(/<svg\b[^>]*>/, (root) => root + metadata);
+  svg = svg.replace(/<svg\b[^>]*>/, (root) => root + metadata);
+  return outlineText ? outlineText(svg) : svg;
 }
 
 function defined(object) {
@@ -354,10 +325,11 @@ function frameLayers(chart, uniqueId) {
   return { below, above };
 }
 
-export async function prepareAdvancedCharts(project, images) {
+export async function prepareAdvancedCharts(project, images, { outlineText = null } = {}) {
   if (!project.pages.some((page) => page.elements.some(isAdvancedChart))) return;
   // Only advanced charts load the bundled SSR renderer; native charts keep their WASM path.
   const echarts = await import('../../../assets/vendor/echarts.mjs');
+  const encoder = new TextEncoder();
   for (const [pageIndex, page] of project.pages.entries()) {
     const elements = [];
     const elementIds = new Set(page.elements.map((element) => element.elementId));
@@ -376,9 +348,9 @@ export async function prepareAdvancedCharts(project, images) {
         const { option, dash } = chartOption(chart, project.theme, echarts);
         renderer = echarts.init(null, null, { renderer: 'svg', ssr: true, width, height });
         renderer.setOption(option);
-        const svg = chartSvg(renderer.renderToSVGString({ useViewBox: true }), chart, dash);
+        const svg = chartSvg(renderer.renderToSVGString({ useViewBox: true }), chart, dash, outlineText);
         const src = `wasm-assets/chart-${pageIndex + 1}-${elementIndex + 1}.svg`;
-        images[src] = new TextEncoder().encode(svg);
+        images[src] = encoder.encode(svg);
         const { below, above } = frameLayers(chart, (suffix) => {
           let id = `${chart.elementId}-${suffix}`;
           for (let index = 1; elementIds.has(id); index++) id = `${chart.elementId}-${suffix}-${index}`;

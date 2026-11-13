@@ -163,3 +163,107 @@ test('all 7 slide category guides are retained and routed', () => {
     assert.ok(router.includes(`references/slides_categories/${name}`), `missing route for ${name}`);
   }
 });
+
+test('schema catches shape header leak, bad adjustments, invalid lines, missing $tokens, and float table sums pass', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-schema-fixes-'));
+  try {
+    // Valid float columnWidths [0.1, 0.1, 0.1, 0.7] (sums to 0.9999999999999999 in IEEE 754) + line + inferred horizontal bar
+    const okManifest = makeDeck(dir, {
+      manifest: JSON.stringify({
+        version: 'v2',
+        size: [960, 540],
+        theme: { colors: { primary: '#2563EB' } },
+        pages: ['pages/01.page'],
+      }),
+      page: JSON.stringify({
+        background: { type: 'solid', color: '$primary' },
+        elements: [
+          {
+            elementId: 'tbl',
+            elementType: 'table',
+            bounds: [40, 40, 400, 100],
+            columnWidths: [0.1, 0.1, 0.1, 0.7],
+            rowHeights: [1],
+            rows: [[{ text: 'a' }, { text: 'b' }, { text: 'c' }, { text: 'd' }]],
+          },
+          {
+            elementId: 'ln',
+            elementType: 'line',
+            bounds: [40, 160, 200, 40],
+            viewBox: [200, 40],
+            points: '0,0 100,40 200,0',
+            curve: 'smooth',
+            arrow: [null, 'arrow'],
+          },
+          {
+            elementId: 'hbar',
+            elementType: 'chart',
+            bounds: [40, 220, 400, 200],
+            data: { cols: ['dept', 'count'], rows: [['Eng', 10], ['Ops', 5]] },
+            series: [{ type: 'bar', encode: { x: 'count', y: 'dept' } }],
+          },
+        ],
+      }),
+    });
+    const project = readProject(okManifest);
+    assert.equal(project.pages[0].data.elements.length, 3);
+
+    // Reject shapeName: "shapeName" header leak and wrong adjustment arity
+    const badShapes = [
+      { elementId: 's1', elementType: 'shape', bounds: [0, 0, 100, 100], shapeName: 'shapeName' },
+      { elementId: 's2', elementType: 'shape', bounds: [0, 0, 100, 100], shapeName: 'roundRect', adjustments: [1, 2] },
+      { elementId: 'l1', elementType: 'line', bounds: [0, 0, 100, 100], viewBox: [100, 100], points: '0,0' },
+      { elementId: 't1', elementType: 'text', bounds: [0, 0, 100, 100], content: { color: '$typo', text: 'Hi' } },
+    ];
+    for (const el of badShapes) {
+      makeDeck(dir, { page: JSON.stringify({ elements: [el] }) });
+      assert.throws(() => readProject(dir));
+    }
+
+    // Reject missing ImageFill in page.background
+    makeDeck(dir, {
+      page: JSON.stringify({ background: { type: 'image', src: 'media/missing.png' }, elements: [] }),
+    });
+    assert.throws(() => readProject(dir), /missing local image/);
+
+    // validate.mjs catches invalid formulas, advanced-chart cycles, and fake image bytes
+    makeDeck(dir, {
+      page: JSON.stringify({
+        elements: [
+          { elementId: 'badmath', elementType: 'text', bounds: [0, 0, 200, 60], content: { text: '\\(\\xrightarrow{f}\\)' } },
+        ],
+      }),
+    });
+    assert.equal(spawnSync(process.execPath, [VALIDATE_CLI, dir], { encoding: 'utf8' }).status, 0);
+
+    makeDeck(dir, {
+      page: JSON.stringify({
+        elements: [
+          { elementId: 'badmath', elementType: 'text', bounds: [0, 0, 200, 60], content: { text: '\\(\\notacommand\\)' } },
+        ],
+      }),
+    });
+    const badMathRes = spawnSync(process.execPath, [VALIDATE_CLI, dir], { encoding: 'utf8' });
+    assert.equal(badMathRes.status, 1);
+    assert.match(badMathRes.stderr, /notacommand/);
+
+    makeDeck(dir, {
+      page: JSON.stringify({
+        elements: [
+          {
+            elementId: 'cycle',
+            elementType: 'chart',
+            bounds: [0, 0, 300, 200],
+            data: { cols: ['s', 't', 'f'], rows: [['a', 'b', 1], ['b', 'a', 1]] },
+            series: [{ type: 'sankey', encode: { source: 's', target: 't', flow: 'f' } }],
+          },
+        ],
+      }),
+    });
+    const badSankeyRes = spawnSync(process.execPath, [VALIDATE_CLI, dir], { encoding: 'utf8' });
+    assert.equal(badSankeyRes.status, 1);
+    assert.match(badSankeyRes.stderr, /cycle/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

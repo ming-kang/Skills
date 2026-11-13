@@ -1,10 +1,13 @@
 // TrueType/TTC metadata and uncompressed EOT wrapping (Node stdlib only).
+import fs from 'node:fs';
 
 const MAC_ROMAN_HIGH =
   'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü' +
   '†°¢£§•¶ß®©™´¨≠ÆØ∞±≤≥¥µ∂∑∏π∫ªºΩæø' +
   '¿¡¬√ƒ≈∆«»…\u00a0ÀÃÕŒœ–—“”‘’÷◊ÿŸ⁄€‹›ﬁﬂ' +
   '‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔ\uf8ffÒÚÛÙıˆ˜¯˘˙˚¸˝˛ˇ';
+
+const FULL_READ_THRESHOLD = 256 * 1024;
 
 function decodeMacRoman(bytes) {
   let out = '';
@@ -31,11 +34,14 @@ function encodeUtf16LE(text) {
   return Buffer.from(text, 'utf16le');
 }
 
+function isSfntMagic(sig) {
+  return (sig[0] === 0 && sig[1] === 1 && sig[2] === 0 && sig[3] === 0) ||
+    sig.toString('ascii') === 'true' || sig.toString('ascii') === 'OTTO';
+}
+
 export function sfntTables(data, offset = 0) {
   const sig = data.subarray(offset, offset + 4);
-  const isSfnt = (sig[0] === 0 && sig[1] === 1 && sig[2] === 0 && sig[3] === 0) ||
-    sig.toString('ascii') === 'true' || sig.toString('ascii') === 'OTTO';
-  if (!isSfnt) throw new Error('only OpenType/TrueType font containers are supported');
+  if (!isSfntMagic(sig)) throw new Error('only OpenType/TrueType font containers are supported');
   const count = data.readUInt16BE(offset + 4);
   if (!(count > 0 && count <= 256) || offset + 12 + count * 16 > data.length) {
     throw new Error('invalid font table directory');
@@ -61,8 +67,8 @@ function readTable(data, tables, tag) {
   return data.subarray(entry.start, entry.start + entry.length);
 }
 
-function readNames(data, tables) {
-  const table = readTable(data, tables, 'name');
+function parseNameTable(table) {
+  if (table.length < 6) throw new Error('invalid font name table');
   const count = table.readUInt16BE(2);
   const strings = table.readUInt16BE(4);
   if (6 + count * 12 > table.length) throw new Error('invalid font name table');
@@ -103,6 +109,10 @@ function readNames(data, tables) {
   return { names, aliases };
 }
 
+function readNames(data, tables) {
+  return parseNameTable(readTable(data, tables, 'name'));
+}
+
 function inferStyle(subfamily, italicFlag = false) {
   const name = subfamily.replace(/\s+/g, '').toLowerCase();
   const bold = name === 'bold' || name === 'bolditalic' || name === 'boldoblique';
@@ -123,38 +133,62 @@ function inferCharset(codepages) {
   return 0;
 }
 
+function buildFaceRecord({ names, aliases, os2, head, face, hasFvar, hasGlyf }) {
+  if (os2.length < 78 || head.length < 54 || !names[1]) {
+    throw new Error('incomplete TrueType font metadata');
+  }
+  return {
+    family: names[1],
+    aliases: [...aliases].sort(),
+    slot: inferStyle(names[2] ?? '', Boolean(os2.readUInt16BE(62) & 1)),
+    face,
+    fsType: os2.readUInt16BE(8),
+    charset: inferCharset(os2.length >= 86 ? os2.readUInt32BE(78) : 0),
+    pitchFamily: inferPitch(os2.subarray(32, 42)),
+    eot: false,
+    variable: hasFvar,
+    trueType: hasGlyf,
+    cjk: Boolean(os2.readUInt32BE(46) & (1 << 27)),
+  };
+}
+
+function readEotHeaderFaces(data, totalLength) {
+  const total = data.readUInt32LE(0);
+  const size = data.readUInt32LE(4);
+  const version = data.readUInt32LE(8);
+  const flags = data.readUInt32LE(12);
+  if (total !== totalLength || !(size > 0 && size < total) || (version !== 0x20001 && version !== 0x20002) || (flags & ~4)) {
+    throw new Error('invalid or unsupported EOT font');
+  }
+  let offset = 82;
+  const names = [];
+  for (let i = 0; i < 4; i++) {
+    if (offset + 2 > total - size) throw new Error('invalid EOT name bounds');
+    const length = data.readUInt16LE(offset);
+    offset += 2;
+    if (offset + length + 2 > total - size) throw new Error('invalid EOT name bounds');
+    names.push(decodeUtf16LE(data.subarray(offset, offset + length)));
+    offset += length + 2;
+  }
+  return [{
+    family: names[0],
+    aliases: [names[0]],
+    slot: inferStyle(names[1], Boolean(data[27])),
+    face: 0,
+    fsType: data.readUInt16LE(32),
+    charset: inferCharset(data.readUInt32LE(52)),
+    pitchFamily: inferPitch(data.subarray(16, 26)),
+    eot: true,
+    variable: false,
+    trueType: true,
+    cjk: Boolean(data.readUInt32LE(40) & (1 << 27)),
+  }];
+}
+
 export function readFontFaces(buffer) {
   const data = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
   if (data.length >= 82 && data.readUInt16LE(34) === 0x504c) {
-    const total = data.readUInt32LE(0);
-    const size = data.readUInt32LE(4);
-    const version = data.readUInt32LE(8);
-    const flags = data.readUInt32LE(12);
-    if (total !== data.length || !(size > 0 && size < total) || (version !== 0x20001 && version !== 0x20002) || (flags & ~4)) {
-      throw new Error('invalid or unsupported EOT font');
-    }
-    let offset = 82;
-    const names = [];
-    for (let i = 0; i < 4; i++) {
-      const length = data.readUInt16LE(offset);
-      offset += 2;
-      if (offset + length + 2 > total - size) throw new Error('invalid EOT name bounds');
-      names.push(decodeUtf16LE(data.subarray(offset, offset + length)));
-      offset += length + 2;
-    }
-    return [{
-      family: names[0],
-      aliases: [names[0]],
-      slot: inferStyle(names[1], Boolean(data[27])),
-      face: 0,
-      fsType: data.readUInt16LE(32),
-      charset: inferCharset(data.readUInt32LE(52)),
-      pitchFamily: inferPitch(data.subarray(16, 26)),
-      eot: true,
-      variable: false,
-      trueType: true,
-      cjk: Boolean(data.readUInt32LE(40) & (1 << 27)),
-    }];
+    return readEotHeaderFaces(data, data.length);
   }
 
   let offsets = [0];
@@ -171,23 +205,98 @@ export function readFontFaces(buffer) {
     const { names, aliases } = readNames(data, tables);
     const os2 = readTable(data, tables, 'OS/2');
     const head = readTable(data, tables, 'head');
-    if (os2.length < 78 || head.length < 54 || !names[1]) {
-      throw new Error('incomplete TrueType font metadata');
-    }
-    return {
-      family: names[1],
-      aliases: [...aliases].sort(),
-      slot: inferStyle(names[2] ?? '', Boolean(os2.readUInt16BE(62) & 1)),
+    return buildFaceRecord({
+      names,
+      aliases,
+      os2,
+      head,
       face,
-      fsType: os2.readUInt16BE(8),
-      charset: inferCharset(os2.length >= 86 ? os2.readUInt32BE(78) : 0),
-      pitchFamily: inferPitch(os2.subarray(32, 42)),
-      eot: false,
-      variable: tables.has('fvar'),
-      trueType: tables.has('glyf'),
-      cjk: Boolean(os2.readUInt32BE(46) & (1 << 27)),
-    };
+      hasFvar: tables.has('fvar'),
+      hasGlyf: tables.has('glyf'),
+    });
   });
+}
+
+function readExact(fd, length, position) {
+  const buf = Buffer.allocUnsafe(length);
+  let offset = 0;
+  while (offset < length) {
+    const bytesRead = fs.readSync(fd, buf, offset, length - offset, position + offset);
+    if (bytesRead <= 0) throw new Error('unexpected EOF reading font metadata');
+    offset += bytesRead;
+  }
+  return buf;
+}
+
+/** Read font face metadata without reading full glyph tables for large SFNT/TTC files. */
+export function readFontFacesFromFile(filePath) {
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const fileSize = fs.fstatSync(fd).size;
+    if (fileSize <= FULL_READ_THRESHOLD) {
+      return readFontFaces(readExact(fd, fileSize, 0));
+    }
+    const probe = readExact(fd, Math.min(fileSize, 82), 0);
+    if (probe.length >= 82 && probe.readUInt16LE(34) === 0x504c) {
+      const total = probe.readUInt32LE(0);
+      const size = probe.readUInt32LE(4);
+      if (total !== fileSize || !(size > 0 && size < total)) throw new Error('invalid EOT font');
+      return readEotHeaderFaces(readExact(fd, total - size, 0), fileSize);
+    }
+
+    let offsets = [0];
+    if (probe.subarray(0, 4).toString('ascii') === 'ttcf') {
+      const count = probe.readUInt32BE(8);
+      if (!(count > 0 && count <= 256) || 12 + count * 4 > fileSize) {
+        throw new Error('invalid TrueType collection');
+      }
+      const table = readExact(fd, count * 4, 12);
+      offsets = Array.from({ length: count }, (_, i) => table.readUInt32BE(i * 4));
+    }
+
+    return offsets.map((offset, face) => {
+      if (offset + 12 > fileSize) throw new Error('invalid font header offset');
+      const header = readExact(fd, 12, offset);
+      if (!isSfntMagic(header.subarray(0, 4))) {
+        throw new Error('only OpenType/TrueType font containers are supported');
+      }
+      const count = header.readUInt16BE(4);
+      if (!(count > 0 && count <= 256) || offset + 12 + count * 16 > fileSize) {
+        throw new Error('invalid font table directory');
+      }
+      const dir = readExact(fd, count * 16, offset + 12);
+      const tables = new Map();
+      for (let i = 0; i < count; i++) {
+        const pos = i * 16;
+        const tag = dir.subarray(pos, pos + 4).toString('ascii');
+        const start = dir.readUInt32BE(pos + 8);
+        const length = dir.readUInt32BE(pos + 12);
+        if (start + length > fileSize || tables.has(tag)) {
+          throw new Error('invalid or duplicated font table');
+        }
+        tables.set(tag, { start, length });
+      }
+      const readSmallTable = (tag) => {
+        const entry = tables.get(tag);
+        if (!entry) throw new Error(`font is missing ${tag} metadata`);
+        return readExact(fd, entry.length, entry.start);
+      };
+      const { names, aliases } = parseNameTable(readSmallTable('name'));
+      const os2 = readSmallTable('OS/2');
+      const head = readSmallTable('head');
+      return buildFaceRecord({
+        names,
+        aliases,
+        os2,
+        head,
+        face,
+        hasFvar: tables.has('fvar'),
+        hasGlyf: tables.has('glyf'),
+      });
+    });
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 function tableChecksum(bytes) {

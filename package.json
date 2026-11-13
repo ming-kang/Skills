@@ -7,7 +7,7 @@
     "test:visualize": "python -B -m unittest discover -s tools/visualize -p test_*.py",
     "test:pptd": "node --test \"tools/pptd/tests-node/*.test.js\"",
     "validate:skills": "python -B tools/quick_validate.py",
-    "pptd:build-assets": "node tools/pptd/build_vendor.mjs && node tools/pptd/build_fonts.mjs",
+    "pptd:build-assets": "node tools/pptd/build_vendor.mjs && node tools/pptd/build_fonts.mjs && node tools/pptd/build_shapes.mjs",
     "visualize:build": "python tools/visualize/build_gallery.py",
     "visualize:render": "node tools/visualize/render_gallery.mjs",
     "visualize:validate": "python -B visualize/scripts/validate_svg.py --strict -q visualize/assets",

@@ -67,6 +67,11 @@ function run(text, style) {
   value.appendChild(document.createTextNode(text));
   return element('m:r', [...properties, runProperties(style), value]);
 }
+
+function isFenceMo(node) {
+  return node?.localName === 'mo' && node.getAttribute('fence') === 'true' && node.getAttribute('stretchy') !== 'false';
+}
+
 function compile(node, inherited = {}) {
   const tag = node.localName;
   const style = styled(node, inherited);
@@ -76,6 +81,7 @@ function compile(node, inherited = {}) {
   const property = (name, extras = []) => element(`${name}Pr`, [...extras, element('m:ctrlPr', [runProperties(style)])]);
   const expression = (name, child) => element(name, compile(child, style));
   if (['mi', 'mn', 'mo', 'mtext'].includes(tag)) return [run(node.textContent, style)];
+  if (tag === 'mpadded') return sequence();
   if (tag === 'mspace') {
     const match = /^(-?\d+(?:\.\d+)?)(em|px)$/.exec(node.getAttribute('width') || '0em');
     if (!match || Number(match[1]) < 0) throw new Error('negative or unsupported formula spacing');
@@ -86,8 +92,16 @@ function compile(node, inherited = {}) {
   }
   if (['mrow', 'mstyle'].includes(tag)) {
     const pairs = { '(': ')', '[': ']', '{': '}', '|': '|', '⟨': '⟩' };
-    if (items.length >= 3 && items[0].localName === 'mo' && items.at(-1).localName === 'mo' && pairs[items[0].textContent] === items.at(-1).textContent && items[0].getAttribute('stretchy') !== 'false') {
+    const bothFences = items.length >= 3 && isFenceMo(items[0]) && isFenceMo(items.at(-1));
+    const symmetricPair = items.length >= 3 && items[0].localName === 'mo' && items.at(-1).localName === 'mo' && pairs[items[0].textContent] === items.at(-1).textContent && items[0].getAttribute('stretchy') !== 'false';
+    if (bothFences || symmetricPair) {
       return [element('m:d', [property('m:d', [element('m:begChr', [], { 'm:val': items[0].textContent }), element('m:endChr', [], { 'm:val': items.at(-1).textContent })]), element('m:e', items.slice(1, -1).flatMap((child) => compile(child, style)))])];
+    }
+    if (items.length >= 2 && isFenceMo(items[0]) && items.at(-1).localName !== 'mo') {
+      return [element('m:d', [property('m:d', [element('m:begChr', [], { 'm:val': items[0].textContent }), element('m:endChr', [], { 'm:val': '' })]), element('m:e', items.slice(1).flatMap((child) => compile(child, style)))])];
+    }
+    if (items.length >= 2 && isFenceMo(items.at(-1)) && items[0].localName !== 'mo') {
+      return [element('m:d', [property('m:d', [element('m:begChr', [], { 'm:val': '' }), element('m:endChr', [], { 'm:val': items.at(-1).textContent })]), element('m:e', items.slice(0, -1).flatMap((child) => compile(child, style)))])];
     }
     return sequence();
   }
@@ -169,17 +183,18 @@ function normalizeLegacy(text, location) {
   }
   return [...parsed.documentElement.childNodes].map((node) => serializer.serializeToString(node)).join('');
 }
-function inspectText(holder, location) {
+function inspectText(holder, location, mutate = true) {
   if (typeof holder.text !== 'string') return [];
-  holder.text = normalizeLegacy(holder.text, location);
-  if (!/\\[()]/.test(holder.text)) return [];
-  const normalized = holder.text.replace(/\\\(([\s\S]*?)\\\)/g, (whole, latex) => {
+  const textWithMath = normalizeLegacy(holder.text, location);
+  if (mutate) holder.text = textWithMath;
+  if (!/\\[()]/.test(textWithMath)) return [];
+  const normalized = textWithMath.replace(/\\\(([\s\S]*?)\\\)/g, (whole, latex) => {
     if (/<\/?(?:p|span|strong|em|u|s|sup|sub|a|ul|ol|li|br)\b[^>]*>/i.test(latex)) throw new Error(`${location}: rich-text tags are not allowed inside formulas`);
     return `\\(${latex.replace(/&(?!(?:#\d+|#x[\da-f]+|[a-z][\w]*);)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}\\)`;
   });
-  const richText = /<\/?(?:p|span|strong|em|u|s|sup|sub|a|ul|ol|li|br)\b[^>]*>/i.test(holder.text.replace(/\\\([\s\S]*?\\\)/g, ''));
+  const richText = /<\/?(?:p|span|strong|em|u|s|sup|sub|a|ul|ol|li|br)\b[^>]*>/i.test(textWithMath.replace(/\\\([\s\S]*?\\\)/g, ''));
   const parsed = parse(richText ? `<body>${normalized}</body>` : '<body/>', richText ? 'text/html' : 'application/xml');
-  if (!richText) parsed.documentElement.appendChild(parsed.createTextNode(holder.text));
+  if (!richText) parsed.documentElement.appendChild(parsed.createTextNode(textWithMath));
   const formulas = [];
   const visit = (node) => {
     if (node.nodeType === 3) {
@@ -203,9 +218,28 @@ function inspectText(holder, location) {
     for (const child of [...node.childNodes]) visit(child);
   };
   visit(parsed);
-  if (richText) holder.text = normalized;
+  if (mutate && richText) holder.text = normalized;
   return formulas;
 }
+
+export function validateFormulas(pages) {
+  let count = 0;
+  for (const page of pages) {
+    const pagePath = page.pagePath ?? page.path;
+    const elements = page.elements ?? page.data?.elements ?? [];
+    for (const item of elements) {
+      const location = `${pagePath}: ${item.elementId}`;
+      if (item.elementType === 'text') count += inspectText(item.content, location, false).length;
+      if (item.elementType === 'table') {
+        item.rows.forEach((row, r) => row.forEach((cell, c) => {
+          count += inspectText(cell, `${location}.rows[${r}][${c}]`, false).length;
+        }));
+      }
+    }
+  }
+  return count;
+}
+
 export function exportWithMath(write, project, options, signature) {
   const expected = [];
   for (const page of project.pages) {
@@ -215,10 +249,16 @@ export function exportWithMath(write, project, options, signature) {
       if (item.elementType === 'table') item.rows.forEach((row, r) => row.forEach((cell, c) => expected.push(...inspectText(cell, `${location}.rows[${r}][${c}]`))));
     }
   }
+  const queues = new Map();
+  for (const item of expected) {
+    if (!queues.has(item.latex)) queues.set(item.latex, []);
+    queues.get(item.latex).push(item);
+  }
   let calls = 0;
   const failures = [];
   const bytes = write(project, { ...options, mathLoader: (latex, style) => {
-    const match = expected.find((item) => item.latex === latex);
+    const queue = queues.get(latex);
+    const match = queue?.length ? queue.shift() : undefined;
     calls += 1;
     if (!match) { failures.push(`writer requested an unexpected formula: ${JSON.stringify(latex)}`); return null; }
     try { return latexToOmml(latex, style); }

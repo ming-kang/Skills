@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { create as createFont } from '../../../assets/vendor/fontkit.mjs';
 import { DOMParser, XMLSerializer } from '../../../assets/vendor/xmldom.mjs';
+import { EAST_ASIAN } from './fonts.mjs';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const XML = 'http://www.w3.org/XML/1998/namespace';
@@ -318,7 +319,7 @@ export function createSvgFontOutliner(descriptors) {
         let primary;
         for (const { segment } of graphemes.segment(content)) {
           const available = [...names];
-          if (/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Bopomofo}\u3000-\u303f\uff00-\uffef]/u.test(segment) && families.has(key('Noto Sans SC')) && !available.some((name) => key(name) === key('Noto Sans SC'))) available.push('Noto Sans SC');
+          if (EAST_ASIAN.test(segment) && families.has(key('Noto Sans SC')) && !available.some((name) => key(name) === key('Noto Sans SC'))) available.push('Noto Sans SC');
           let selected;
           for (const name of available) {
             const face = candidate(name);
@@ -356,7 +357,9 @@ export function createSvgFontOutliner(descriptors) {
         if (![originX, baselineY].every(Number.isFinite)) throw new Error('non-finite SVG text origin/baseline');
         const group = document.createElementNS(SVG, 'g');
         for (const attr of attributes(text)) {
-          if (!['x', 'y', 'dx', 'dy'].includes(attr.name)) group.setAttributeNS(attr.namespaceURI, attr.name, attr.value);
+          if (!['x', 'y', 'dx', 'dy', 'dominant-baseline', 'alignment-baseline'].includes(attr.name)) {
+            group.setAttributeNS(attr.namespaceURI, attr.name, attr.value);
+          }
         }
         group.setAttribute('data-pptd-text', content);
         group.setAttribute('data-pptd-advance', number(advance));

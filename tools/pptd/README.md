@@ -9,15 +9,16 @@ Everything in `pptd/scripts/` runs inside a single Node.js process with zero ext
 ```text
 pptd/scripts/
   export.mjs          public CLI: read, prepare, WASM export, patch, verify
-  validate.mjs        structural check only
+  validate.mjs        structural and semantic/asset check without exporting
   render_slides.py    optional installed Office QA renderer (PDF + PyMuPDF PNG)
   render_powerpoint.ps1
   lib/deck/           yaml.mjs, contract.mjs, schema.mjs, project.mjs
   lib/prepare/        font_data, fonts, icons, media, images, formulas, charts, svg_text
-  lib/pptx/           writer.mjs, zip.mjs, patch.mjs, verify.mjs
+  lib/pptx/           writer.mjs, zip.mjs, xml.mjs, patch.mjs, verify.mjs
 pptd/assets/
   vendor/             echarts, fontkit, katex, xmldom, yaml (+ licenses/)
   fonts/ icons/       generated catalogs (see build_vendor.mjs / build_fonts.mjs)
+  shapes.json         generated preset shape catalog (see build_shapes.mjs)
   wasm/               the single bundled writer
 ```
 

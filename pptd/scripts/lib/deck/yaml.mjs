@@ -1,7 +1,6 @@
 // YAML 1.2 parsing for the PPTD format contract, from the vendored `yaml` package.
 // YAML 1.1 loaders misread the private format: `notes: 2026-11-14` must stay a string,
-// `version: v2` a string, and 0o17/0x1F integers. PyYAML's SafeLoader needs a custom
-// resolver stack to approximate this; this module is the single source of that truth.
+// `version: v2` a string, and 0o17/0x1F integers.
 import { parseDocument, visit } from '../../../assets/vendor/yaml.mjs';
 
 // Only plain values reach the exporter: never trust a tag's semantics for data.
@@ -12,7 +11,7 @@ function plainDocument(text, label) {
   if (document.hasDirectives) throw new Error(`YAML directives are not supported in ${label}`);
   visit(document, {
     // Tags other than the implicit plain/str would silently change scalar meaning.
-    Scalar(key, node, path) {
+    Scalar(key, node) {
       if (node.tag?.startsWith('tag:yaml.org,2002:') && !['str', 'int', 'float', 'bool', 'null'].includes(node.tag.slice(19))) {
         throw new Error(`${label}: YAML tags are not supported (${node.tag})`);
       }
@@ -38,13 +37,4 @@ export function readYamlMapping(text, label) {
   }
   // A shared anchor node must be copied before it is normalized in two places.
   return JSON.parse(JSON.stringify(value));
-}
-
-/** YAML 1.2 core-schema scalars: 1_000 and 0x1F are numbers, 2026-11-14 is a string. */
-export function yamlScalarKind(value) {
-  if (value === null) return 'null';
-  if (typeof value === 'boolean') return 'bool';
-  if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'float';
-  if (typeof value === 'string') return 'str';
-  throw new Error(`YAML produced an unsupported value: ${typeof value}`);
 }

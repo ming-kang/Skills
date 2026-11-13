@@ -156,3 +156,23 @@ test('invalid advanced chart data names the page and chart', async () => {
   };
   await assert.rejects(prepare([cyclic]), /^Error: pages\/01\.page: chart loop: sankey contains a cycle$/);
 });
+
+test('heatmap recognizes array yAxis title and outliner keeps real font baseline metrics', async () => {
+  const { createSvgFontOutliner } = await import('../../../pptd/scripts/lib/prepare/svg_text.mjs');
+  const path = await import('node:path');
+  const notoPath = path.resolve('pptd/assets/fonts/notosanssc/NotoSansSC-Regular.ttf');
+  const outlineText = createSvgFontOutliner([{ family: 'Noto Sans SC', slot: 'regular', path: notoPath, face: 0, eot: false }]);
+  const heatmap = {
+    elementId: 'heat-arr', elementType: 'chart', bounds: [0, 0, 400, 300],
+    fontFamily: 'Noto Sans SC',
+    data: { cols: ['x', 'y', 'v'], rows: [['Q1', '（一）', 5]] },
+    yAxis: [{ title: '组别' }],
+    series: [{ type: 'heatmap', encode: { x: 'x', y: 'y', value: 'v' }, colorbar: false }],
+  };
+  const page = { pagePath: 'pages/01.page', elements: [heatmap] };
+  const images = {};
+  await prepareAdvancedCharts({ theme: { colors: { text: '#1F2937' } }, pages: [page] }, images, { outlineText });
+  const svg = new TextDecoder().decode(Object.values(images)[0]);
+  assert.doesNotMatch(svg, /dominant-baseline/);
+  assert.match(svg, /data-pptd-fonts="\[&quot;Noto Sans SC\/regular&quot;\]"/);
+});

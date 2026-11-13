@@ -5,16 +5,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { ADVANCED_CHART_TYPES } from './lib/deck/contract.mjs';
 import { readProject } from './lib/deck/project.mjs';
+import { patchFontBindingsInArchive, patchTableImagesInArchive } from './lib/pptx/patch.mjs';
+import { patchTransitionsInArchive, verifyOutput } from './lib/pptx/verify.mjs';
 import { loadWasmExporter } from './lib/pptx/writer.mjs';
-import { patchFontBindings, patchTableImages } from './lib/pptx/patch.mjs';
-import { patchTransitions, verifyOutput } from './lib/pptx/verify.mjs';
+import { readZip, updateArchive } from './lib/pptx/zip.mjs';
 import { prepareAdvancedCharts } from './lib/prepare/charts.mjs';
 import { prepareFonts } from './lib/prepare/fonts.mjs';
-import { exportWithMath } from './lib/prepare/formulas.mjs';
 import { prepareIcons } from './lib/prepare/icons.mjs';
 import { resolveImages } from './lib/prepare/images.mjs';
-import { createSvgFontOutliner } from './lib/prepare/svg_text.mjs';
 
 const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const CANONICAL_WASM = path.join(SKILL_DIR, 'assets', 'wasm', 'pptd_wasm_bg.wasm');
@@ -36,13 +36,14 @@ export function resolveWasm(override = null) {
   if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
     throw new Error(`PPTD WASM writer not found: ${target}`);
   }
+  const bytes = fs.readFileSync(target);
   if (!override) {
-    const digest = crypto.createHash('sha256').update(fs.readFileSync(target)).digest('hex');
+    const digest = crypto.createHash('sha256').update(bytes).digest('hex');
     if (digest !== WASM_SHA256) {
       throw new Error('bundled WASM does not match the version-locked writer; repair the skill installation');
     }
   }
-  return target;
+  return { path: target, bytes };
 }
 
 /** The writer's custom-shape path may carry a `width,height;` prefix instead of a viewBox. */
@@ -79,6 +80,32 @@ export function buildWasmProject(project) {
   };
 }
 
+function cloneProject(project) {
+  return {
+    ...project,
+    manifest: structuredClone(project.manifest),
+    pages: project.pages.map((page) => ({ path: page.path, data: structuredClone(page.data) })),
+    warnings: [...project.warnings],
+    media: [...project.media],
+  };
+}
+
+function projectHasFormulas(project) {
+  return project.pages.some((page) => page.elements.some((el) => {
+    if (el.elementType === 'text') return /\\[()]|data-math/.test(el.content?.text ?? '');
+    if (el.elementType === 'table') {
+      return el.rows.some((row) => row.some((cell) => /\\[()]|data-math/.test(cell.text ?? '')));
+    }
+    return false;
+  }));
+}
+
+function projectHasAdvancedCharts(project) {
+  return project.pages.some((page) => page.elements.some(
+    (el) => el.elementType === 'chart' && Array.isArray(el.series) && el.series.some((s) => ADVANCED_CHART_TYPES.has(s?.type)),
+  ));
+}
+
 function offlineSignature(value) {
   return `offline-bypass-${crypto.createHash('sha256').update(value, 'utf8').digest('hex').slice(0, 32)}`;
 }
@@ -99,12 +126,12 @@ export async function exportPptx(source, options = {}) {
   if (transition !== 'fade' && transition !== 'none') {
     throw new Error('transition must be fade or none');
   }
-  const wasmPath = resolveWasm(wasm);
-  const project = readProject(source);
+  const wasmInfo = resolveWasm(wasm);
+  const sourceProject = readProject(source);
 
   const output = outputOption
     ? path.resolve(outputOption)
-    : path.join(path.dirname(project.manifestPath), `${path.basename(project.manifestPath, path.extname(project.manifestPath))}.pptx`);
+    : path.join(path.dirname(sourceProject.manifestPath), `${path.basename(sourceProject.manifestPath, path.extname(sourceProject.manifestPath))}.pptx`);
   if (path.extname(output).toLowerCase() !== '.pptx') {
     throw new Error(`output must have a .pptx extension: ${output}`);
   }
@@ -112,55 +139,72 @@ export async function exportPptx(source, options = {}) {
     throw new Error(`output already exists (pass --force to replace it): ${output}`);
   }
 
-  for (const warning of project.warnings) {
+  for (const warning of sourceProject.warnings) {
     if (!quiet) log(`warning: ${warning}`);
   }
 
+  // Isolate preparation mutations from the validated source project.
+  const project = cloneProject(sourceProject);
   const fonts = await prepareFonts(project, { fontDirs, embed: embedFonts, offline });
   for (const warning of fonts.warnings) {
     if (!quiet) log(`warning: ${warning}`);
   }
 
   const wasmProject = buildWasmProject(project);
-  const { exportPPTDToPPTXBytes } = await loadWasmExporter(wasmPath);
+  const { exportPPTDToPPTXBytes } = await loadWasmExporter(wasmInfo.path, wasmInfo.bytes);
   const icons = prepareIcons(wasmProject);
   const mediaRecords = [];
   const images = await resolveImages(wasmProject, path.dirname(project.manifestPath), mediaRecords, offline);
-  await prepareAdvancedCharts(wasmProject, images);
 
-  if (Object.keys(images).some((key) => key.startsWith('wasm-assets/chart-'))) {
-    const outline = createSvgFontOutliner(fonts.outlines);
-    for (const [key, image] of Object.entries(images)) {
-      if (key.startsWith('wasm-assets/chart-')) {
-        images[key] = new Uint8Array(Buffer.from(outline(Buffer.from(image).toString('utf8')), 'utf8'));
-      }
-    }
+  let outlineText = null;
+  if (projectHasAdvancedCharts(wasmProject)) {
+    const { createSvgFontOutliner } = await import('./lib/prepare/svg_text.mjs');
+    outlineText = createSvgFontOutliner(fonts.outlines);
   }
+  await prepareAdvancedCharts(wasmProject, images, { outlineText });
 
-  const { bytes, formulas } = exportWithMath(
-    exportPPTDToPPTXBytes,
-    wasmProject,
-    {
-      fonts: fonts.data,
-      customFonts: [],
-      images,
-      fileName: path.basename(output),
-      slideTransition: { effect: 'fade', speed: 'fast' },
-      chartImages: [],
-    },
-    offlineSignature,
-  );
+  const writerOptions = {
+    fonts: fonts.data,
+    customFonts: [],
+    images,
+    fileName: path.basename(output),
+    slideTransition: { effect: 'fade', speed: 'fast' },
+    chartImages: [],
+  };
+
+  let bytes;
+  let formulas = 0;
+  if (projectHasFormulas(wasmProject)) {
+    const { exportWithMath } = await import('./lib/prepare/formulas.mjs');
+    ({ bytes, formulas } = exportWithMath(exportPPTDToPPTXBytes, wasmProject, writerOptions, offlineSignature));
+  } else {
+    bytes = exportPPTDToPPTXBytes(
+      wasmProject,
+      {
+        ...writerOptions,
+        mathLoader: (latex) => {
+          throw new Error(`writer requested an unexpected formula: ${JSON.stringify(latex)}`);
+        },
+      },
+      offlineSignature(JSON.stringify(wasmProject)),
+    );
+  }
 
   let pptxBuffer = Buffer.from(bytes);
   if (pptxBuffer[0] !== 0x50 || pptxBuffer[1] !== 0x4b) {
     throw new Error('WASM writer did not return a ZIP/PPTX payload');
   }
 
-  pptxBuffer = patchFontBindings(pptxBuffer, fonts.bindings);
-  const tablePatch = patchTableImages(pptxBuffer, project, mediaRecords);
-  pptxBuffer = tablePatch.buffer;
-  const transitionPatch = patchTransitions(pptxBuffer, transition);
-  pptxBuffer = transitionPatch.buffer;
+  // Single-pass archive postprocessing (fonts + table image fills + slide transitions).
+  const archive = readZip(pptxBuffer);
+  const updates = new Map();
+  patchFontBindingsInArchive(archive, updates, fonts.bindings);
+  const tableImageFills = patchTableImagesInArchive(archive, updates, project, mediaRecords);
+  const transitionPatchedSlides = patchTransitionsInArchive(archive, updates, transition);
+  if (updates.size) {
+    pptxBuffer = updateArchive(archive, updates);
+  }
+
   const summary = verifyOutput(pptxBuffer, transition, project.pages.length);
 
   const warnings = [...project.warnings, ...fonts.warnings];
@@ -189,10 +233,10 @@ export async function exportPptx(source, options = {}) {
     ...summary,
     output,
     exporter: 'wasm',
-    transitionPatchedSlides: transitionPatch.slideCount,
+    transitionPatchedSlides,
     icons,
     formulas,
-    tableImageFills: tablePatch.count,
+    tableImageFills,
     fontFamilies: fonts.families,
     renderedQA: 'not_run',
     warnings,
