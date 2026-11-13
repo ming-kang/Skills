@@ -1,4 +1,4 @@
-import { ADVANCED_CHART_TYPES, hierarchyData, readChartData, sankeyData, validateHeatmapSeries } from './chart_data.mjs';
+import { ADVANCED_CHART_TYPES, prepareAdvancedChartData } from './chart_data.mjs';
 import { chartStyle, lineStyle } from './chart_style.mjs';
 
 // Matches the previous editor: same-colored hierarchy nodes need a separator to stay readable.
@@ -56,12 +56,11 @@ function axisOption(config, categories, style) {
   };
 }
 
-function heatmapOption(chart, series, rows, style, top) {
+function heatmapOption(chart, series, rows, domain, style, top) {
   const xs = [...new Set(rows.map((row) => row.x))];
   const ys = [...new Set(rows.map((row) => row.y))];
   const xIndex = new Map(xs.map((value, index) => [value, index]));
   const yIndex = new Map(ys.map((value, index) => [value, index]));
-  const domain = validateHeatmapSeries(series, rows);
   const diverging = series.colorScale?.type === 'diverging';
   const colors = series.colorScheme ?? (diverging
     ? [style.palette[1] ?? style.palette[0], '#FFFFFF', style.palette[0]]
@@ -108,19 +107,10 @@ function heatmapOption(chart, series, rows, style, top) {
   };
 }
 
-function hierarchyOption(chart, series, rows, style, top) {
+function hierarchyOption(chart, series, roots, style, top) {
   const limit = series.levels ?? Infinity;
-  if (limit !== Infinity && (!Number.isInteger(limit) || limit <= 0)) {
-    throw new Error('hierarchy levels must be a positive integer');
-  }
   const treemap = series.type === 'treemap';
   const fill = series.fill;
-  if (Array.isArray(fill) && (!fill.length || fill.some((item) => Array.isArray(item) && !item.length))) {
-    throw new Error('hierarchy fill arrays must not be empty');
-  }
-  if (!treemap && Array.isArray(fill) && fill.some(Array.isArray)) {
-    throw new Error('sunburst fill must be a color, gradient or flat array');
-  }
   const border = style.border(series.border === undefined ? DEFAULT_HIERARCHY_BORDER : series.border);
   // ECharts draws treemap borders as filled strips and ignores borderType. Dashed/dotted
   // treemap borders are drawn afterwards as one deduplicated grid (see treemapDashGrid).
@@ -146,7 +136,7 @@ function hierarchyOption(chart, series, rows, style, top) {
         : {}),
     };
   }
-  const data = hierarchyData(rows).map((node, index) => nodeOption(node, index, 0));
+  const data = roots.map((node, index) => nodeOption(node, index, 0));
   const label = style.label(series, 'category');
   const option = {
     series: [{
@@ -167,12 +157,7 @@ function hierarchyOption(chart, series, rows, style, top) {
   return { option, dash };
 }
 
-function sankeyOption(series, rows, style, top) {
-  const { nodeNames, links } = sankeyData(rows);
-  if (!['left', 'right', 'justify'].includes(series.nodeAlign ?? 'justify')) {
-    throw new Error('sankey nodeAlign must be left, right or justify');
-  }
-  if (Array.isArray(series.fill) && !series.fill.length) throw new Error('sankey fill must not be empty');
+function sankeyOption(series, nodeNames, links, style, top) {
   // Zero and null flows have no visible area; keep them out of the layout to avoid 0/0 scaling.
   const positiveLinks = links.filter((link) => link.value > 0);
   const visible = new Set(positiveLinks.flatMap((link) => [link.source, link.target]));
@@ -200,16 +185,17 @@ function sankeyOption(series, rows, style, top) {
 }
 
 function chartOption(chart, theme, echarts) {
-  const { series, rows } = readChartData(chart);
+  const prepared = prepareAdvancedChartData(chart);
+  const { series, rows } = prepared;
   const style = chartStyle(chart, theme, echarts.color);
   const title = titleOption(chart, style);
   const top = title?.text ? title.textStyle.fontSize * 1.6 + 12 : 12;
   let content;
   let dash;
   switch (series.type) {
-    case 'heatmap': content = heatmapOption(chart, series, rows, style, top); break;
-    case 'sankey': content = sankeyOption(series, rows, style, top); break;
-    default: ({ option: content, dash } = hierarchyOption(chart, series, rows, style, top));
+    case 'heatmap': content = heatmapOption(chart, series, rows, prepared.domain, style, top); break;
+    case 'sankey': content = sankeyOption(series, prepared.nodeNames, prepared.links, style, top); break;
+    default: ({ option: content, dash } = hierarchyOption(chart, series, prepared.roots, style, top));
   }
   return {
     option: {

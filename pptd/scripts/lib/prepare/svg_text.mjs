@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { create as createFont } from '../../../assets/vendor/fontkit.mjs';
 import { DOMParser, XMLSerializer } from '../../../assets/vendor/xmldom.mjs';
-import { EAST_ASIAN } from './fonts.mjs';
+import { extractEotSfnt } from './font_data.mjs';
+import { EAST_ASIAN, splitCss } from './fonts.mjs';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const XML = 'http://www.w3.org/XML/1998/namespace';
@@ -21,25 +22,6 @@ function isRenderingContent(node) {
     if (parent.namespaceURI === SVG && ['metadata', 'title', 'desc'].includes(parent.localName)) return false;
   }
   return true;
-}
-
-// CSS token boundaries, including quoted family names and paint url(...) values.
-function splitCss(value, delimiter) {
-  const result = [];
-  let start = 0, quote = '', depth = 0;
-  for (let i = 0; i < value.length; i++) {
-    const char = value[i];
-    if (char === '\\') { i++; continue; }
-    if (quote) { if (char === quote) quote = ''; continue; }
-    if (char === '"' || char === "'") { quote = char; continue; }
-    if (char === '(') depth++;
-    else if (char === ')') depth--;
-    else if (char === delimiter && depth === 0) { result.push(value.slice(start, i)); start = i + 1; }
-    if (depth < 0) throw new Error('unbalanced inline SVG CSS');
-  }
-  if (quote || depth) throw new Error('unbalanced inline SVG CSS');
-  result.push(value.slice(start));
-  return result;
 }
 
 function inlineStyle(node) {
@@ -187,21 +169,6 @@ function checkStylesheets(document, texts) {
   }
 }
 
-function eotSfnt(buffer) {
-  if (buffer.length < 82 || buffer.readUInt16LE(34) !== 0x504c) throw new Error('invalid EOT header');
-  const total = buffer.readUInt32LE(0), fontSize = buffer.readUInt32LE(4);
-  const version = buffer.readUInt32LE(8), flags = buffer.readUInt32LE(12);
-  if (flags & 4) throw new Error('compressed EOT fonts are unsupported for SVG chart outlines; supply an uncompressed TTF/OTF/EOT face');
-  if (flags & 0x10000000) throw new Error('XOR-encrypted EOT fonts are unsupported for SVG chart outlines');
-  if (total !== buffer.length || fontSize < 12 || total - fontSize < 82 || ![0x10000, 0x20001, 0x20002].includes(version)) {
-    throw new Error('invalid EOT size/version');
-  }
-  // Uncompressed EOT stores its complete sfnt after the variable-length header/names.
-  const sfnt = buffer.subarray(total - fontSize, total);
-  if (!['\x00\x01\x00\x00', 'true', 'OTTO'].includes(sfnt.toString('latin1', 0, 4))) throw new Error('uncompressed EOT has no trailing sfnt');
-  return sfnt;
-}
-
 function checkTextCharacters(text) {
   // Fontkit shapes a run, but does not perform paragraph bidi/script itemization.
   // Explicitly limit this adapter to horizontal simple-script/CJK chart labels.
@@ -252,7 +219,7 @@ export function createSvgFontOutliner(descriptors) {
       try {
         if (!files.has(fileKey)) {
           const buffer = fs.readFileSync(descriptor.path);
-          files.set(fileKey, descriptor.eot ? eotSfnt(buffer) : buffer);
+          files.set(fileKey, descriptor.eot ? extractEotSfnt(buffer) : buffer);
         }
         const container = createFont(files.get(fileKey));
         const font = container.type === 'TTC' ? container.fonts[descriptor.face] : descriptor.face === 0 ? container : undefined;

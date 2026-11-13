@@ -89,7 +89,7 @@ async function resolveGoogleFont(url, family, offline) {
   }
   if (offline) throw new Error(`custom font is not cached for offline use: ${family}`);
 
-  const css = (await fetchGoogle(url)).toString('utf8');
+  const css = (await fetchGoogle(url)).toString('utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const matches = [];
   for (const [, block] of css.matchAll(/@font-face\s*\{([^}]+)\}/g)) {
     const props = {};
@@ -340,10 +340,46 @@ function tokenizeHtml(html) {
   return tokens;
 }
 
+// Split CSS tokens respecting quoted family names and parenthesized url(...) values.
+export function splitCss(value, delimiter) {
+  const result = [];
+  let start = 0;
+  let quote = '';
+  let depth = 0;
+  for (let i = 0; i < value.length; i++) {
+    const char = value[i];
+    if (char === '\\') { i++; continue; }
+    if (quote) { if (char === quote) quote = ''; continue; }
+    if (char === '"' || char === "'") { quote = char; continue; }
+    if (char === '(') depth++;
+    else if (char === ')') depth--;
+    else if (char === delimiter && depth === 0) {
+      result.push(value.slice(start, i));
+      start = i + 1;
+    }
+    if (depth < 0) throw new Error('unbalanced inline CSS');
+  }
+  if (quote || depth) throw new Error('unbalanced inline CSS');
+  result.push(value.slice(start));
+  return result;
+}
+
 function parseCssDeclarations(styleText) {
   const css = new Map();
-  for (const [, prop, val] of (styleText ?? '').matchAll(/([\w-]+)\s*:\s*([^;]+)/g)) {
-    css.set(prop.trim().toLowerCase(), val.trim());
+  if (!styleText) return css;
+  let parts;
+  try {
+    parts = splitCss(styleText, ';');
+  } catch {
+    parts = String(styleText).split(';');
+  }
+  for (const part of parts) {
+    if (!part.trim()) continue;
+    const colon = part.indexOf(':');
+    if (colon < 0) continue;
+    const prop = part.slice(0, colon).trim().toLowerCase();
+    const val = part.slice(colon + 1).trim();
+    if (prop && val) css.set(prop, val);
   }
   return css;
 }
@@ -356,37 +392,38 @@ function textFonts(holder, style, store) {
   }
 
   const tokens = tokenizeHtml(html);
+  const parsed = tokens.map((token) => {
+    if (token.type === 'start') {
+      const attrMap = new Map(token.attrs);
+      const css = parseCssDeclarations(attrMap.get('style'));
+      return { token, attrMap, css, overridesFamily: css.has('font-family'), descendants: '' };
+    }
+    if (token.type === 'text') {
+      return { token, decoded: decodeHtmlEntities(token.raw) };
+    }
+    return { token };
+  });
+
   // Pre-compute descendant decoded text and un-overridden base text (ignoring comments/tags/URLs).
-  const descendants = new Map();
   const textStack = [];
   let baseText = '';
   let overrideDepth = 0;
 
-  for (const token of tokens) {
+  for (const item of parsed) {
+    const { token } = item;
     if (token.type === 'start') {
-      descendants.set(token, '');
-      const attrMap = new Map(token.attrs);
-      const css = parseCssDeclarations(attrMap.get('style'));
-      const overridesFamily = css.has('font-family');
-      token._attrMap = attrMap;
-      token._css = css;
-      token._overridesFamily = overridesFamily;
       if (!VOID_TAGS.has(token.tag) && !token.selfClosing) {
-        textStack.push(token);
-        if (overridesFamily) overrideDepth += 1;
+        textStack.push(item);
+        if (item.overridesFamily) overrideDepth += 1;
       }
     } else if (token.type === 'end') {
       if (!VOID_TAGS.has(token.tag) && textStack.length) {
         const popped = textStack.pop();
-        if (popped._overridesFamily) overrideDepth -= 1;
+        if (popped.overridesFamily) overrideDepth -= 1;
       }
     } else if (token.type === 'text') {
-      const decoded = decodeHtmlEntities(token.raw);
-      token._decoded = decoded;
-      if (overrideDepth === 0) baseText += decoded;
-      for (const ancestor of textStack) {
-        descendants.set(ancestor, descendants.get(ancestor) + decoded);
-      }
+      if (overrideDepth === 0) baseText += item.decoded;
+      for (const ancestor of textStack) ancestor.descendants += item.decoded;
     }
   }
 
@@ -402,22 +439,23 @@ function textFonts(holder, style, store) {
   const output = [];
   let rewroteInlineFont = false;
 
-  for (const token of tokens) {
+  for (const item of parsed) {
+    const { token } = item;
     if (token.type === 'start') {
       const parent = stateStack.at(-1);
       let family = parent.family;
       let bold = parent.bold || token.tag === 'strong' || token.tag === 'b';
       let italic = parent.italic || token.tag === 'em' || token.tag === 'i';
-      const css = token._css;
+      const css = item.css;
       if (['bold', '700', '800', '900'].includes(css.get('font-weight') ?? '')) bold = true;
       if ((css.get('font-style') ?? '') === 'italic') italic = true;
-      if (token._overridesFamily) {
+      if (item.overridesFamily) {
         const inlineName = css.get('font-family').replace(/^['"]+|['"]+$/g, '');
-        family = store.family(inlineName, bold, italic, descendants.get(token) ?? '');
+        family = store.family(inlineName, bold, italic, item.descendants);
         css.set('font-family', typeof family === 'object' ? Object.values(family).join(', ') : family);
-        token._attrMap.set('style', [...css.entries()].map(([k, v]) => `${k}:${v}`).join(';'));
+        item.attrMap.set('style', [...css.entries()].map(([k, v]) => `${k}:${v}`).join(';'));
         rewroteInlineFont = true;
-        const attrsText = [...token._attrMap.entries()].map(([k, v]) => ` ${k}="${escapeAttr(v)}"`).join('');
+        const attrsText = [...item.attrMap.entries()].map(([k, v]) => ` ${k}="${escapeAttr(v)}"`).join('');
         output.push(`<${token.tag}${attrsText}${token.selfClosing ? '/>' : '>'}`);
       } else {
         output.push(token.raw);
@@ -428,8 +466,7 @@ function textFonts(holder, style, store) {
       output.push(token.raw);
     } else if (token.type === 'text') {
       const current = stateStack.at(-1);
-      const decoded = token._decoded ?? decodeHtmlEntities(token.raw);
-      if (decoded) store.family(current.family, current.bold, current.italic, decoded);
+      if (item.decoded) store.family(current.family, current.bold, current.italic, item.decoded);
       output.push(token.raw);
     } else {
       output.push(token.raw);

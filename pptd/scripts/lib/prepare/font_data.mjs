@@ -39,26 +39,34 @@ function isSfntMagic(sig) {
     sig.toString('ascii') === 'true' || sig.toString('ascii') === 'OTTO';
 }
 
-export function sfntTables(data, offset = 0) {
-  const sig = data.subarray(offset, offset + 4);
-  if (!isSfntMagic(sig)) throw new Error('only OpenType/TrueType font containers are supported');
-  const count = data.readUInt16BE(offset + 4);
-  if (!(count > 0 && count <= 256) || offset + 12 + count * 16 > data.length) {
+function sfntTablesFromReader(readAt, totalLength, offset = 0) {
+  if (offset + 12 > totalLength) throw new Error('invalid font header offset');
+  const header = readAt(offset, 12);
+  if (!isSfntMagic(header.subarray(0, 4))) {
+    throw new Error('only OpenType/TrueType font containers are supported');
+  }
+  const count = header.readUInt16BE(4);
+  if (!(count > 0 && count <= 256) || offset + 12 + count * 16 > totalLength) {
     throw new Error('invalid font table directory');
   }
+  const dir = readAt(offset + 12, count * 16);
   const tables = new Map();
   for (let i = 0; i < count; i++) {
-    const pos = offset + 12 + i * 16;
-    const tag = data.subarray(pos, pos + 4).toString('ascii');
-    const checksum = data.readUInt32BE(pos + 4);
-    const start = data.readUInt32BE(pos + 8);
-    const length = data.readUInt32BE(pos + 12);
-    if (start + length > data.length || tables.has(tag)) {
+    const pos = i * 16;
+    const tag = dir.subarray(pos, pos + 4).toString('ascii');
+    const checksum = dir.readUInt32BE(pos + 4);
+    const start = dir.readUInt32BE(pos + 8);
+    const length = dir.readUInt32BE(pos + 12);
+    if (start + length > totalLength || tables.has(tag)) {
       throw new Error('invalid or duplicated font table');
     }
     tables.set(tag, { checksum, start, length });
   }
   return tables;
+}
+
+export function sfntTables(data, offset = 0) {
+  return sfntTablesFromReader((pos, length) => data.subarray(pos, pos + length), data.length, offset);
 }
 
 function readTable(data, tables, tag) {
@@ -185,36 +193,48 @@ function readEotHeaderFaces(data, totalLength) {
   }];
 }
 
-export function readFontFaces(buffer) {
-  const data = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
-  if (data.length >= 82 && data.readUInt16LE(34) === 0x504c) {
-    return readEotHeaderFaces(data, data.length);
+function readFontFacesWithReader(readAt, totalLength) {
+  const probe = readAt(0, Math.min(totalLength, 82));
+  if (probe.length >= 82 && probe.readUInt16LE(34) === 0x504c) {
+    const total = probe.readUInt32LE(0);
+    const size = probe.readUInt32LE(4);
+    if (total !== totalLength || !(size > 0 && size < total)) throw new Error('invalid or unsupported EOT font');
+    return readEotHeaderFaces(readAt(0, total - size), totalLength);
   }
 
   let offsets = [0];
-  if (data.subarray(0, 4).toString('ascii') === 'ttcf') {
-    const count = data.readUInt32BE(8);
-    if (!(count > 0 && count <= 256) || 12 + count * 4 > data.length) {
+  if (probe.length >= 12 && probe.subarray(0, 4).toString('ascii') === 'ttcf') {
+    const count = probe.readUInt32BE(8);
+    if (!(count > 0 && count <= 256) || 12 + count * 4 > totalLength) {
       throw new Error('invalid TrueType collection');
     }
-    offsets = Array.from({ length: count }, (_, i) => data.readUInt32BE(12 + i * 4));
+    const table = readAt(12, count * 4);
+    offsets = Array.from({ length: count }, (_, i) => table.readUInt32BE(i * 4));
   }
 
   return offsets.map((offset, face) => {
-    const tables = sfntTables(data, offset);
-    const { names, aliases } = readNames(data, tables);
-    const os2 = readTable(data, tables, 'OS/2');
-    const head = readTable(data, tables, 'head');
+    const tables = sfntTablesFromReader(readAt, totalLength, offset);
+    const readEntry = (tag) => {
+      const entry = tables.get(tag);
+      if (!entry) throw new Error(`font is missing ${tag} metadata`);
+      return readAt(entry.start, entry.length);
+    };
+    const { names, aliases } = parseNameTable(readEntry('name'));
     return buildFaceRecord({
       names,
       aliases,
-      os2,
-      head,
+      os2: readEntry('OS/2'),
+      head: readEntry('head'),
       face,
       hasFvar: tables.has('fvar'),
       hasGlyf: tables.has('glyf'),
     });
   });
+}
+
+export function readFontFaces(buffer) {
+  const data = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  return readFontFacesWithReader((offset, length) => data.subarray(offset, offset + length), data.length);
 }
 
 function readExact(fd, length, position) {
@@ -236,67 +256,26 @@ export function readFontFacesFromFile(filePath) {
     if (fileSize <= FULL_READ_THRESHOLD) {
       return readFontFaces(readExact(fd, fileSize, 0));
     }
-    const probe = readExact(fd, Math.min(fileSize, 82), 0);
-    if (probe.length >= 82 && probe.readUInt16LE(34) === 0x504c) {
-      const total = probe.readUInt32LE(0);
-      const size = probe.readUInt32LE(4);
-      if (total !== fileSize || !(size > 0 && size < total)) throw new Error('invalid EOT font');
-      return readEotHeaderFaces(readExact(fd, total - size, 0), fileSize);
-    }
-
-    let offsets = [0];
-    if (probe.subarray(0, 4).toString('ascii') === 'ttcf') {
-      const count = probe.readUInt32BE(8);
-      if (!(count > 0 && count <= 256) || 12 + count * 4 > fileSize) {
-        throw new Error('invalid TrueType collection');
-      }
-      const table = readExact(fd, count * 4, 12);
-      offsets = Array.from({ length: count }, (_, i) => table.readUInt32BE(i * 4));
-    }
-
-    return offsets.map((offset, face) => {
-      if (offset + 12 > fileSize) throw new Error('invalid font header offset');
-      const header = readExact(fd, 12, offset);
-      if (!isSfntMagic(header.subarray(0, 4))) {
-        throw new Error('only OpenType/TrueType font containers are supported');
-      }
-      const count = header.readUInt16BE(4);
-      if (!(count > 0 && count <= 256) || offset + 12 + count * 16 > fileSize) {
-        throw new Error('invalid font table directory');
-      }
-      const dir = readExact(fd, count * 16, offset + 12);
-      const tables = new Map();
-      for (let i = 0; i < count; i++) {
-        const pos = i * 16;
-        const tag = dir.subarray(pos, pos + 4).toString('ascii');
-        const start = dir.readUInt32BE(pos + 8);
-        const length = dir.readUInt32BE(pos + 12);
-        if (start + length > fileSize || tables.has(tag)) {
-          throw new Error('invalid or duplicated font table');
-        }
-        tables.set(tag, { start, length });
-      }
-      const readSmallTable = (tag) => {
-        const entry = tables.get(tag);
-        if (!entry) throw new Error(`font is missing ${tag} metadata`);
-        return readExact(fd, entry.length, entry.start);
-      };
-      const { names, aliases } = parseNameTable(readSmallTable('name'));
-      const os2 = readSmallTable('OS/2');
-      const head = readSmallTable('head');
-      return buildFaceRecord({
-        names,
-        aliases,
-        os2,
-        head,
-        face,
-        hasFvar: tables.has('fvar'),
-        hasGlyf: tables.has('glyf'),
-      });
-    });
+    return readFontFacesWithReader((offset, length) => readExact(fd, length, offset), fileSize);
   } finally {
     fs.closeSync(fd);
   }
+}
+
+export function extractEotSfnt(buffer) {
+  if (buffer.length < 82 || buffer.readUInt16LE(34) !== 0x504c) throw new Error('invalid EOT header');
+  const total = buffer.readUInt32LE(0);
+  const fontSize = buffer.readUInt32LE(4);
+  const version = buffer.readUInt32LE(8);
+  const flags = buffer.readUInt32LE(12);
+  if (flags & 4) throw new Error('compressed EOT fonts are unsupported for SVG chart outlines; supply an uncompressed TTF/OTF/EOT face');
+  if (flags & 0x10000000) throw new Error('XOR-encrypted EOT fonts are unsupported for SVG chart outlines');
+  if (total !== buffer.length || fontSize < 12 || total - fontSize < 82 || ![0x10000, 0x20001, 0x20002].includes(version)) {
+    throw new Error('invalid EOT size/version');
+  }
+  const sfnt = buffer.subarray(total - fontSize, total);
+  if (!isSfntMagic(sfnt)) throw new Error('uncompressed EOT has no trailing sfnt');
+  return sfnt;
 }
 
 function tableChecksum(bytes) {

@@ -255,11 +255,12 @@ export function exportWithMath(write, project, options, signature) {
   let calls = 0;
   const failures = [];
   const bytes = write(project, { ...options, mathLoader: (latex, style) => {
-    const queue = queues.get(latex);
+    const normalized = latex.trim();
+    const queue = queues.get(normalized);
     const match = queue?.length ? queue.shift() : undefined;
     calls += 1;
     if (!match) { failures.push(`writer requested an unexpected formula: ${JSON.stringify(latex)}`); return null; }
-    try { return latexToOmml(latex, style); }
+    try { return latexToOmml(normalized, style); }
     catch (error) { failures.push(`${match.location}: ${error.message}`); return null; }
   } }, typeof signature === 'function' ? signature(JSON.stringify(project)) : signature);
   // The writer swallows callback errors and invokes its incomplete native fallback.

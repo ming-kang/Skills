@@ -22,7 +22,7 @@ function numericValue(value, label) {
   return Number(value);
 }
 
-export function readChartData(chart) {
+function readChartData(chart) {
   if (chart.series.length !== 1) {
     throw new Error('heatmap, treemap, sunburst and sankey require exactly one series');
   }
@@ -73,7 +73,7 @@ export function readChartData(chart) {
   };
 }
 
-export function heatmapDomain(rows, scale = {}) {
+function heatmapDomain(rows, scale = {}) {
   scale ??= {};
   if (!['linear', 'diverging'].includes(scale.type ?? 'linear')) {
     throw new Error('heatmap colorScale.type must be linear or diverging');
@@ -100,7 +100,7 @@ export function heatmapDomain(rows, scale = {}) {
   return min === max ? [min, min + (Math.abs(min) * 0.01 || 1)] : [min, max];
 }
 
-export function validateHeatmapSeries(series, rows) {
+function validateHeatmapSeries(series, rows) {
   const domain = heatmapDomain(rows, series.colorScale);
   const diverging = series.colorScale?.type === 'diverging';
   if (series.colorScheme !== undefined) {
@@ -141,7 +141,7 @@ function topologicalOrder(names, links, kind) {
   return queue;
 }
 
-export function hierarchyData(rows) {
+function hierarchyData(rows) {
   const nodes = new Map();
   const declared = new Set();
   const getNode = (name) => {
@@ -172,7 +172,7 @@ export function hierarchyData(rows) {
   return [...nodes.values()].filter((node) => node.parent == null);
 }
 
-export function sankeyData(rows) {
+function sankeyData(rows) {
   const names = new Set();
   const links = rows.map(({ source, target, flow }) => {
     names.add(source);
@@ -191,4 +191,33 @@ export function sankeyData(rows) {
     }
   }
   return { nodeNames, links };
+}
+
+/** Single canonical validation + data-shaping entry for advanced charts. */
+export function prepareAdvancedChartData(chart) {
+  const { series, rows } = readChartData(chart);
+  if (series.type === 'heatmap') {
+    return { series, rows, domain: validateHeatmapSeries(series, rows) };
+  }
+  if (series.type === 'sankey') {
+    if (!['left', 'right', 'justify'].includes(series.nodeAlign ?? 'justify')) {
+      throw new Error('sankey nodeAlign must be left, right or justify');
+    }
+    if (Array.isArray(series.fill) && !series.fill.length) {
+      throw new Error('sankey fill must not be empty');
+    }
+    return { series, rows, ...sankeyData(rows) };
+  }
+  const limit = series.levels ?? Infinity;
+  if (limit !== Infinity && (!Number.isInteger(limit) || limit <= 0)) {
+    throw new Error('hierarchy levels must be a positive integer');
+  }
+  const fill = series.fill;
+  if (Array.isArray(fill) && (!fill.length || fill.some((item) => Array.isArray(item) && !item.length))) {
+    throw new Error('hierarchy fill arrays must not be empty');
+  }
+  if (series.type !== 'treemap' && Array.isArray(fill) && fill.some(Array.isArray)) {
+    throw new Error('sunburst fill must be a color, gradient or flat array');
+  }
+  return { series, rows, roots: hierarchyData(rows) };
 }

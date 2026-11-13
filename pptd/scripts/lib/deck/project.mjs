@@ -17,7 +17,7 @@ import {
 import {
   checkColor,
   checkPage,
-  checkStyles,
+  checkStyle,
   checkTableStyleConfig,
   IMAGE_EXTENSIONS,
 } from './schema.mjs';
@@ -79,6 +79,9 @@ function checkTheme(manifest, context) {
       current = colors[next];
     }
   }
+  for (const [name, style] of Object.entries(theme?.textStyles ?? {})) {
+    checkStyle(style, `manifest.theme.textStyles.${name}`, colors);
+  }
   for (const [name, config] of Object.entries(theme?.tableStyles ?? {})) {
     checkTableStyleConfig(config, `manifest.theme.tableStyles.${name}`, context);
   }
@@ -122,7 +125,6 @@ export function readProject(source) {
   const theme = manifest.theme ?? {};
 
   checkTheme(manifest, { theme, media });
-  checkStyles(manifest, 'manifest', theme.colors ?? {});
   checkCustomFonts(manifest, root, realRoot);
 
   const pages = manifest.pages;

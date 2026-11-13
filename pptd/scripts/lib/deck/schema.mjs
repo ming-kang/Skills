@@ -12,7 +12,7 @@ import {
   normalizeLocalPath,
   requireString,
 } from './contract.mjs';
-import { hierarchyData, readChartData, sankeyData, validateHeatmapSeries } from '../prepare/chart_data.mjs';
+import { prepareAdvancedChartData } from '../prepare/chart_data.mjs';
 
 export const ELEMENT_TYPES = new Set(['text', 'shape', 'line', 'image', 'icon', 'table', 'chart']);
 export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg']);
@@ -81,78 +81,65 @@ export function checkColor(value, label, themeColors = null) {
   fail(`${label} must be a HEX color, a $theme token or a gradient mapping`);
 }
 
-// Keys whose mapping value is a style object (possibly nested, e.g. a cell style).
-const STYLE_KEYS = new Set([
-  'content', 'background', 'fill', 'border', 'shadow', 'cropShape', 'dataLabels', 'label', 'axisLabel',
-  'nameTextStyle', 'textStyle', 'textStyles', 'tableStyles', 'bodyStyles', 'style', 'cellStyle',
-  'firstRowStyle', 'lastRowStyle', 'firstColumnStyle', 'lastColumnStyle', 'title', 'axisLine',
-  'gridLine', 'colorbar', 'legend', 'spokeAxis', 'seriesDefaults', 'tick', 'marker', 'gradient',
-  'upBars', 'downBars', 'totalBars', 'increaseBars', 'decreaseBars', 'wickStyle',
-]);
+export function checkStyle(style, label, themeColors = null) {
+  if (!isPlainObject(style)) return;
+  for (const key of ['fontSize', 'lineHeight', 'lineHeightPx']) {
+    if (key in style && style[key] !== undefined && (!isFiniteNumber(style[key]) || style[key] <= 0)) {
+      fail(`${label}.${key} must be positive and finite`);
+    }
+  }
+  for (const key of ['letterSpacing', 'marginTop']) {
+    if (key in style && style[key] !== undefined && !isFiniteNumber(style[key])) {
+      fail(`${label}.${key} must be a finite number`);
+    }
+  }
+  if ('opacity' in style && style.opacity !== undefined && (!isFiniteNumber(style.opacity) || style.opacity < 0 || style.opacity > 1)) {
+    fail(`${label}.opacity must be in [0, 1]`);
+  }
+  if ('fontFamily' in style && style.fontFamily !== undefined) {
+    const family = style.fontFamily;
+    const names = isPlainObject(family) && [...Object.keys(family)].every((key) => key === 'latin' || key === 'ea')
+      ? Object.values(family)
+      : [family];
+    if (!names.length || !names.every((name) => typeof name === 'string' && name.trim())) {
+      fail(`${label}.fontFamily must be a font name or a {latin, ea} font mapping`);
+    }
+  }
+  if ('align' in style && style.align !== undefined) {
+    const align = style.align;
+    if (!Array.isArray(align) || align.length !== 2 || !ALIGN_HORIZONTAL.has(align[0]) || !ALIGN_VERTICAL.has(align[1])) {
+      fail(`${label}.align must contain horizontal and vertical alignment`);
+    }
+  }
+  const crop = style.crop;
+  if (crop !== undefined) {
+    if (!isPlainObject(crop) || !Object.keys(crop).every((key) => ['left', 'right', 'top', 'bottom'].includes(key))) {
+      fail(`${label}.crop must be an image crop mapping`);
+    }
+    if (!Object.values(crop).every(isFiniteNumber)) fail(`${label}.crop fractions must be finite numbers`);
+    const total = (a, b) => (crop[a] ?? 0) + (crop[b] ?? 0);
+    if (total('left', 'right') >= 1 || total('top', 'bottom') >= 1) {
+      fail(`${label}.crop left + right and top + bottom must each be less than 1`);
+    }
+  }
+  const fit = style.fit;
+  if (fit !== undefined && (!isPlainObject(fit) || !FIT_MODES.has(fit.mode))) fail(`${label}.fit must have mode fill, contain or cover`);
+  if (style.type === 'gradient') checkColor(style, label, themeColors);
+  if ('color' in style && style.color !== undefined) checkColor(style.color, `${label}.color`, themeColors);
+  if ('backgroundColor' in style && style.backgroundColor !== undefined) checkColor(style.backgroundColor, `${label}.backgroundColor`, themeColors);
+}
 
-/** Walk every mapping that can hold style properties, wherever it appears. */
-function walkStyles(value, visit, inStyle = false) {
+function checkChartStyles(value, label, themeColors) {
   if (Array.isArray(value)) {
-    for (const item of value) walkStyles(item, visit, inStyle);
+    for (let i = 0; i < value.length; i++) checkChartStyles(value[i], `${label}[${i}]`, themeColors);
     return;
   }
   if (!isPlainObject(value)) return;
-  if (inStyle) visit(value);
+  checkStyle(value, label, themeColors);
   for (const [key, item] of Object.entries(value)) {
-    if (key === 'data') continue; // chart data is validated by the chart rules, not as styles
-    if (STYLE_KEYS.has(key)) walkStyles(item, visit, true);
-    else walkStyles(item, visit, inStyle);
+    if (key === 'data' || key === 'dataFilter') continue;
+    checkChartStyles(item, `${label}.${key}`, themeColors);
   }
-}
-
-export function checkStyles(value, label, themeColors = null) {
-  walkStyles(value, (style) => {
-    const field = label;
-    for (const key of ['fontSize', 'lineHeight', 'lineHeightPx']) {
-      if (key in style && style[key] !== undefined && (!isFiniteNumber(style[key]) || style[key] <= 0)) {
-        fail(`${field}.${key} must be positive and finite`);
-      }
-    }
-    for (const key of ['letterSpacing', 'marginTop']) {
-      if (key in style && style[key] !== undefined && !isFiniteNumber(style[key])) {
-        fail(`${field}.${key} must be a finite number`);
-      }
-    }
-    if ('opacity' in style && style.opacity !== undefined && (!isFiniteNumber(style.opacity) || style.opacity < 0 || style.opacity > 1)) {
-      fail(`${field}.opacity must be in [0, 1]`);
-    }
-    if ('fontFamily' in style && style.fontFamily !== undefined) {
-      const family = style.fontFamily;
-      const names = isPlainObject(family) && [...Object.keys(family)].every((key) => key === 'latin' || key === 'ea')
-        ? Object.values(family)
-        : [family];
-      if (!names.length || !names.every((name) => typeof name === 'string' && name.trim())) {
-        fail(`${field}.fontFamily must be a font name or a {latin, ea} font mapping`);
-      }
-    }
-    if ('align' in style && style.align !== undefined) {
-      const align = style.align;
-      if (!Array.isArray(align) || align.length !== 2 || !ALIGN_HORIZONTAL.has(align[0]) || !ALIGN_VERTICAL.has(align[1])) {
-        fail(`${field}.align must contain horizontal and vertical alignment`);
-      }
-    }
-    const crop = style.crop;
-    if (crop !== undefined) {
-      if (!isPlainObject(crop) || !Object.keys(crop).every((key) => ['left', 'right', 'top', 'bottom'].includes(key))) {
-        fail(`${field}.crop must be an image crop mapping`);
-      }
-      if (!Object.values(crop).every(isFiniteNumber)) fail(`${field}.crop fractions must be finite numbers`);
-      const total = (a, b) => (crop[a] ?? 0) + (crop[b] ?? 0);
-      if (total('left', 'right') >= 1 || total('top', 'bottom') >= 1) {
-        fail(`${field}.crop left + right and top + bottom must each be less than 1`);
-      }
-    }
-    const fit = style.fit;
-    if (fit !== undefined && (!isPlainObject(fit) || !FIT_MODES.has(fit.mode))) fail(`${field}.fit must have mode fill, contain or cover`);
-    if (style.type === 'gradient') checkColor(style, field, themeColors);
-    if ('color' in style && style.color !== undefined) checkColor(style.color, `${field}.color`, themeColors);
-    if ('backgroundColor' in style && style.backgroundColor !== undefined) checkColor(style.backgroundColor, `${field}.backgroundColor`, themeColors);
-  });
 }
 
 function registerImageSource(src, label, context) {
@@ -174,7 +161,7 @@ export function checkFill(value, label, context = null) {
   if (value.type === 'gradient') checkColor(value, label, themeColors);
   if (value.type === 'image') {
     registerImageSource(value.src, `${label}.src`, context);
-    checkStyles(value, label, themeColors);
+    checkStyle(value, label, themeColors);
   }
   return value;
 }
@@ -218,8 +205,16 @@ export function checkShape(shape, label, shapes) {
   if (name === 'custom') {
     if (typeof shape.path !== 'string' || !shape.path.trim()) fail(`${label}.path custom shapes require an SVG path`);
     const view = shape.viewBox;
-    if (view !== undefined && (!Array.isArray(view) || view.length !== 2 || !view.every((item) => isFiniteNumber(item) && item > 0))) {
-      fail(`${label}.viewBox must contain two positive finite dimensions`);
+    if (view !== undefined) {
+      if (!Array.isArray(view) || view.length !== 2 || !view.every((item) => isFiniteNumber(item) && item > 0)) {
+        fail(`${label}.viewBox must contain two positive finite dimensions`);
+      }
+    } else if (shape.path.includes(';')) {
+      const separator = shape.path.indexOf(';');
+      const dims = shape.path.slice(0, separator).split(',').map(Number);
+      if (dims.length !== 2 || !dims.every((item) => isFiniteNumber(item) && item > 0) || !shape.path.slice(separator + 1).trim()) {
+        fail(`${label}.path viewBox prefix must be "width,height;path" with positive dimensions`);
+      }
     }
     return;
   }
@@ -282,6 +277,7 @@ export function checkTableGrid(table, label, context = null) {
       const field = `${label}.rows[${rowIndex}][${cellIndex}]`;
       if (!isPlainObject(cell)) fail(`${field} must be a cell mapping`);
       if ('text' in cell && typeof cell.text !== 'string') fail(`${field}.text must be a string`);
+      checkStyle(cell, field, context ? (context.theme?.colors ?? {}) : null);
       if (cell.fill !== undefined) checkFill(cell.fill, `${field}.fill`, context);
       if (cell.border !== undefined) checkBorderSpec(cell.border, `${field}.border`, context);
       while (occupied.has(`${rowIndex}:${column}`)) column += 1;
@@ -309,9 +305,11 @@ export function checkTableGrid(table, label, context = null) {
 
 export function checkTableStyleConfig(config, label, context = null) {
   if (!isPlainObject(config)) fail(`${label} must be a table style mapping`);
+  const themeColors = context ? (context.theme?.colors ?? {}) : null;
   for (const key of ['cellStyle', 'firstRowStyle', 'lastRowStyle', 'firstColumnStyle', 'lastColumnStyle']) {
     if (key in config && config[key] !== undefined) {
       if (!isPlainObject(config[key])) fail(`${label}.${key} must be a mapping`);
+      checkStyle(config[key], `${label}.${key}`, themeColors);
       if (config[key].fill !== undefined) checkFill(config[key].fill, `${label}.${key}.fill`, context);
       if (config[key].border !== undefined) checkBorderSpec(config[key].border, `${label}.${key}.border`, context);
     }
@@ -319,6 +317,7 @@ export function checkTableStyleConfig(config, label, context = null) {
   const body = config.bodyStyles ?? [];
   if (!Array.isArray(body) || !body.every(isPlainObject)) fail(`${label}.bodyStyles must be an array of mappings`);
   for (const [index, item] of body.entries()) {
+    checkStyle(item, `${label}.bodyStyles[${index}]`, themeColors);
     if (item.fill !== undefined) checkFill(item.fill, `${label}.bodyStyles[${index}].fill`, context);
     if (item.border !== undefined) checkBorderSpec(item.border, `${label}.bodyStyles[${index}].border`, context);
   }
@@ -426,33 +425,9 @@ function inferColumnType(rows, columnIndex) {
   return 'category';
 }
 
-function checkAdvancedChart(chart, series, label) {
+function checkAdvancedChart(chart, label) {
   try {
-    const { rows } = readChartData(chart);
-    if (series.type === 'heatmap') {
-      validateHeatmapSeries(series, rows);
-    } else if (series.type === 'sankey') {
-      if (!['left', 'right', 'justify'].includes(series.nodeAlign ?? 'justify')) {
-        throw new Error('sankey nodeAlign must be left, right or justify');
-      }
-      if (Array.isArray(series.fill) && !series.fill.length) {
-        throw new Error('sankey fill must not be empty');
-      }
-      sankeyData(rows);
-    } else {
-      const limit = series.levels ?? Infinity;
-      if (limit !== Infinity && (!Number.isInteger(limit) || limit <= 0)) {
-        throw new Error('hierarchy levels must be a positive integer');
-      }
-      const fill = series.fill;
-      if (Array.isArray(fill) && (!fill.length || fill.some((item) => Array.isArray(item) && !item.length))) {
-        throw new Error('hierarchy fill arrays must not be empty');
-      }
-      if (series.type !== 'treemap' && Array.isArray(fill) && fill.some(Array.isArray)) {
-        throw new Error('sunburst fill must be a color, gradient or flat array');
-      }
-      hierarchyData(rows);
-    }
+    prepareAdvancedChartData(chart);
   } catch (error) {
     fail(`${label}: ${error.message}`);
   }
@@ -560,7 +535,7 @@ export function checkChart(chart, label) {
       stacks.set(kind, stack);
     }
     if (kind === 'scatter' && series.marker === false) fail(`${field}.marker scatter markers cannot be disabled`);
-    if (ADVANCED_CHART_TYPES.has(kind)) checkAdvancedChart(chart, series, label);
+    if (ADVANCED_CHART_TYPES.has(kind)) checkAdvancedChart(chart, label);
   }
   return warnings;
 }
@@ -620,9 +595,11 @@ function checkElement(element, index, pagePath, context) {
   checkShadow(element.shadow, `${field}.shadow`, context);
   if (element.fill !== undefined) checkFill(element.fill, `${field}.fill`, context);
 
+  const themeColors = context.theme?.colors ?? {};
   if (kind === 'text') {
     const content = element.content;
     if (!isPlainObject(content) || typeof content.text !== 'string') fail(`${field}.content.text must be a string for text elements`);
+    checkStyle(content, `${field}.content`, themeColors);
     textStyleReference(context.theme, content.style, `${field}.content.style`);
   }
   if (kind === 'line') {
@@ -641,9 +618,13 @@ function checkElement(element, index, pagePath, context) {
     }
   }
   if (kind === 'image') {
+    checkStyle(element, field, themeColors);
     registerImageSource(element.src, `${field}.src`, context);
   }
-  if (kind === 'chart') context.warnings.push(...checkChart(element, field));
+  if (kind === 'chart') {
+    checkChartStyles(element, field, themeColors);
+    context.warnings.push(...checkChart(element, field));
+  }
 }
 
 /** Validate one page and collect the local media it references. */
@@ -651,7 +632,6 @@ export function checkPage(page, pagePath, context) {
   if (!isPlainObject(page) || !Array.isArray(page.elements)) fail(`page elements must be an array: ${pagePath}`);
   if ('notes' in page && typeof page.notes !== 'string') fail(`${pagePath}.notes must be a string`);
   checkJsonValue(page, pagePath);
-  checkStyles(page, pagePath, context.theme?.colors ?? {});
   if ('background' in page && page.background !== undefined) {
     checkFill(page.background, `${pagePath}.background`, context);
   }
