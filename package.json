@@ -7,7 +7,7 @@
     "test:visualize": "python -B -m unittest discover -s tools/visualize -p test_*.py",
     "test:pptd": "node --test \"tools/pptd/tests-node/*.test.js\"",
     "validate:skills": "python -B tools/quick_validate.py",
-    "pptd:build-assets": "node tools/pptd/build_vendor.mjs && python -B tools/pptd/build_fonts.py",
+    "pptd:build-assets": "node tools/pptd/build_vendor.mjs && node tools/pptd/build_fonts.mjs",
     "visualize:build": "python tools/visualize/build_gallery.py",
     "visualize:render": "node tools/visualize/render_gallery.mjs",
     "visualize:validate": "python -B visualize/scripts/validate_svg.py --strict -q visualize/assets",
@@ -17,14 +17,12 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@fortawesome/free-brands-svg-icons": "7.3.1",
-    "@fortawesome/free-regular-svg-icons": "7.3.1",
-    "@fortawesome/free-solid-svg-icons": "7.3.1",
     "@xmldom/xmldom": "0.9.12",
     "echarts": "6.1.0",
     "esbuild": "0.28.2",
     "fontkit": "2.0.4",
     "katex": "0.18.2",
+    "playwright": "^1.63.0",
     "yaml": "2.9.1"
   }
 }

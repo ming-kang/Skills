@@ -17,7 +17,7 @@ pptd/scripts/
   lib/pptx/           writer.mjs, zip.mjs, patch.mjs, verify.mjs
 pptd/assets/
   vendor/             echarts, fontkit, katex, xmldom, yaml (+ licenses/)
-  fonts/ icons/       generated catalogs (see build_vendor.mjs / build_fonts.py)
+  fonts/ icons/       generated catalogs (see build_vendor.mjs / build_fonts.mjs)
   wasm/               the single bundled writer
 ```
 
@@ -45,7 +45,7 @@ npm run pptd:build-assets
   xmldom, yaml and fontkit, and their verified upstream notices. Each bundle is checked
   for external imports before it is written; a missing supplemental license is restored
   from its pinned authoritative URL and hash-checked, never guessed.
-- `build_fonts.py` vendors licensed original static TTFs with OFL attribution. Runtime
+- `build_fonts.mjs` vendors licensed original static TTFs with OFL attribution. Runtime
   EOT conversion needs only Node stdlib. Do not restore uncleared historical font files or
   redistribute loose Windows fonts.
 
