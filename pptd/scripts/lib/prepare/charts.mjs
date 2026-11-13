@@ -1,5 +1,15 @@
+import { DOMParser, XMLSerializer } from '../../../assets/vendor/xmldom.mjs';
 import { ADVANCED_CHART_TYPES, prepareAdvancedChartData } from './chart_data.mjs';
 import { chartStyle, lineStyle } from './chart_style.mjs';
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const PPTD_NS = 'https://pptd.local/ns/2026/pptd/schema';
+const svgParser = new DOMParser({
+  onError(level, message) {
+    if (level !== 'warning') throw new Error(`invalid chart SVG: ${message}`);
+  },
+});
+const svgSerializer = new XMLSerializer();
 
 // Matches the previous editor: same-colored hierarchy nodes need a separator to stay readable.
 const DEFAULT_HIERARCHY_BORDER = { width: 1, color: '#FFFFFF' };
@@ -215,7 +225,7 @@ function round(value) {
 
 // One dashed path over every treemap node edge, with shared edges merged so that
 // adjacent cells do not draw two out-of-phase dash patterns on the same line.
-function treemapDashGrid(svg, dash) {
+function treemapDashGrid(doc, dash) {
   const lines = { h: new Map(), v: new Map() };
   const add = (map, at, from, to) => {
     const key = round(at);
@@ -225,13 +235,15 @@ function treemapDashGrid(svg, dash) {
   let rects = 0;
   // The treemap series is laid out with zero border/gap width, so node rectangles tile exactly.
   const NUM = '[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e[+-]?\\d+)?';
-  const sizePattern = new RegExp(`\\sd="M0 0l(${NUM}) 0l0 (${NUM})l-${NUM} 0Z"`, 'i');
-  const translatePattern = new RegExp(`\\stransform="translate\\((${NUM})[ ,](${NUM})\\)"`, 'i');
-  for (const [tag] of svg.matchAll(/<path\b[^>]*\becmeta_data_index="\d+"[^>]*>/g)) {
-    const size = sizePattern.exec(tag);
+  const sizePattern = new RegExp(`^M0 0l(${NUM}) 0l0 (${NUM})l-${NUM} 0Z$`, 'i');
+  const translatePattern = new RegExp(`^translate\\((${NUM})[ ,](${NUM})\\)$`, 'i');
+  for (const node of Array.from(doc.getElementsByTagNameNS(SVG_NS, 'path'))) {
+    if (!node.hasAttribute('ecmeta_data_index')) continue;
+    const size = sizePattern.exec((node.getAttribute('d') ?? '').trim());
     if (!size) continue;
-    const offset = translatePattern.exec(tag);
-    if (/\stransform="/.test(tag) && !offset) continue;
+    const transform = (node.getAttribute('transform') ?? '').trim();
+    const offset = transform ? translatePattern.exec(transform) : null;
+    if (transform && !offset) continue;
     const [x, y] = offset ? [Number(offset[1]), Number(offset[2])] : [0, 0];
     const [w, h] = [Number(size[1]), Number(size[2])];
     add(lines.h, y, x, x + w);
@@ -259,34 +271,46 @@ function treemapDashGrid(svg, dash) {
   }
   const [r, g, b, a] = dash.color;
   const pattern = dash.type === 'dashed' ? [4 * dash.width, 2 * dash.width] : [dash.width, dash.width];
-  const path = `<path d="${segments.join('')}" fill="none" stroke="rgb(${r},${g},${b})" stroke-opacity="${a}" ` +
-    `stroke-width="${dash.width}" stroke-dasharray="${pattern.join(',')}"/>`;
-  return svg.replace(/<\/svg>\s*$/, `${path}</svg>`);
+  const pathEl = doc.createElementNS(SVG_NS, 'path');
+  pathEl.setAttribute('d', segments.join(''));
+  pathEl.setAttribute('fill', 'none');
+  pathEl.setAttribute('stroke', `rgb(${r},${g},${b})`);
+  pathEl.setAttribute('stroke-opacity', String(a));
+  pathEl.setAttribute('stroke-width', String(dash.width));
+  pathEl.setAttribute('stroke-dasharray', pattern.join(','));
+  doc.documentElement.appendChild(pathEl);
 }
 
 // zrender centers every text with dominant-baseline="central", which PowerPoint ignores:
 // it puts the alphabetic baseline at the center and the glyphs render ~0.35em too high.
-function officeTextBaselines(svg) {
-  return svg.replace(/<text\b[^>]*>/g, (tag) => {
-    if (!tag.includes(' dominant-baseline="central"')) return tag;
-    const size = Number(/font-size:\s*([\d.]+)px/.exec(tag)?.[1] ?? 12);
+function officeTextBaselines(doc) {
+  for (const el of Array.from(doc.getElementsByTagNameNS(SVG_NS, 'text'))) {
+    if (el.getAttribute('dominant-baseline') !== 'central') continue;
+    const style = el.getAttribute('style') ?? '';
+    const size = Number(/font-size:\s*([\d.]+)px/.exec(style)?.[1] ?? el.getAttribute('font-size') ?? 12);
     const shift = size * CENTRAL_BASELINE_EM;
-    tag = tag.replace(' dominant-baseline="central"', '');
-    const y = /\sy="([-\d.e]+)"/.exec(tag);
-    if (y) return tag.replace(y[0], ` y="${round(Number(y[1]) + shift)}"`);
-    return tag.replace(/>$/, ` y="${round(shift)}">`);
-  });
+    el.removeAttribute('dominant-baseline');
+    const prevY = el.getAttribute('y');
+    const baseY = prevY !== null && prevY !== '' ? Number(prevY) : 0;
+    el.setAttribute('y', String(round(baseY + shift)));
+  }
 }
 
 function chartSvg(svg, chart, dash, outlineText) {
   if (!/^<svg\b/.test(svg)) throw new Error('chart renderer did not return SVG');
-  if (dash) svg = treemapDashGrid(svg, dash);
+  const doc = svgParser.parseFromString(svg, 'image/svg+xml');
+  if (dash) treemapDashGrid(doc, dash);
   // Keep dominant-baseline intact when a font outliner runs so it uses real ascent/descent metrics.
-  if (!outlineText) svg = officeTextBaselines(svg);
-  const source = Buffer.from(JSON.stringify(chart), 'utf8').toString('base64url');
-  const metadata = `<metadata><pptd:source xmlns:pptd="https://pptd.local/ns/2026/pptd/schema" kind="chart" encoding="base64url">${source}</pptd:source></metadata>`;
-  svg = svg.replace(/<svg\b[^>]*>/, (root) => root + metadata);
-  return outlineText ? outlineText(svg) : svg;
+  if (!outlineText) officeTextBaselines(doc);
+  const metadata = doc.createElementNS(SVG_NS, 'metadata');
+  const sourceEl = doc.createElementNS(PPTD_NS, 'pptd:source');
+  sourceEl.setAttribute('kind', 'chart');
+  sourceEl.setAttribute('encoding', 'base64url');
+  sourceEl.appendChild(doc.createTextNode(Buffer.from(JSON.stringify(chart), 'utf8').toString('base64url')));
+  metadata.appendChild(sourceEl);
+  doc.documentElement.insertBefore(metadata, doc.documentElement.firstChild);
+  if (outlineText) outlineText(doc);
+  return svgSerializer.serializeToString(doc);
 }
 
 function defined(object) {

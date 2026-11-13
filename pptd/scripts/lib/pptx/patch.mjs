@@ -1,10 +1,9 @@
 // OOXML postprocessing for capabilities the WASM writer cannot express natively:
-// grouped RIBBI font bindings and native table/cell image fills.
+// grouped RIBBI font bindings, native table/cell image fills and slide transitions.
 import crypto from 'node:crypto';
-import { DOMImplementation } from '../../../assets/vendor/xmldom.mjs';
 import { tableCells } from '../deck/schema.mjs';
 import { MIME_TYPES } from '../prepare/media.mjs';
-import { childElements, firstChild, parseXml, serializeXml } from './xml.mjs';
+import { childElements, createXmlDocument, firstChild, parseXml, serializeXml } from './xml.mjs';
 import { readZip, updateArchive } from './zip.mjs';
 
 const P = 'http://schemas.openxmlformats.org/presentationml/2006/main';
@@ -16,14 +15,30 @@ const CT = 'http://schemas.openxmlformats.org/package/2006/content-types';
 const FILL_NAMES = new Set(['noFill', 'solidFill', 'gradFill', 'blipFill', 'pattFill', 'grpFill']);
 const AFTER_FILL = new Set(['effectLst', 'effectDag', 'tableStyle', 'tableStyleId', 'extLst']);
 const SLOTS = ['regular', 'bold', 'italic', 'boldItalic'];
+const SLIDE_NAME_PATTERN = /^ppt\/slides\/slide\d+\.xml$/;
 
-function readPart(archive, updates, name) {
-  return updates.has(name) ? updates.get(name) : archive.read(name);
+function readDoc(archive, updates, xmlCache, name) {
+  if (xmlCache?.has(name)) return xmlCache.get(name);
+  const bytes = updates.has(name) ? updates.get(name) : archive.read(name);
+  const doc = parseXml(bytes, name);
+  xmlCache?.set(name, doc);
+  return doc;
 }
 
-export function patchFontBindingsInArchive(archive, updates, bindings) {
+function writeDoc(updates, xmlCache, name, doc) {
+  if (xmlCache) xmlCache.set(name, doc);
+  else updates.set(name, serializeXml(doc));
+}
+
+export function flushXmlCache(updates, xmlCache) {
+  for (const [name, doc] of xmlCache.entries()) {
+    updates.set(name, serializeXml(doc));
+  }
+}
+
+export function patchFontBindingsInArchive(archive, updates, bindings, xmlCache = null) {
   if (!bindings?.length) return;
-  const doc = parseXml(readPart(archive, updates, 'ppt/presentation.xml'), 'ppt/presentation.xml');
+  const doc = readDoc(archive, updates, xmlCache, 'ppt/presentation.xml');
   const root = doc.documentElement;
   const listing = firstChild(root, P, 'embeddedFontLst');
   const entries = listing ? childElements(listing) : [];
@@ -73,7 +88,7 @@ export function patchFontBindingsInArchive(archive, updates, bindings) {
   root.setAttribute('embedTrueTypeFonts', '1');
   root.setAttribute('saveSubsetFonts', '0');
 
-  updates.set('ppt/presentation.xml', serializeXml(doc));
+  writeDoc(updates, xmlCache, 'ppt/presentation.xml', doc);
 }
 
 export function patchFontBindings(pptxBuffer, bindings) {
@@ -152,7 +167,7 @@ function buildImageFill(doc, fill, relationship, info, width, height) {
   return result;
 }
 
-export function patchTableImagesInArchive(archive, updates, project, mediaByKey) {
+export function patchTableImagesInArchive(archive, updates, project, mediaByKey, xmlCache = null) {
   const theme = project.theme ?? {};
   const pageJobs = [];
   for (let i = 0; i < project.pages.length; i++) {
@@ -178,26 +193,28 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey)
   }
   if (!pageJobs.length) return 0;
 
-  const typesDoc = parseXml(readPart(archive, updates, '[Content_Types].xml'), '[Content_Types].xml');
+  const typesDoc = readDoc(archive, updates, xmlCache, '[Content_Types].xml');
   const extensions = new Set(
     childElements(typesDoc.documentElement, null, 'Default').map((el) => el.getAttribute('Extension')?.toLowerCase()),
   );
   const known = new Map();
   for (const name of archive.names()) {
     if (name.startsWith('ppt/media/')) {
-      const digest = crypto.createHash('sha256').update(readPart(archive, updates, name)).digest('hex');
+      const partBytes = updates.has(name) ? updates.get(name) : archive.read(name);
+      const digest = crypto.createHash('sha256').update(partBytes).digest('hex');
       known.set(digest, name);
     }
   }
 
   let count = 0;
+  let updatedTypes = false;
   for (const { pageIndex, pagePath, tableTasks } of pageJobs) {
     const slideName = `ppt/slides/slide${pageIndex}.xml`;
-    const slideDoc = parseXml(readPart(archive, updates, slideName), slideName);
+    const slideDoc = readDoc(archive, updates, xmlCache, slideName);
     const relsName = `ppt/slides/_rels/slide${pageIndex}.xml.rels`;
-    const relsDoc = archive.has(relsName) || updates.has(relsName)
-      ? parseXml(readPart(archive, updates, relsName), relsName)
-      : new DOMImplementation().createDocument(REL, 'Relationships', null);
+    const relsDoc = archive.has(relsName) || updates.has(relsName) || xmlCache?.has(relsName)
+      ? readDoc(archive, updates, xmlCache, relsName)
+      : createXmlDocument(REL, 'Relationships');
     const existingIds = new Set(childElements(relsDoc.documentElement).map((el) => el.getAttribute('Id')));
     let relIdx = 1;
 
@@ -229,6 +246,7 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey)
         defEl.setAttribute('ContentType', MIME_TYPES[info.ext]);
         typesDoc.documentElement.appendChild(defEl);
         extensions.add(info.ext);
+        updatedTypes = true;
       }
       replaceFill(slideDoc, properties, buildImageFill(slideDoc, fill, relationship, info, width, height));
       count += 1;
@@ -258,7 +276,10 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey)
 
       for (const { cell, fill } of cellFills) {
         const rowEl = nativeRows[cell.row];
-        const colEl = childElements(rowEl, A, 'tc')[cell.column];
+        const colEl = rowEl ? childElements(rowEl, A, 'tc')[cell.column] : undefined;
+        if (!colEl) {
+          throw new Error(`${pagePath}: writer omitted table cell (${cell.row}, ${cell.column}) for ${table.elementId}`);
+        }
         let tcPr = firstChild(colEl, A, 'tcPr');
         if (!tcPr) {
           tcPr = slideDoc.createElementNS(A, 'a:tcPr');
@@ -270,11 +291,11 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey)
       }
     }
 
-    updates.set(slideName, serializeXml(slideDoc));
-    updates.set(relsName, serializeXml(relsDoc));
+    writeDoc(updates, xmlCache, slideName, slideDoc);
+    writeDoc(updates, xmlCache, relsName, relsDoc);
   }
 
-  if (count > 0) updates.set('[Content_Types].xml', serializeXml(typesDoc));
+  if (updatedTypes) writeDoc(updates, xmlCache, '[Content_Types].xml', typesDoc);
   return count;
 }
 
@@ -283,4 +304,50 @@ export function patchTableImages(pptxBuffer, project, mediaByKey) {
   const updates = new Map();
   const count = patchTableImagesInArchive(archive, updates, project, mediaByKey);
   return { buffer: updates.size ? updateArchive(archive, updates) : Buffer.from(pptxBuffer), count };
+}
+
+function replaceTransitionInDoc(doc, transition) {
+  const root = doc.documentElement;
+  const pNs = root.namespaceURI || P;
+  for (const existing of [...doc.getElementsByTagNameNS(pNs, 'transition')]) {
+    existing.parentNode?.removeChild(existing);
+  }
+  if (transition === 'none') return;
+
+  const children = childElements(root);
+  const anchor = children.findLast((node) => node.localName === 'clrMapOvr' || node.localName === 'cSld');
+  if (!anchor) throw new Error('slide XML has no cSld/clrMapOvr insertion anchor');
+
+  const prefix = root.prefix || 'p';
+  const transEl = doc.createElementNS(pNs, `${prefix}:transition`);
+  transEl.setAttribute('spd', 'fast');
+  transEl.setAttribute('advClick', '1');
+  transEl.appendChild(doc.createElementNS(pNs, `${prefix}:fade`));
+  root.insertBefore(transEl, anchor.nextSibling);
+}
+
+export function replaceTransition(slideXml, transition) {
+  const doc = parseXml(slideXml, 'slide XML');
+  replaceTransitionInDoc(doc, transition);
+  return serializeXml(doc);
+}
+
+export function patchTransitionsInArchive(archive, updates, transition, xmlCache = null) {
+  let slideCount = 0;
+  for (const name of archive.names()) {
+    if (!SLIDE_NAME_PATTERN.test(name)) continue;
+    const doc = readDoc(archive, updates, xmlCache, name);
+    replaceTransitionInDoc(doc, transition);
+    writeDoc(updates, xmlCache, name, doc);
+    slideCount += 1;
+  }
+  if (slideCount === 0) throw new Error('exported PPTX contains no slide XML');
+  return slideCount;
+}
+
+export function patchTransitions(pptxBuffer, transition) {
+  const archive = readZip(pptxBuffer);
+  const updates = new Map();
+  const slideCount = patchTransitionsInArchive(archive, updates, transition);
+  return { buffer: updateArchive(archive, updates), slideCount };
 }

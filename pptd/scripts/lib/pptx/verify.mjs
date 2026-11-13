@@ -1,28 +1,14 @@
-// OOXML slide transition patching and full PPTX package integrity verification.
+// Read-only OOXML slide transition checks and full PPTX package integrity verification.
 import path from 'node:path';
 import { imageInfo, MIME_TYPES } from '../prepare/media.mjs';
 import { childElements, firstChild, parseXml } from './xml.mjs';
-import { readZip, updateArchive } from './zip.mjs';
+import { readZip } from './zip.mjs';
 
 export const PPTX_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml';
-const FADE_TRANSITION_XML = '<p:transition spd="fast" advClick="1"><p:fade/></p:transition>';
 const SLIDE_NAME_PATTERN = /^ppt\/slides\/slide\d+\.xml$/;
 const P_NS = 'http://schemas.openxmlformats.org/presentationml/2006/main';
 const R_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-
-export function replaceTransition(slideXml, transition) {
-  let text = Buffer.isBuffer(slideXml) ? slideXml.toString('utf8') : String(slideXml);
-  text = text.replace(/<p:transition\b[^>]*(?:\/>|>[\s\S]*?<\/p:transition>)/g, '');
-  if (transition === 'none') return Buffer.from(text, 'utf8');
-
-  const colorMap = /<p:clrMapOvr\b[^>]*(?:\/>|>[\s\S]*?<\/p:clrMapOvr>)/.exec(text);
-  const commonSlide = /<p:cSld\b[^>]*(?:\/>|>[\s\S]*?<\/p:cSld>)/.exec(text);
-  const anchor = colorMap ?? commonSlide;
-  if (!anchor) throw new Error('slide XML has no cSld/clrMapOvr insertion anchor');
-  const position = anchor.index + anchor[0].length;
-  return Buffer.from(text.slice(0, position) + FADE_TRANSITION_XML + text.slice(position), 'utf8');
-}
 
 export function slideTransitionFacts(slideXml) {
   let doc;
@@ -59,26 +45,6 @@ export function validateTransitionOrder(facts, transition) {
     const pos = facts.names.indexOf(after);
     if (pos >= 0 && pos < index) throw new Error(`${after} appears before transition`);
   }
-}
-
-export function patchTransitionsInArchive(archive, updates, transition) {
-  let slideCount = 0;
-  for (const name of archive.names()) {
-    if (SLIDE_NAME_PATTERN.test(name)) {
-      const current = updates.has(name) ? updates.get(name) : archive.read(name);
-      updates.set(name, replaceTransition(current, transition));
-      slideCount += 1;
-    }
-  }
-  if (slideCount === 0) throw new Error('exported PPTX contains no slide XML');
-  return slideCount;
-}
-
-export function patchTransitions(pptxBuffer, transition) {
-  const archive = readZip(pptxBuffer);
-  const updates = new Map();
-  const slideCount = patchTransitionsInArchive(archive, updates, transition);
-  return { buffer: updateArchive(archive, updates), slideCount };
 }
 
 function verifyXmlRelationships(node, owner, relationships) {

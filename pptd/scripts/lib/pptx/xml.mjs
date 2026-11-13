@@ -1,8 +1,13 @@
 // Shared XML DOM parsing, serialization and traversal helpers for OOXML patching & verification.
-import { DOMParser, XMLSerializer } from '../../../assets/vendor/xmldom.mjs';
+import { DOMImplementation, DOMParser, XMLSerializer } from '../../../assets/vendor/xmldom.mjs';
 
 const XML_FORBIDDEN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/;
+const domImpl = new DOMImplementation();
 const serializer = new XMLSerializer();
+
+export function createXmlDocument(ns = '', qualifiedName = 'root') {
+  return domImpl.createDocument(ns, qualifiedName, null);
+}
 
 export function parseXml(buffer, label = 'XML') {
   const text = Buffer.isBuffer(buffer) ? buffer.toString('utf8') : String(buffer);

@@ -3,7 +3,6 @@
 param(
   [Parameter(Mandatory = $true)][string]$Pptx,
   [Parameter(Mandatory = $true)][string]$OutDir,
-  [ValidateRange(1, 16384)][int]$Width = 1600,
   [string]$SessionFile,
   [switch]$Cleanup
 )
@@ -110,7 +109,6 @@ try {
     $previousPids = @(Get-Process -Name POWERPNT -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id)
     try { $powerpoint = [Runtime.InteropServices.Marshal]::GetActiveObject('PowerPoint.Application') }
     catch [Runtime.InteropServices.COMException] {
-      $ownedApplication = ($previousPids.Count -eq 0)
       $powerpoint = New-Object -ComObject PowerPoint.Application
     }
     $presentations = $powerpoint.Presentations
@@ -135,7 +133,6 @@ try {
     $presentation = $presentations.Open($source, -1, 0, 0)
     $pageSetup = $presentation.PageSetup
     if ($pageSetup.SlideWidth -le 0 -or $pageSetup.SlideHeight -le 0) { throw 'Invalid slide canvas' }
-    $height = [Math]::Max(1, [int][Math]::Round($Width * $pageSetup.SlideHeight / $pageSetup.SlideWidth))
     $slides = $presentation.Slides
     $slideCount = $slides.Count
     if ($slideCount -lt 1) { throw 'The presentation has no slides' }
@@ -191,4 +188,4 @@ if ($failure) {
   exit 1
 }
 if ($Cleanup) { @{ status = 'cleaned' } | ConvertTo-Json -Compress }
-else { @{ status = 'rendered'; slideCount = $slideCount; width = $Width; height = $height } | ConvertTo-Json -Compress }
+else { @{ status = 'rendered'; slideCount = $slideCount } | ConvertTo-Json -Compress }

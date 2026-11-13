@@ -6,42 +6,12 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 import { readProject } from '../../../pptd/scripts/lib/deck/project.mjs';
+import { makeDeck } from './helpers.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 const SKILL_ROOT = path.join(REPO_ROOT, 'pptd');
 const VALIDATE_CLI = path.join(SKILL_ROOT, 'scripts', 'validate.mjs');
 const MINIMAL = path.join(REPO_ROOT, 'tools', 'pptd', 'tests', 'fixtures', 'minimal');
-
-function makeDeck(root, { manifest, page } = {}) {
-  fs.mkdirSync(path.join(root, 'pages'), { recursive: true });
-  const manifestPath = path.join(root, 'deck.pptd');
-  fs.writeFileSync(
-    manifestPath,
-    manifest ?? [
-      'version: v2',
-      'title: Validation fixture',
-      'size: [960, 540]',
-      'pages:',
-      '  - pages/01.page',
-      '',
-    ].join('\n'),
-    'utf8',
-  );
-  fs.writeFileSync(
-    path.join(root, 'pages', '01.page'),
-    page ?? [
-      'elements:',
-      '  - elementId: title',
-      '    elementType: text',
-      '    bounds: [100, 100, 400, 80]',
-      '    content:',
-      '      text: Hello',
-      '',
-    ].join('\n'),
-    'utf8',
-  );
-  return manifestPath;
-}
 
 test('validate CLI rejects a missing manifest and succeeds on valid fixtures', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-missing-'));
@@ -211,6 +181,7 @@ test('schema catches shape header leak, bad adjustments, invalid lines, missing 
     const badShapes = [
       { elementId: 's1', elementType: 'shape', bounds: [0, 0, 100, 100], shapeName: 'shapeName' },
       { elementId: 's2', elementType: 'shape', bounds: [0, 0, 100, 100], shapeName: 'roundRect', adjustments: [1, 2] },
+      { elementId: 's3', elementType: 'shape', bounds: [0, 0, 100, 100], shapeName: 'custom', path: '0,100;M0 0L10 10' },
       { elementId: 'l1', elementType: 'line', bounds: [0, 0, 100, 100], viewBox: [100, 100], points: '0,0' },
       { elementId: 't1', elementType: 'text', bounds: [0, 0, 100, 100], content: { color: '$typo', text: 'Hi' } },
     ];

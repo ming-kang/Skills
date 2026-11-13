@@ -13,7 +13,7 @@ pptd/scripts/
   render_slides.py    optional installed Office QA renderer (PDF + PyMuPDF PNG)
   render_powerpoint.ps1
   lib/deck/           yaml.mjs, contract.mjs, schema.mjs, project.mjs
-  lib/prepare/        font_data, fonts, icons, media, images, formulas, charts, svg_text
+  lib/prepare/        font_data, fonts, icons, media, net, images, formulas, charts, svg_text
   lib/pptx/           writer.mjs, zip.mjs, xml.mjs, patch.mjs, verify.mjs
 pptd/assets/
   vendor/             echarts, fontkit, katex, xmldom, yaml (+ licenses/)

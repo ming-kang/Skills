@@ -8,15 +8,15 @@ import test from 'node:test';
 import { DOMParser } from '../../../pptd/assets/vendor/xmldom.mjs';
 import { exportPptx } from '../../../pptd/scripts/export.mjs';
 import { readFontFaces } from '../../../pptd/scripts/lib/prepare/font_data.mjs';
+import { patchTransitions, replaceTransition } from '../../../pptd/scripts/lib/pptx/patch.mjs';
 import {
   PPTX_CONTENT_TYPE,
-  patchTransitions,
-  replaceTransition,
   slideTransitionFacts,
   validateTransitionOrder,
   verifyOutput,
 } from '../../../pptd/scripts/lib/pptx/verify.mjs';
 import { crc32, readZip, updateZip, writeZip } from '../../../pptd/scripts/lib/pptx/zip.mjs';
+import { makeDeck } from './helpers.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 const EXPORT_CLI = path.join(REPO_ROOT, 'pptd', 'scripts', 'export.mjs');
@@ -31,14 +31,6 @@ const M_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/math';
 
 function parseXml(buffer) {
   return new DOMParser().parseFromString(Buffer.from(buffer).toString('utf8'), 'application/xml');
-}
-
-function makeDeck(root, { manifest, page }) {
-  fs.mkdirSync(path.join(root, 'pages'), { recursive: true });
-  const manifestPath = path.join(root, 'deck.pptd');
-  fs.writeFileSync(manifestPath, manifest, 'utf8');
-  fs.writeFileSync(path.join(root, 'pages', '01.page'), page, 'utf8');
-  return manifestPath;
 }
 
 test('zip roundtrip computes IEEE CRC-32 and detects tampered bytes', () => {
@@ -233,7 +225,7 @@ test('editable icons, formulas, $textStyle, RIBBI fonts, table cell col>0 overri
           rowHeights: [1],
           style: '$imageHeader',
           rows: [[
-            { text: '\\(\\sqrt{x}\\)' },
+            { text: '\\( \\sqrt{x} \\)' },
             { text: '<p><span style="font-family:MissingCellFont">col1</span></p>' },
           ]],
         },

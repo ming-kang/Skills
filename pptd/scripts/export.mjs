@@ -6,8 +6,13 @@ import path from 'node:path';
 
 import { ADVANCED_CHART_TYPES, hasFormulas } from './lib/deck/contract.mjs';
 import { readProject } from './lib/deck/project.mjs';
-import { patchFontBindingsInArchive, patchTableImagesInArchive } from './lib/pptx/patch.mjs';
-import { patchTransitionsInArchive, verifyOutput } from './lib/pptx/verify.mjs';
+import {
+  flushXmlCache,
+  patchFontBindingsInArchive,
+  patchTableImagesInArchive,
+  patchTransitionsInArchive,
+} from './lib/pptx/patch.mjs';
+import { verifyOutput } from './lib/pptx/verify.mjs';
 import { loadWasmExporter } from './lib/pptx/writer.mjs';
 import { readZip, updateArchive } from './lib/pptx/zip.mjs';
 import { prepareAdvancedCharts } from './lib/prepare/charts.mjs';
@@ -177,9 +182,11 @@ export async function exportPptx(source, options = {}) {
   // Single-pass archive postprocessing (fonts + table image fills + slide transitions).
   const archive = readZip(pptxBuffer);
   const updates = new Map();
-  patchFontBindingsInArchive(archive, updates, fonts.bindings);
-  const tableImageFills = patchTableImagesInArchive(archive, updates, wasmProject, mediaByKey);
-  const transitionPatchedSlides = patchTransitionsInArchive(archive, updates, transition);
+  const xmlCache = new Map();
+  patchFontBindingsInArchive(archive, updates, fonts.bindings, xmlCache);
+  const tableImageFills = patchTableImagesInArchive(archive, updates, wasmProject, mediaByKey, xmlCache);
+  const transitionPatchedSlides = patchTransitionsInArchive(archive, updates, transition, xmlCache);
+  flushXmlCache(updates, xmlCache);
   if (updates.size) {
     pptxBuffer = updateArchive(archive, updates);
   }

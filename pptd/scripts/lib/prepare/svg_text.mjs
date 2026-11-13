@@ -248,13 +248,20 @@ export function createSvgFontOutliner(descriptors) {
     return { descriptor, font: load(descriptor), syntheticBold: bold && !['bold', 'boldItalic'].includes(descriptor.slot), syntheticItalic: italic && !['italic', 'boldItalic'].includes(descriptor.slot) };
   }
 
-  return function outlineSvg(svgString) {
-    if (typeof svgString !== 'string') throw new TypeError('SVG font outliner expects a string');
-    if (/<!DOCTYPE|<!ENTITY|<\?xml-stylesheet\b/i.test(svgString)) throw new Error('DTD/entities/external stylesheets are unsupported in chart SVG');
-    const document = new DOMParser({ onError: (level, message) => { throw new Error(`invalid chart SVG (${level}): ${message}`); } }).parseFromString(svgString, 'image/svg+xml');
+  return function outlineSvg(input) {
+    let document;
+    const returnDocument = typeof input === 'object' && input !== null && input.documentElement;
+    if (returnDocument) {
+      document = input;
+    } else if (typeof input === 'string') {
+      if (/<!DOCTYPE|<!ENTITY|<\?xml-stylesheet\b/i.test(input)) throw new Error('DTD/entities/external stylesheets are unsupported in chart SVG');
+      document = new DOMParser({ onError: (level, message) => { throw new Error(`invalid chart SVG (${level}): ${message}`); } }).parseFromString(input, 'image/svg+xml');
+    } else {
+      throw new TypeError('SVG font outliner expects an SVG string or Document');
+    }
     if (document.documentElement?.localName !== 'svg' || document.documentElement.namespaceURI !== SVG) throw new Error('font outliner expects a namespaced SVG root');
     const texts = Array.from(document.getElementsByTagNameNS(SVG, 'text')).filter(isRenderingContent);
-    if (!texts.length) return svgString;
+    if (!texts.length) return input;
     checkStylesheets(document, texts);
     const stateCache = new WeakMap(), styleCache = new WeakMap();
     for (const text of texts) {
@@ -380,6 +387,6 @@ export function createSvgFontOutliner(descriptors) {
         throw new Error(`cannot outline SVG text ${JSON.stringify(text.textContent.slice(0, 100))}: ${error.message}`, { cause: error });
       }
     }
-    return serializer.serializeToString(document);
+    return returnDocument ? document : serializer.serializeToString(document);
   };
 }

@@ -134,13 +134,13 @@ def run_command(command: Sequence[str], label: str, timeout: int = COMMAND_TIMEO
     return output
 
 
-def render_powerpoint(source: Path, stage: Path, work: Path, width: int, shell: str, pdf_module) -> None:
+def render_powerpoint(source: Path, stage: Path, work: Path, width: int, shell: str, pdf_module) -> list[str]:
     session = work / "powerpoint-session.json"
     pdf_dir = work / "powerpoint-pdf"
     pdf_dir.mkdir()
     command = [shell, "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                "-File", str(POWERSHELL_SCRIPT), "-Pptx", str(source), "-OutDir", str(pdf_dir),
-               "-Width", str(width), "-SessionFile", str(session)]
+               "-SessionFile", str(session)]
     try:
         run_command(command, "PowerPoint rendering")
     except (RenderError, OSError):
@@ -155,10 +155,11 @@ def render_powerpoint(source: Path, stage: Path, work: Path, width: int, shell: 
     pdf = pdf_dir / "slides.pdf"
     if not pdf.is_file():
         raise RenderError("PowerPoint did not produce a font-faithful PDF")
-    rasterize_pdf(pdf, stage, width, pdf_module)
+    return rasterize_pdf(pdf, stage, width, pdf_module)
 
 
-def rasterize_pdf(pdf: Path, stage: Path, width: int, pdf_module) -> None:
+def rasterize_pdf(pdf: Path, stage: Path, width: int, pdf_module) -> list[str]:
+    names: list[str] = []
     try:
         with pdf_module.open(str(pdf)) as document:
             for index, page in enumerate(document):
@@ -166,12 +167,15 @@ def rasterize_pdf(pdf: Path, stage: Path, width: int, pdf_module) -> None:
                     raise RenderError(f"PDF page {index + 1} has an invalid canvas")
                 scale = width / page.rect.width
                 pixmap = page.get_pixmap(matrix=pdf_module.Matrix(scale, scale), alpha=False)
-                pixmap.save(str(stage / f"slide-{index + 1:03}.png"))
+                name = f"slide-{index + 1:03}.png"
+                pixmap.save(str(stage / name))
+                names.append(name)
     except Exception as exc:
         raise RenderError(f"PDF rasterization failed: {exc}") from exc
+    return names
 
 
-def render_libreoffice(source: Path, stage: Path, work: Path, width: int, command: str, pdf_module) -> None:
+def render_libreoffice(source: Path, stage: Path, work: Path, width: int, command: str, pdf_module) -> list[str]:
     local_source = work / "deck.pptx"
     shutil.copy2(source, local_source)
     pdf_dir = work / "pdf"
@@ -183,11 +187,10 @@ def render_libreoffice(source: Path, stage: Path, work: Path, width: int, comman
     pdf = pdf_dir / "deck.pdf"
     if not pdf.is_file():
         raise RenderError("LibreOffice did not produce a PDF")
-    rasterize_pdf(pdf, stage, width, pdf_module)
+    return rasterize_pdf(pdf, stage, width, pdf_module)
 
 
-def inspect_output(output: Path, force: bool):
-    """Only an empty directory or an exact helper-managed file set can be used."""
+def assert_safe_output_path(output: Path) -> None:
     if output.is_symlink() or (os.name == "nt" and output.exists()
                               and output.lstat().st_file_attributes & 0x400):
         raise RenderError(f"output must not be a symlink/junction: {output}")
@@ -195,6 +198,11 @@ def inspect_output(output: Path, force: bool):
         raise RenderError(f"refusing a filesystem root or home directory: {output}")
     if output.suffix.lower() in {".pptd", ".page", ".pptx"}:
         raise RenderError(f"output must be a render directory, not a source-material path: {output}")
+
+
+def inspect_output(output: Path, force: bool):
+    """Only an empty directory or an exact helper-managed file set can be used."""
+    assert_safe_output_path(output)
     if not output.exists():
         return None, []
     if not output.is_dir():
@@ -272,12 +280,11 @@ def render(source: Path, output: Path, engine: str, command: str, pdf_module, wi
         stage = work / "slides"
         stage.mkdir()
         if engine == "powerpoint":
-            render_powerpoint(source, stage, work, width, command, pdf_module)
+            names = render_powerpoint(source, stage, work, width, command, pdf_module)
         else:
-            render_libreoffice(source, stage, work, width, command, pdf_module)
-        names = [f"slide-{i + 1:03}.png" for i in range(len(list(stage.iterdir())))]
-        if not names or {path.name for path in stage.iterdir()} != set(names):
-            raise RenderError("renderer did not produce a complete numbered PNG slide set")
+            names = render_libreoffice(source, stage, work, width, command, pdf_module)
+        if not names:
+            raise RenderError("renderer did not produce any slide PNGs")
         for name in names:
             with (stage / name).open("rb") as image:
                 header = image.read(24)
@@ -313,7 +320,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not 1 <= args.width <= 16384:
             raise RenderError("--width must be between 1 and 16384 pixels")
         # Check the caller's path before resolve() follows a link/junction.
-        inspect_output(args.output.expanduser().absolute(), args.force)
+        assert_safe_output_path(args.output.expanduser().absolute())
         output = args.output.expanduser().resolve()
         expected, _ = inspect_output(output, args.force)
         try:
