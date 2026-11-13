@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { ADVANCED_CHART_TYPES } from './lib/deck/contract.mjs';
+import { ADVANCED_CHART_TYPES, hasFormulas } from './lib/deck/contract.mjs';
 import { readProject } from './lib/deck/project.mjs';
 import { patchFontBindingsInArchive, patchTableImagesInArchive } from './lib/pptx/patch.mjs';
 import { patchTransitionsInArchive, verifyOutput } from './lib/pptx/verify.mjs';
@@ -68,35 +68,18 @@ export function normalizeElement(element) {
 
 export function buildWasmProject(project) {
   return {
-    ...project.manifest,
+    ...structuredClone(project.manifest),
     version: 'v2',
-    pages: project.pages.map(({ path: pagePath, data }) => ({
-      ...data,
-      pagePath: String(pagePath).replaceAll('\\', '/'),
-      elements: data.elements.map(normalizeElement),
-    })),
+    pages: project.pages.map(({ path: pagePath, data }) => {
+      const cloned = structuredClone(data);
+      return {
+        ...cloned,
+        pagePath: String(pagePath).replaceAll('\\', '/'),
+        elements: cloned.elements.map(normalizeElement),
+      };
+    }),
     pptdFileName: path.basename(project.manifestPath),
   };
-}
-
-function cloneProject(project) {
-  return {
-    ...project,
-    manifest: structuredClone(project.manifest),
-    pages: project.pages.map((page) => ({ path: page.path, data: structuredClone(page.data) })),
-    warnings: [...project.warnings],
-    media: [...project.media],
-  };
-}
-
-function projectHasFormulas(project) {
-  return project.pages.some((page) => page.elements.some((el) => {
-    if (el.elementType === 'text') return /\\[()]|data-math/.test(el.content?.text ?? '');
-    if (el.elementType === 'table') {
-      return el.rows.some((row) => row.some((cell) => /\\[()]|data-math/.test(cell.text ?? '')));
-    }
-    return false;
-  }));
 }
 
 function projectHasAdvancedCharts(project) {
@@ -142,18 +125,18 @@ export async function exportPptx(source, options = {}) {
     if (!quiet) log(`warning: ${warning}`);
   }
 
-  // Isolate preparation mutations from the validated source project.
-  const project = cloneProject(sourceProject);
-  const fonts = await prepareFonts(project, { fontDirs, embed: embedFonts, offline });
+  // Build one isolated, normalized working project used across all prepare and patch passes.
+  const projectRoot = path.dirname(sourceProject.manifestPath);
+  const wasmProject = buildWasmProject(sourceProject);
+  const fonts = await prepareFonts(wasmProject, { projectRoot, fontDirs, embed: embedFonts, offline });
   for (const warning of fonts.warnings) {
     if (!quiet) log(`warning: ${warning}`);
   }
 
-  const wasmProject = buildWasmProject(project);
   const { exportPPTDToPPTXBytes } = await loadWasmExporter(wasmInfo.path, wasmInfo.bytes);
   const icons = prepareIcons(wasmProject);
-  const mediaRecords = [];
-  const images = await resolveImages(wasmProject, path.dirname(project.manifestPath), mediaRecords, offline);
+  const mediaByKey = new Map();
+  const images = await resolveImages(wasmProject, projectRoot, mediaByKey, offline);
 
   let outlineText = null;
   if (projectHasAdvancedCharts(wasmProject)) {
@@ -173,7 +156,7 @@ export async function exportPptx(source, options = {}) {
 
   let bytes;
   let formulas = 0;
-  if (projectHasFormulas(wasmProject)) {
+  if (hasFormulas(wasmProject.pages)) {
     const { exportWithMath } = await import('./lib/prepare/formulas.mjs');
     ({ bytes, formulas } = exportWithMath(exportPPTDToPPTXBytes, wasmProject, writerOptions, offlineSignature));
   } else {
@@ -190,24 +173,21 @@ export async function exportPptx(source, options = {}) {
   }
 
   let pptxBuffer = Buffer.from(bytes);
-  if (pptxBuffer[0] !== 0x50 || pptxBuffer[1] !== 0x4b) {
-    throw new Error('WASM writer did not return a ZIP/PPTX payload');
-  }
 
   // Single-pass archive postprocessing (fonts + table image fills + slide transitions).
   const archive = readZip(pptxBuffer);
   const updates = new Map();
   patchFontBindingsInArchive(archive, updates, fonts.bindings);
-  const tableImageFills = patchTableImagesInArchive(archive, updates, project, mediaRecords);
+  const tableImageFills = patchTableImagesInArchive(archive, updates, wasmProject, mediaByKey);
   const transitionPatchedSlides = patchTransitionsInArchive(archive, updates, transition);
   if (updates.size) {
     pptxBuffer = updateArchive(archive, updates);
   }
 
-  const summary = verifyOutput(pptxBuffer, transition, project.pages.length);
+  const summary = verifyOutput(pptxBuffer, transition, wasmProject.pages.length);
 
-  const warnings = [...project.warnings, ...fonts.warnings];
-  if (mediaRecords.some((item) => /^https?:\/\//i.test(item.source))) {
+  const warnings = [...sourceProject.warnings, ...fonts.warnings];
+  if ([...mediaByKey.values()].some((item) => item.remote)) {
     warnings.push(
       'PPTX embeds remote media, but the PPTD source still needs network access; localize media before self-contained delivery',
     );

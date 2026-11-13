@@ -103,12 +103,14 @@ export function imageInfo(bytes, label = 'image') {
   fail(`${label}: bytes are not a supported PNG/JPEG/GIF/SVG image`);
 }
 
-/** Every image holder, including table-cell and background image fills, not just elements. */
+/** Every image holder, including table-cell and background image fills, not chart data. */
 export function* imageHolders(value) {
   if (Array.isArray(value)) {
     for (const item of value) yield* imageHolders(item);
   } else if (value && typeof value === 'object') {
     if (value.elementType === 'image' || value.type === 'image') yield value;
-    for (const item of Object.values(value)) yield* imageHolders(item);
+    for (const [key, item] of Object.entries(value)) {
+      if (key !== 'data') yield* imageHolders(item);
+    }
   }
 }

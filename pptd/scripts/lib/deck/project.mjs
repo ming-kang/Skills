@@ -9,6 +9,7 @@ import {
   checkJsonValue,
   checkRelativePath,
   fail,
+  hasFormulas,
   isFiniteNumber,
   isPlainObject,
   requireString,
@@ -162,27 +163,17 @@ export async function validateProject(source) {
     }
   }
 
-  const hasMath = project.pages.some(({ data }) => data.elements.some((el) => {
-    if (el.elementType === 'text') return /\\[()]|data-math/.test(el.content?.text ?? '');
-    if (el.elementType === 'table') {
-      return el.rows.some((row) => row.some((cell) => /\\[()]|data-math/.test(cell.text ?? '')));
-    }
-    return false;
-  }));
-  if (hasMath) {
+  if (hasFormulas(project.pages)) {
     const { validateFormulas } = await import('../prepare/formulas.mjs');
-    validateFormulas(project.pages);
+    validateFormulas(project.pages.map(({ path: pagePath, data }) => ({ pagePath, elements: data.elements })));
   }
 
   const localFonts = (project.manifest.customFonts ?? []).filter((f) => !/^https:\/\//i.test(f.src));
   if (localFonts.length) {
-    const { readFontFaces } = await import('../prepare/font_data.mjs');
-    const norm = (name) => String(name).replace(/[\s_-]+/g, '').toLowerCase();
+    const { matchFontFamily, readFontFacesFromFile } = await import('../prepare/font_data.mjs');
     for (const entry of localFonts) {
-      const data = fs.readFileSync(path.join(root, checkRelativePath(entry.src, 'customFonts.src')));
-      const faces = readFontFaces(data);
-      const matches = faces.some((face) => norm(entry.family) === norm(face.family) || face.aliases.some((alias) => norm(alias) === norm(entry.family)));
-      if (!matches) {
+      const faces = readFontFacesFromFile(path.join(root, checkRelativePath(entry.src, 'customFonts.src')));
+      if (!matchFontFamily(faces, entry.family)) {
         fail(`custom font family does not match its file: ${entry.family} / ${entry.src}`);
       }
     }

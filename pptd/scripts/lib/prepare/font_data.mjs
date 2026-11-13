@@ -358,6 +358,17 @@ export function extractTtcFace(buffer, face) {
   return output;
 }
 
+export function normalizeFontKey(name) {
+  return String(name).replace(/[\s_-]+/g, '').toLowerCase();
+}
+
+export function matchFontFamily(faces, family) {
+  const target = normalizeFontKey(family);
+  return faces.some(
+    (face) => normalizeFontKey(face.family) === target || (face.aliases ?? []).some((alias) => normalizeFontKey(alias) === target),
+  );
+}
+
 export function embeddingAllowed(face) {
   const flags = face.fsType;
   return !(flags & 0x0200) && (!(flags & 0x000e) || Boolean(flags & 0x0008)) && !face.variable && face.trueType;

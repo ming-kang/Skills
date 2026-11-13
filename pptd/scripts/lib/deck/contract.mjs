@@ -96,3 +96,15 @@ export function requireString(value, label) {
   if (typeof value !== 'string' || !value.trim()) fail(`${label} must be a non-empty string`);
   return value;
 }
+
+const MATH_MARKER = /\\[()]|data-math/;
+
+export function hasFormulas(pages) {
+  return pages.some((page) => (page.elements ?? page.data?.elements ?? []).some((el) => {
+    if (el.elementType === 'text') return MATH_MARKER.test(el.content?.text ?? '');
+    if (el.elementType === 'table') {
+      return el.rows.some((row) => row.some((cell) => MATH_MARKER.test(cell.text ?? '')));
+    }
+    return false;
+  }));
+}

@@ -225,10 +225,8 @@ function inspectText(holder, location, mutate = true) {
 export function validateFormulas(pages) {
   let count = 0;
   for (const page of pages) {
-    const pagePath = page.pagePath ?? page.path;
-    const elements = page.elements ?? page.data?.elements ?? [];
-    for (const item of elements) {
-      const location = `${pagePath}: ${item.elementId}`;
+    for (const item of page.elements) {
+      const location = `${page.pagePath}: ${item.elementId}`;
       if (item.elementType === 'text') count += inspectText(item.content, location, false).length;
       if (item.elementType === 'table') {
         item.rows.forEach((row, r) => row.forEach((cell, c) => {

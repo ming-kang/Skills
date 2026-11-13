@@ -2,49 +2,12 @@
 // Data URLs, remote URLs and project-local files all land in one byte-identity map.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import path from 'node:path';
 
-import { normalizeLocalPath } from '../deck/contract.mjs';
+import { checkContainedFile, checkRelativePath, normalizeLocalPath } from '../deck/contract.mjs';
 import { imageHolders, imageInfo } from './media.mjs';
+import { fetchBounded } from './net.mjs';
 
-const MAX_IMAGE_BYTES = 64 * 1024 * 1024;
-
-function safeJoin(root, relative) {
-  const base = path.resolve(root);
-  const target = path.resolve(base, relative.replaceAll('\\', '/'));
-  const prefix = base.endsWith(path.sep) ? base : base + path.sep;
-  if (target !== base && !target.startsWith(prefix)) throw new Error(`project path escapes the PPTD directory: ${relative}`);
-  return target;
-}
-
-async function fetchRemoteImage(src) {
-  let current = new URL(src).href;
-  for (let redirects = 0; redirects < 6; redirects++) {
-    const response = await fetch(current, {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(30000),
-    });
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers?.get?.('location');
-      if (!location) throw new Error(`image redirect missing location: ${current}`);
-      const next = new URL(location, current);
-      if (next.protocol !== 'https:' && next.protocol !== 'http:') {
-        throw new Error(`image redirected to unsupported protocol: ${next.protocol}`);
-      }
-      current = next.href;
-      continue;
-    }
-    if (!response.ok) throw new Error(`image fetch failed ${response.status}: ${current}`);
-    const lengthHeader = Number(response.headers?.get?.('content-length') ?? 0);
-    if (lengthHeader > MAX_IMAGE_BYTES) throw new Error('remote image exceeds the 64 MiB download limit');
-    const data = Buffer.from(await response.arrayBuffer());
-    if (data.length > MAX_IMAGE_BYTES) throw new Error('remote image exceeds the 64 MiB download limit');
-    return data;
-  }
-  throw new Error(`too many redirects fetching image: ${src}`);
-}
-
-async function imageBytes(src, projectRoot, offline) {
+async function imageBytes(src, projectRoot, getRealRoot, offline) {
   if (src.startsWith('data:')) {
     const match = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(src);
     if (!match) throw new Error('invalid data URL image');
@@ -52,45 +15,46 @@ async function imageBytes(src, projectRoot, offline) {
   }
   if (/^https?:\/\//i.test(src)) {
     if (offline) throw new Error('offline export requires local media');
-    return fetchRemoteImage(src);
+    return fetchBounded(src, { label: 'image' });
   }
-  const local = safeJoin(projectRoot, normalizeLocalPath(src));
-  if (!fs.existsSync(local) || !fs.statSync(local).isFile()) throw new Error(`missing local image: ${src}`);
-  const root = fs.realpathSync(projectRoot);
-  const resolved = fs.realpathSync(local);
-  safeJoin(root, path.relative(root, resolved));
-  return fs.readFileSync(resolved);
+  const relative = checkRelativePath(normalizeLocalPath(src), 'image');
+  const realTarget = checkContainedFile(projectRoot, getRealRoot(), relative, 'image', `missing local image: ${src}`);
+  return fs.readFileSync(realTarget);
 }
 
 /**
- * Returns WASM asset keys → bytes, and populates `records` with `{ source, key, bytes, info }`
+ * Returns WASM asset keys -> bytes, and populates `mediaByKey` with `{ key, bytes, info, remote }`
  * used later for native table image fills. Holders are remapped in place.
  */
-export async function resolveImages(project, projectRoot, records = [], offline = false) {
+export async function resolveImages(project, projectRoot, mediaByKey = new Map(), offline = false) {
   const images = {};
   const remapped = new Map();
   const byDigest = new Map();
   const sources = [...new Set([...imageHolders(project)].map((holder) => holder.src).filter(Boolean))];
+  let realRoot;
+  const getRealRoot = () => (realRoot ??= fs.realpathSync(projectRoot));
   const loaded = await Promise.all(sources.map(async (src) => {
     try {
-      const bytes = await imageBytes(src, projectRoot, offline);
+      const bytes = await imageBytes(src, projectRoot, getRealRoot, offline);
       const info = imageInfo(bytes, src);
       const digest = crypto.createHash('sha256').update(bytes).digest('hex');
-      return { src, bytes, info, digest };
+      return { src, bytes, info, digest, remote: /^https?:\/\//i.test(src) };
     } catch (error) {
       throw new Error(`image ${String(src).slice(0, 180)}: ${error.message}`);
     }
   }));
 
   let nextIndex = 0;
-  for (const { src, bytes, info, digest } of loaded) {
+  for (const { src, bytes, info, digest, remote } of loaded) {
     let key = byDigest.get(digest);
     if (!key) {
       key = `wasm-assets/img-${nextIndex++}${info.extension}`;
       byDigest.set(digest, key);
       images[key] = new Uint8Array(bytes);
+      mediaByKey.set(key, { key, bytes, info, remote });
+    } else if (remote) {
+      mediaByKey.get(key).remote = true;
     }
-    records.push({ source: src, key, bytes, info });
     remapped.set(src, key);
   }
   for (const holder of imageHolders(project)) {

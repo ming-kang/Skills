@@ -5,7 +5,16 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { tableCells, textStyleReference } from '../deck/schema.mjs';
-import { embeddingAllowed, extractTtcFace, readFontFaces, readFontFacesFromFile, ttfToEot } from './font_data.mjs';
+import {
+  embeddingAllowed,
+  extractTtcFace,
+  matchFontFamily,
+  normalizeFontKey as key,
+  readFontFaces,
+  readFontFacesFromFile,
+  ttfToEot,
+} from './font_data.mjs';
+import { fetchBounded } from './net.mjs';
 
 const SKILL_DIR = path.resolve(import.meta.dirname, '..', '..', '..');
 const ASSETS = path.join(SKILL_DIR, 'assets', 'fonts');
@@ -19,10 +28,8 @@ const LOCAL_ALIASES = {
 };
 export const EAST_ASIAN = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Bopomofo}\u3000-\u303f\uff00-\uffef]/u;
 const VOID_TAGS = new Set(['br', 'img', 'hr']);
-const MAX_FONT_BYTES = 64 * 1024 * 1024;
 const ALLOWED_GOOGLE_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
 
-const key = (name) => String(name).replace(/[\s_-]+/g, '').toLowerCase();
 const slotOf = (bold, italic) => (bold && italic ? 'boldItalic' : bold ? 'bold' : italic ? 'italic' : 'regular');
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 
@@ -47,31 +54,16 @@ function assertGoogleUrl(rawUrl) {
 }
 
 async function fetchGoogle(url) {
-  let current = assertGoogleUrl(url).href;
-  for (let redirects = 0; redirects < 6; redirects++) {
-    const response = await fetch(current, {
-      headers: { 'User-Agent': FONT_USER_AGENT },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(30000),
-    });
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('location');
-      if (!location) throw new Error('custom font download redirect missing location');
-      const next = new URL(location, current);
+  assertGoogleUrl(url);
+  return fetchBounded(url, {
+    label: 'custom font',
+    headers: { 'User-Agent': FONT_USER_AGENT },
+    validateUrl: (next) => {
       if (next.protocol !== 'https:' || !ALLOWED_GOOGLE_HOSTS.has(next.hostname)) {
         throw new Error('custom font download redirected outside Google Fonts');
       }
-      current = next.href;
-      continue;
-    }
-    if (!response.ok) throw new Error(`custom font download failed (${response.status}): ${current}`);
-    const lengthHeader = Number(response.headers.get('content-length') ?? 0);
-    if (lengthHeader > MAX_FONT_BYTES) throw new Error('custom font exceeds the 64 MiB download limit');
-    const data = Buffer.from(await response.arrayBuffer());
-    if (data.length > MAX_FONT_BYTES) throw new Error('custom font exceeds the 64 MiB download limit');
-    return data;
-  }
-  throw new Error('too many redirects downloading custom font');
+    },
+  });
 }
 
 async function resolveGoogleFont(url, family, offline) {
@@ -185,7 +177,7 @@ export class FontStore {
   add(filePath, priority, family = null) {
     try {
       const faces = readFontFacesFromFile(filePath);
-      if (family && !faces.some((face) => key(family) === key(face.family) || face.aliases.some((alias) => key(alias) === key(family)))) {
+      if (family && !matchFontFamily(faces, family)) {
         throw new Error(`custom font family does not match its file: ${family} / ${path.basename(filePath)}`);
       }
       for (const face of faces) {
@@ -487,10 +479,10 @@ function visitChartFonts(value, store, chartText, skipRootFontFamily = false) {
   }
 }
 
-export async function prepareFonts(project, { fontDirs = [], embed = true, offline = false } = {}) {
+export async function prepareFonts(project, { projectRoot = null, fontDirs = [], embed = true, offline = false } = {}) {
   const store = new FontStore(fontDirs);
-  const root = path.dirname(project.manifestPath);
-  for (const custom of project.manifest.customFonts ?? []) {
+  const root = projectRoot ?? path.dirname(project.manifestPath);
+  for (const custom of project.customFonts ?? []) {
     const src = custom.src;
     const fontPath = /^https:\/\//i.test(src)
       ? await resolveGoogleFont(src, custom.family, offline)
@@ -498,9 +490,9 @@ export async function prepareFonts(project, { fontDirs = [], embed = true, offli
     store.add(fontPath, -1, custom.family);
   }
 
-  const theme = project.manifest.theme ?? {};
+  const theme = project.theme ?? {};
   for (const page of project.pages) {
-    for (const item of page.data.elements) {
+    for (const item of page.elements) {
       if (item.elementType === 'text') {
         const content = item.content;
         const baseStyle = textStyleReference(theme, content.style, `${item.elementId}.content.style`);

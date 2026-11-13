@@ -152,13 +152,13 @@ function buildImageFill(doc, fill, relationship, info, width, height) {
   return result;
 }
 
-export function patchTableImagesInArchive(archive, updates, project, mediaRecords) {
-  const theme = project.manifest.theme ?? {};
+export function patchTableImagesInArchive(archive, updates, project, mediaByKey) {
+  const theme = project.theme ?? {};
   const pageJobs = [];
   for (let i = 0; i < project.pages.length; i++) {
     const page = project.pages[i];
     const tableTasks = [];
-    for (const table of page.data.elements) {
+    for (const table of page.elements) {
       if (table.elementType !== 'table') continue;
       const tableFill = table.fill && typeof table.fill === 'object' && table.fill.type === 'image' ? table.fill : null;
       const cellFills = [];
@@ -173,16 +173,11 @@ export function patchTableImagesInArchive(archive, updates, project, mediaRecord
       }
     }
     if (tableTasks.length) {
-      pageJobs.push({ pageIndex: i + 1, pagePath: page.path, tableTasks });
+      pageJobs.push({ pageIndex: i + 1, pagePath: page.pagePath, tableTasks });
     }
   }
   if (!pageJobs.length) return 0;
 
-  const sources = new Map();
-  for (const record of mediaRecords) {
-    sources.set(record.source, record);
-    sources.set(record.key, record);
-  }
   const typesDoc = parseXml(readPart(archive, updates, '[Content_Types].xml'), '[Content_Types].xml');
   const extensions = new Set(
     childElements(typesDoc.documentElement, null, 'Default').map((el) => el.getAttribute('Extension')?.toLowerCase()),
@@ -207,7 +202,7 @@ export function patchTableImagesInArchive(archive, updates, project, mediaRecord
     let relIdx = 1;
 
     const apply = (properties, fill, width, height) => {
-      const record = sources.get(fill.src);
+      const record = mediaByKey.get(fill.src);
       if (!record) throw new Error(`${pagePath}: table image was not resolved: ${fill.src}`);
       const data = Buffer.isBuffer(record.bytes) ? record.bytes : Buffer.from(record.bytes);
       const info = record.info;
@@ -283,9 +278,9 @@ export function patchTableImagesInArchive(archive, updates, project, mediaRecord
   return count;
 }
 
-export function patchTableImages(pptxBuffer, project, mediaRecords) {
+export function patchTableImages(pptxBuffer, project, mediaByKey) {
   const archive = readZip(pptxBuffer);
   const updates = new Map();
-  const count = patchTableImagesInArchive(archive, updates, project, mediaRecords);
+  const count = patchTableImagesInArchive(archive, updates, project, mediaByKey);
   return { buffer: updates.size ? updateArchive(archive, updates) : Buffer.from(pptxBuffer), count };
 }
