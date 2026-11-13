@@ -17,7 +17,7 @@ npx skills add ming-kang/skills
 
 Runtime requirements:
 
-- **Node.js 18+** (the sole runtime: YAML 1.2 reader, format validation, local adapters, WASM writer, OOXML patching and package verification).
+- **Node.js 26+** (the sole runtime: YAML 1.2 reader, format validation, local adapters, WASM writer, OOXML patching and package verification).
 
 No Python runtime, browser, npm packages inside the skill, cloud account, or background service is required.
 

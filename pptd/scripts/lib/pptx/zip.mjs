@@ -1,22 +1,8 @@
 // Minimal zero-dependency ZIP reader, updater and CRC-32 verifier for PPTX packages.
 import zlib from 'node:zlib';
 
-const CRC_TABLE = new Uint32Array(256);
-for (let i = 0; i < 256; i++) {
-  let c = i;
-  for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
-  CRC_TABLE[i] = c >>> 0;
-}
-
-const nativeCrc32 = typeof zlib.crc32 === 'function' ? zlib.crc32 : null;
-
 export function crc32(buffer) {
-  if (nativeCrc32) return nativeCrc32(buffer) >>> 0;
-  let crc = 0xffffffff;
-  for (let i = 0; i < buffer.length; i++) {
-    crc = CRC_TABLE[(crc ^ buffer[i]) & 0xff] ^ (crc >>> 8);
-  }
-  return (crc ^ 0xffffffff) >>> 0;
+  return zlib.crc32(buffer) >>> 0;
 }
 
 function findEocd(buffer) {

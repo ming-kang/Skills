@@ -5,9 +5,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 import {
+  WASM_SHA256,
   buildWasmProject,
   checkNodeVersion,
   exportPptx,
@@ -17,10 +18,9 @@ import { loadWasmExporter } from '../../../pptd/scripts/lib/pptx/writer.mjs';
 import { latexToOmml } from '../../../pptd/scripts/lib/prepare/formulas.mjs';
 import { resolveImages } from '../../../pptd/scripts/lib/prepare/images.mjs';
 
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 const SKILL_ROOT = path.join(REPO_ROOT, 'pptd');
 const WASM = path.join(SKILL_ROOT, 'assets', 'wasm', 'pptd_wasm_bg.wasm');
-const WASM_HASH = '589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e';
 const MINIMAL = path.join(REPO_ROOT, 'tools', 'pptd', 'tests', 'fixtures', 'minimal');
 
 test('custom shapes accept bare and viewBox-prefixed paths', () => {
@@ -126,14 +126,14 @@ test('the bundled writer is unique, byte-stable, and matches the version-locked 
   };
   walk(SKILL_ROOT);
   assert.deepEqual(found, [WASM]);
-  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(WASM)).digest('hex'), WASM_HASH);
+  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(WASM)).digest('hex'), WASM_SHA256);
 
   const exporter = await loadWasmExporter(WASM);
   assert.equal(typeof exporter.exportPPTDToPPTXBytes, 'function');
 });
 
 test('old Node versions are rejected and existing output is preserved without force', async () => {
-  assert.throws(() => checkNodeVersion('v16.20.2'), /Node\.js 18\+/);
+  assert.throws(() => checkNodeVersion('v24.11.0'), /Node\.js 26\+/);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-no-overwrite-'));
   try {
     const output = path.join(dir, 'deck.pptx');

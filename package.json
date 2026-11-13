@@ -14,7 +14,7 @@
     "visualize:palette": "python tools/visualize/check_palette.py"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=26"
   },
   "devDependencies": {
     "@xmldom/xmldom": "0.9.12",

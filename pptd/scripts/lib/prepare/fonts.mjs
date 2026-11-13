@@ -3,12 +3,11 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { tableCells, textStyleReference } from '../deck/schema.mjs';
 import { embeddingAllowed, extractTtcFace, readFontFaces, readFontFacesFromFile, ttfToEot } from './font_data.mjs';
 
-const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const SKILL_DIR = path.resolve(import.meta.dirname, '..', '..', '..');
 const ASSETS = path.join(SKILL_DIR, 'assets', 'fonts');
 const FONT_SUFFIXES = new Set(['.ttf', '.ttc', '.otf', '.eot', '.fntdata']);
 const FONT_USER_AGENT = 'Mozilla/4.0 (compatible; pptd-font-loader/1)';
@@ -216,7 +215,7 @@ export class FontStore {
     }
     const files = entries
       .filter((entry) => entry.isFile() && FONT_SUFFIXES.has(path.extname(entry.name).toLowerCase()))
-      .map((entry) => path.join(entry.parentPath ?? entry.path, entry.name))
+      .map((entry) => path.join(entry.parentPath, entry.name))
       .sort();
     for (const file of files) this.add(file, priority);
   }

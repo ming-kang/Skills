@@ -4,7 +4,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import { DOMParser } from '../../../pptd/assets/vendor/xmldom.mjs';
 import { exportPptx } from '../../../pptd/scripts/export.mjs';
@@ -19,7 +18,7 @@ import {
 } from '../../../pptd/scripts/lib/pptx/verify.mjs';
 import { crc32, readZip, updateZip, writeZip } from '../../../pptd/scripts/lib/pptx/zip.mjs';
 
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 const EXPORT_CLI = path.join(REPO_ROOT, 'pptd', 'scripts', 'export.mjs');
 const FIXTURES = path.join(REPO_ROOT, 'tools', 'pptd', 'tests', 'fixtures');
 const MINIMAL = path.join(FIXTURES, 'minimal');

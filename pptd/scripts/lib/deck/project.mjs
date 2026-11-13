@@ -3,7 +3,6 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import {
   checkContainedFile,
@@ -23,7 +22,7 @@ import {
 } from './schema.mjs';
 import { readYamlMapping } from './yaml.mjs';
 
-const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const SKILL_DIR = path.resolve(import.meta.dirname, '..', '..', '..');
 let SHAPES = null;
 let ICON_NAMES = new Set();
 
@@ -47,7 +46,7 @@ export function findManifest(source) {
   if (!fs.existsSync(target)) fail(`input does not exist: ${target}`);
   const manifests = fs.readdirSync(target, { withFileTypes: true, recursive: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith('.pptd'))
-    .map((entry) => path.join(entry.parentPath ?? entry.path, entry.name))
+    .map((entry) => path.join(entry.parentPath, entry.name))
     .sort();
   if (!manifests.length) fail(`no .pptd manifest found under: ${target}`);
   if (manifests.length > 1) {
@@ -202,5 +201,3 @@ export function projectSummary(project) {
     warnings: project.warnings,
   };
 }
-
-export { requireString };

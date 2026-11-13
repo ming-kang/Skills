@@ -33,7 +33,7 @@ scripts/
   lib/pptx/            # version-locked WASM writer, ZIP, OOXML patch & verify
 ```
 
-Node.js 18+ is the only mandatory runtime requirement. Python 3 + PyMuPDF are only needed when running the optional `render_slides.py` visual review helper.
+Node.js 26+ is the only mandatory runtime requirement. Python 3 + PyMuPDF are only needed when running the optional `render_slides.py` visual review helper.
 
 ## Workflow
 

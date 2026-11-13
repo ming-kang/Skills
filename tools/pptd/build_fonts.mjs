@@ -3,11 +3,10 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { readFontFaces } from '../../pptd/scripts/lib/prepare/font_data.mjs';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ROOT = path.resolve(import.meta.dirname, '..', '..');
 const REF = '86aced91de05cd4f96a06838124cca45be337b2b';
 const BASE = `https://raw.githubusercontent.com/google/fonts/${REF}/ofl/`;
 const OUTPUT = path.join(ROOT, 'pptd', 'assets', 'fonts');

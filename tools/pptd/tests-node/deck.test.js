@@ -4,11 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import { readProject } from '../../../pptd/scripts/lib/deck/project.mjs';
 
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 const SKILL_ROOT = path.join(REPO_ROOT, 'pptd');
 const VALIDATE_CLI = path.join(SKILL_ROOT, 'scripts', 'validate.mjs');
 const MINIMAL = path.join(REPO_ROOT, 'tools', 'pptd', 'tests', 'fixtures', 'minimal');

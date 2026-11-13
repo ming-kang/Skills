@@ -2,9 +2,8 @@
 // Build pptd/assets/shapes.json from the documented OOXML shape table in references/shapes.md.
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ROOT = path.resolve(import.meta.dirname, '..', '..');
 const INPUT = path.join(ROOT, 'pptd', 'references', 'shapes.md');
 const OUTPUT = path.join(ROOT, 'pptd', 'assets', 'shapes.json');
 
@@ -40,7 +39,7 @@ export function parseShapesMarkdown(text) {
   return shapes;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && path.resolve(process.argv[1]) === import.meta.filename) {
   const shapes = parseShapesMarkdown(fs.readFileSync(INPUT, 'utf8'));
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
   fs.writeFileSync(OUTPUT, JSON.stringify(shapes, null, 2) + '\n', 'utf8');

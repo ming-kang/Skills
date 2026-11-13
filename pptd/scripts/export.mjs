@@ -3,7 +3,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { ADVANCED_CHART_TYPES } from './lib/deck/contract.mjs';
 import { readProject } from './lib/deck/project.mjs';
@@ -16,7 +15,7 @@ import { prepareFonts } from './lib/prepare/fonts.mjs';
 import { prepareIcons } from './lib/prepare/icons.mjs';
 import { resolveImages } from './lib/prepare/images.mjs';
 
-const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const SKILL_DIR = path.resolve(import.meta.dirname, '..');
 export const CANONICAL_WASM = path.join(SKILL_DIR, 'assets', 'wasm', 'pptd_wasm_bg.wasm');
 export const WASM_SHA256 = '589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e';
 
@@ -26,8 +25,8 @@ function log(message) {
 
 export function checkNodeVersion(version = process.versions.node) {
   const major = Number.parseInt(String(version).replace(/^v/i, '').split('.')[0], 10);
-  if (!Number.isFinite(major) || major < 18) {
-    throw new Error(`Node.js 18+ is required; found ${version}`);
+  if (!Number.isFinite(major) || major < 26) {
+    throw new Error(`Node.js 26+ is required; found ${version}`);
   }
 }
 
@@ -307,7 +306,7 @@ export async function runCli(argv = process.argv.slice(2)) {
   return 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && path.resolve(process.argv[1]) === import.meta.filename) {
   runCli().then(
     (code) => { process.exitCode = code; },
     (error) => {

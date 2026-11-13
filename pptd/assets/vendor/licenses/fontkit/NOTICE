@@ -1,6 +1,6 @@
 Browser-free SVG glyph outline parser/shaper
 
-fontkit 2.0.4 dist/browser-module.mjs, bundled with esbuild 0.28.2 for Node 18+.
+fontkit 2.0.4 dist/browser-module.mjs, bundled with esbuild 0.28.2 for Node 26+.
 The complete parser, shaper, Unicode tries and pure-JS Brotli decoder/dictionary
 are included. No external imports, browser engine, adjacent node_modules or WASM.
 

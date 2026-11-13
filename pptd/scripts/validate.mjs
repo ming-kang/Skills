@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 // Validate a PPTD v2 project structurally and semantically without exporting.
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import { projectSummary, validateProject } from './lib/deck/project.mjs';
 
@@ -21,7 +20,7 @@ export async function runCli(argv = process.argv.slice(2)) {
   return 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && path.resolve(process.argv[1]) === import.meta.filename) {
   runCli().then(
     (code) => { process.exitCode = code; },
     (error) => {

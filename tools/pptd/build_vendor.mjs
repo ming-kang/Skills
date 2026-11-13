@@ -5,11 +5,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import { build, version as esbuildVersion } from 'esbuild';
 
 const require = createRequire(import.meta.url);
-const repository = fileURLToPath(new URL('../../', import.meta.url));
+const repository = path.resolve(import.meta.dirname, '..', '..');
 const output = path.join(repository, 'pptd/assets/vendor');
 
 function packageRoot(name) {
@@ -45,13 +44,13 @@ function vendorEcharts() {
   ]) write(name, fs.readFileSync(path.join(packageRoot(pkg), source)));
 }
 
-// ---- esbuild bundles: Node 18+ ESM with no external imports. ----
+// ---- esbuild bundles: Node 26+ ESM with no external imports. ----
 async function bundle(file, source) {
   const result = await build({
     stdin: { contents: source, resolveDir: repository, sourcefile: `${file}-entry.mjs` },
     absWorkingDir: repository,
     bundle: true, minify: true, metafile: true, write: false,
-    legalComments: 'inline', platform: 'node', format: 'esm', target: 'node18',
+    legalComments: 'inline', platform: 'node', format: 'esm', target: 'node26',
   });
   for (const generated of Object.values(result.metafile.outputs)) {
     if (generated.imports.length) throw new Error(`${file} must have no external imports`);
@@ -173,7 +172,7 @@ async function vendorFontkit() {
   write('NOTICE-source-headers', sourceHeaders.join('\n\n--------------------\n\n') + '\n');
   write('NOTICE', `Browser-free SVG glyph outline parser/shaper
 
-fontkit 2.0.4 dist/browser-module.mjs, bundled with esbuild ${esbuildVersion} for Node 18+.
+fontkit 2.0.4 dist/browser-module.mjs, bundled with esbuild ${esbuildVersion} for Node 26+.
 The complete parser, shaper, Unicode tries and pure-JS Brotli decoder/dictionary
 are included. No external imports, browser engine, adjacent node_modules or WASM.
 
@@ -209,7 +208,7 @@ const bundles = [
   await vendorBundle('katex.mjs', "export { default as katex } from 'katex';"),
   await vendorBundle('xmldom.mjs', "export { DOMImplementation, DOMParser, XMLSerializer } from '@xmldom/xmldom';"),
   // The browser build is plain ESM without Node built-ins.
-  await vendorBundle('yaml.mjs', `export { isScalar, parseDocument, visit } from ${entry('yaml', 'browser/index.js')};`),
+  await vendorBundle('yaml.mjs', `export { parseDocument, visit } from ${entry('yaml', 'browser/index.js')};`),
   await vendorFontkit(),
 ];
 console.log('Vendored echarts.mjs (published standalone build)');
