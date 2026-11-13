@@ -1,11 +1,54 @@
-// Resolve every image source to real bytes and remap the holders to WASM asset keys.
-// Data URLs, remote URLs and project-local files all land in one byte-identity map.
+// Prepare editable vector icons and resolve/deduplicate image assets to WASM asset keys.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 
+import { imageInfo } from '../core/media.mjs';
+import { fetchBounded } from '../core/net.mjs';
 import { checkContainedFile, checkRelativePath, normalizeLocalPath } from '../deck/contract.mjs';
-import { imageHolders, imageInfo } from './media.mjs';
-import { fetchBounded } from './net.mjs';
+
+let catalog;
+function iconCatalog() {
+  catalog ??= JSON.parse(fs.readFileSync(new URL('../../../assets/icons/fontawesome.json', import.meta.url), 'utf8'));
+  return catalog;
+}
+
+export function resolveIcon(name) {
+  if (typeof name !== 'string' || !/^(fas|far|fab):[a-z0-9][a-z0-9-]*$/.test(name)) {
+    throw new Error('iconName must be a Font Awesome Free name such as fas:house, far:heart or fab:github');
+  }
+  const { icons, aliases } = iconCatalog();
+  const definition = icons[aliases[name] ?? name];
+  if (!definition) throw new Error(`unknown bundled Font Awesome Free icon: ${name}`);
+  return definition;
+}
+
+export function prepareIcons(project) {
+  let count = 0;
+  for (const page of project.pages) {
+    for (const element of page.elements) {
+      if (element.elementType !== 'icon') continue;
+      try {
+        const { path, viewBox } = resolveIcon(element.iconName);
+        Object.assign(element, { path, viewBox, fill: element.fill ?? { type: 'solid', color: '#000000' } });
+        count += 1;
+      } catch (error) {
+        throw new Error(`${page.pagePath}: icon ${element.elementId}: ${error.message}`);
+      }
+    }
+  }
+  return count;
+}
+
+function* imageHolders(value) {
+  if (Array.isArray(value)) {
+    for (const item of value) yield* imageHolders(item);
+  } else if (value && typeof value === 'object') {
+    if (value.elementType === 'image' || value.type === 'image') yield value;
+    for (const [key, item] of Object.entries(value)) {
+      if (key !== 'data') yield* imageHolders(item);
+    }
+  }
+}
 
 async function imageBytes(src, projectRoot, getRealRoot, offline) {
   if (src.startsWith('data:')) {

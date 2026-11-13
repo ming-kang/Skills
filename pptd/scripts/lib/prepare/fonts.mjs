@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { tableCells, textStyleReference } from '../deck/schema.mjs';
+import { expandTableCells, textStyleReference } from '../deck/schema.mjs';
 import {
   embeddingAllowed,
   extractTtcFace,
@@ -14,7 +14,7 @@ import {
   readFontFacesFromFile,
   ttfToEot,
 } from './font_data.mjs';
-import { fetchBounded } from './net.mjs';
+import { fetchBounded } from '../core/net.mjs';
 
 const SKILL_DIR = path.resolve(import.meta.dirname, '..', '..', '..');
 const ASSETS = path.join(SKILL_DIR, 'assets', 'fonts');
@@ -535,7 +535,7 @@ export async function prepareFonts(project, { projectRoot = null, fontDirs = [],
         const baseStyle = textStyleReference(theme, content.style, `${item.elementId}.content.style`);
         textFonts(content, { ...baseStyle, ...content }, store);
       } else if (item.elementType === 'table') {
-        for (const cellInfo of tableCells(item, theme, item.elementId)) {
+        for (const cellInfo of expandTableCells(item, theme)) {
           const holder = { text: cellInfo.cell.text ?? '', fontFamily: cellInfo.style.fontFamily };
           textFonts(holder, cellInfo.style, store);
           cellInfo.cell.fontFamily = holder.fontFamily;

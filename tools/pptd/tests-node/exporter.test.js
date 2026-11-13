@@ -9,14 +9,14 @@ import { pathToFileURL } from 'node:url';
 
 import {
   WASM_SHA256,
-  buildWasmProject,
   checkNodeVersion,
   exportPptx,
-  normalizeElement,
 } from '../../../pptd/scripts/export.mjs';
+import { normalizeElement } from '../../../pptd/scripts/lib/deck/contract.mjs';
+import { buildWasmProject } from '../../../pptd/scripts/lib/deck/project.mjs';
 import { loadWasmExporter } from '../../../pptd/scripts/lib/pptx/writer.mjs';
+import { resolveImages } from '../../../pptd/scripts/lib/prepare/assets.mjs';
 import { latexToOmml } from '../../../pptd/scripts/lib/prepare/formulas.mjs';
-import { resolveImages } from '../../../pptd/scripts/lib/prepare/images.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 const SKILL_ROOT = path.join(REPO_ROOT, 'pptd');
@@ -45,7 +45,7 @@ test('project becomes the page-object shape expected by WASM', () => {
   const project = buildWasmProject({
     manifestPath: path.resolve('fixture', 'deck.pptd'),
     manifest: { version: 'v2', title: 'Fixture', pages: ['pages/01.page'] },
-    pages: [{ path: 'pages/01.page', data: { elements: [] } }],
+    pages: [{ pagePath: 'pages/01.page', elements: [] }],
   });
   assert.equal(project.version, 'v2');
   assert.equal(project.pptdFileName, 'deck.pptd');

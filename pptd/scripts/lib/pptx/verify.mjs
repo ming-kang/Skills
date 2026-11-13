@@ -1,7 +1,7 @@
 // Read-only OOXML slide transition checks and full PPTX package integrity verification.
 import path from 'node:path';
-import { imageInfo, MIME_TYPES } from '../prepare/media.mjs';
-import { childElements, firstChild, parseXml } from './xml.mjs';
+import { imageInfo, MIME_TYPES } from '../core/media.mjs';
+import { childElements, firstChild, parseXml } from '../core/xml.mjs';
 import { readZip } from './zip.mjs';
 
 export const PPTX_CONTENT_TYPE =

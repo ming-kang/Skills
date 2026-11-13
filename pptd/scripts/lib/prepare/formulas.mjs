@@ -1,32 +1,28 @@
 import { katex } from '../../../assets/vendor/katex.mjs';
-import { DOMImplementation, DOMParser, XMLSerializer } from '../../../assets/vendor/xmldom.mjs';
+import { NAMED_COLORS } from '../core/color.mjs';
+import { childElements, createElement, createXmlDocument, parseXml, serializeNode } from '../core/xml.mjs';
 
 const M = 'http://schemas.openxmlformats.org/officeDocument/2006/math';
 const A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
 const XML = 'http://www.w3.org/XML/1998/namespace';
-const document = new DOMImplementation().createDocument('', 'root', null);
-const serializer = new XMLSerializer();
-const children = (node) => [...node.childNodes].filter((child) => child.nodeType === 1);
+const document = createXmlDocument('', 'root');
+const children = (node) => childElements(node);
 const first = (node) => children(node)[0];
 function parse(text, mime = 'application/xml') {
-  return new DOMParser({ onError: (level, message) => {
-    if (level !== 'warning') throw new Error(`invalid math markup: ${message}`);
-  } }).parseFromString(text, mime);
+  return parseXml(text, 'math markup', { mime });
 }
 function element(name, nodes = [], attributes = {}, namespace = M) {
-  const node = document.createElementNS(namespace, name);
+  const attrs = {};
   for (const [key, value] of Object.entries(attributes)) {
     if (value !== undefined) {
-      node.setAttributeNS(key.startsWith('m:') ? M : key.startsWith('xml:') ? XML : null, key, String(value));
+      attrs[key] = key.startsWith('m:') ? { ns: M, value } : key.startsWith('xml:') ? { ns: XML, value } : value;
     }
   }
-  for (const child of nodes.flat().filter(Boolean)) node.appendChild(child);
-  return node;
+  return createElement(document, namespace, name, attrs, nodes);
 }
 
-const COLORS = { black: '000000', white: 'FFFFFF', red: 'FF0000', green: '008000', blue: '0000FF', yellow: 'FFFF00', orange: 'FFA500', purple: '800080', gray: '808080', grey: '808080', brown: 'A52A2A', cyan: '00FFFF', magenta: 'FF00FF', teal: '008080', navy: '000080', lime: '00FF00', maroon: '800000', olive: '808000', silver: 'C0C0C0' };
 function colorFill(color, opacity = 1) {
-  const text = COLORS[String(color).toLowerCase()] ?? String(color).replace(/^#/, '');
+  const text = NAMED_COLORS[String(color).toLowerCase()] ?? String(color).replace(/^#/, '');
   if (!/^[\da-f]{6}(?:[\da-f]{2})?$/i.test(text)) throw new Error(`unsupported formula color: ${color}`);
   const amount = opacity * (text.length === 8 ? parseInt(text.slice(6), 16) / 255 : 1);
   const alpha = amount < 1 ? [element('a:alpha', [], { val: Math.round(amount * 100000) }, A)] : [];
@@ -167,7 +163,7 @@ export function latexToOmml(latex, style = {}) {
   if (!tree) throw new Error('formula has no MathML presentation tree');
   const nodes = compile(tree, { color: style.color ?? undefined, fontSize: style.fontSize ?? undefined, bold: style.bold, opacity: style.opacity ?? undefined });
   if (!nodes.length) throw new Error('formula produced no Office Math content');
-  return serializer.serializeToString(element('m:oMath', nodes));
+  return serializeNode(element('m:oMath', nodes));
 }
 
 function normalizeLegacy(text, location) {
@@ -181,7 +177,7 @@ function normalizeLegacy(text, location) {
     while (node.firstChild) node.removeChild(node.firstChild);
     node.appendChild(parsed.createTextNode(`\\(${tex}\\)`));
   }
-  return [...parsed.documentElement.childNodes].map((node) => serializer.serializeToString(node)).join('');
+  return [...parsed.documentElement.childNodes].map((node) => serializeNode(node)).join('');
 }
 function inspectText(holder, location, mutate = true) {
   if (typeof holder.text !== 'string') return [];
@@ -238,13 +234,15 @@ export function validateFormulas(pages) {
   return count;
 }
 
-export function exportWithMath(write, project, options, signature) {
+export function createMathBridge(project) {
   const expected = [];
   for (const page of project.pages) {
     for (const item of page.elements) {
       const location = `${page.pagePath}: ${item.elementId}`;
       if (item.elementType === 'text') expected.push(...inspectText(item.content, location));
-      if (item.elementType === 'table') item.rows.forEach((row, r) => row.forEach((cell, c) => expected.push(...inspectText(cell, `${location}.rows[${r}][${c}]`))));
+      if (item.elementType === 'table') {
+        item.rows.forEach((row, r) => row.forEach((cell, c) => expected.push(...inspectText(cell, `${location}.rows[${r}][${c}]`))));
+      }
     }
   }
   const queues = new Map();
@@ -254,17 +252,27 @@ export function exportWithMath(write, project, options, signature) {
   }
   let calls = 0;
   const failures = [];
-  const bytes = write(project, { ...options, mathLoader: (latex, style) => {
+  const mathLoader = (latex, style) => {
     const normalized = latex.trim();
     const queue = queues.get(normalized);
     const match = queue?.length ? queue.shift() : undefined;
     calls += 1;
-    if (!match) { failures.push(`writer requested an unexpected formula: ${JSON.stringify(latex)}`); return null; }
-    try { return latexToOmml(normalized, style); }
-    catch (error) { failures.push(`${match.location}: ${error.message}`); return null; }
-  } }, typeof signature === 'function' ? signature(JSON.stringify(project)) : signature);
-  // The writer swallows callback errors and invokes its incomplete native fallback.
-  if (failures.length) throw new Error(failures.join('\n'));
-  if (calls !== expected.length) throw new Error(`formula conversion count mismatch: expected ${expected.length}, got ${calls}`);
-  return { bytes, formulas: calls };
+    if (!match) {
+      failures.push(`writer requested an unexpected formula: ${JSON.stringify(latex)}`);
+      return null;
+    }
+    try {
+      return latexToOmml(normalized, style);
+    } catch (error) {
+      failures.push(`${match.location}: ${error.message}`);
+      return null;
+    }
+  };
+  const assertComplete = () => {
+    // The writer swallows callback errors and invokes its incomplete native fallback.
+    if (failures.length) throw new Error(failures.join('\n'));
+    if (calls !== expected.length) throw new Error(`formula conversion count mismatch: expected ${expected.length}, got ${calls}`);
+    return calls;
+  };
+  return { expectedCount: expected.length, mathLoader, assertComplete };
 }

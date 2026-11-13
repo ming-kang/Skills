@@ -12,9 +12,10 @@ pptd/scripts/
   validate.mjs        structural and semantic/asset check without exporting
   render_slides.py    optional installed Office QA renderer (PDF + PyMuPDF PNG)
   render_powerpoint.ps1
-  lib/deck/           yaml.mjs, contract.mjs, schema.mjs, project.mjs
-  lib/prepare/        font_data, fonts, icons, media, net, images, formulas, charts, svg_text
-  lib/pptx/           writer.mjs, zip.mjs, xml.mjs, patch.mjs, verify.mjs
+  lib/core/           color.mjs, media.mjs, net.mjs, xml.mjs
+  lib/deck/           yaml.mjs, contract.mjs, chart_data.mjs, schema.mjs, project.mjs
+  lib/prepare/        assets.mjs, font_data.mjs, fonts.mjs, formulas.mjs, charts.mjs, svg_text.mjs
+  lib/pptx/           writer.mjs, zip.mjs, package.mjs, patch.mjs, verify.mjs
 pptd/assets/
   vendor/             echarts, fontkit, katex, xmldom, yaml (+ licenses/)
   fonts/ icons/       generated catalogs (see build_vendor.mjs / build_fonts.mjs)
@@ -25,10 +26,11 @@ pptd/assets/
 - `lib/deck/schema.mjs` is the only schema implementation: shared types, every element
   type, sparse merged table grids with style inheritance, chart channel/mapping rules and
   animations.
-- `lib/prepare/media.mjs` is the single image byte-identity and intrinsic dimension
+- `lib/core/media.mjs` is the single image byte-identity and intrinsic dimension
   parser shared by media preparation, native table image fills, and package verification.
 - `lib/pptx/zip.mjs` implements ZIP reading, updating and IEEE CRC-32 verification on
-  `node:zlib`; `patch.mjs` and `verify.mjs` reuse the vendored `@xmldom/xmldom`.
+  `node:zlib`; `lib/core/xml.mjs` wraps the vendored `@xmldom/xmldom` for OOXML,
+  formula, media, and SVG chart adapters.
 - `render_slides.py` and `render_powerpoint.ps1` ship inside `pptd/scripts/` as optional
   runtime QA helpers (never invoked automatically during export).
 

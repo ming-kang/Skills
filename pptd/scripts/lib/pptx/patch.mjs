@@ -1,10 +1,9 @@
 // OOXML postprocessing for capabilities the WASM writer cannot express natively:
 // grouped RIBBI font bindings, native table/cell image fills and slide transitions.
 import crypto from 'node:crypto';
-import { tableCells } from '../deck/schema.mjs';
-import { MIME_TYPES } from '../prepare/media.mjs';
-import { childElements, createXmlDocument, firstChild, parseXml, serializeXml } from './xml.mjs';
-import { readZip, updateArchive } from './zip.mjs';
+import { MIME_TYPES } from '../core/media.mjs';
+import { childElements, firstChild, parseXml, serializeXml } from '../core/xml.mjs';
+import { expandTableCells } from '../deck/schema.mjs';
 
 const P = 'http://schemas.openxmlformats.org/presentationml/2006/main';
 const A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
@@ -17,28 +16,9 @@ const AFTER_FILL = new Set(['effectLst', 'effectDag', 'tableStyle', 'tableStyleI
 const SLOTS = ['regular', 'bold', 'italic', 'boldItalic'];
 const SLIDE_NAME_PATTERN = /^ppt\/slides\/slide\d+\.xml$/;
 
-function readDoc(archive, updates, xmlCache, name) {
-  if (xmlCache?.has(name)) return xmlCache.get(name);
-  const bytes = updates.has(name) ? updates.get(name) : archive.read(name);
-  const doc = parseXml(bytes, name);
-  xmlCache?.set(name, doc);
-  return doc;
-}
-
-function writeDoc(updates, xmlCache, name, doc) {
-  if (xmlCache) xmlCache.set(name, doc);
-  else updates.set(name, serializeXml(doc));
-}
-
-export function flushXmlCache(updates, xmlCache) {
-  for (const [name, doc] of xmlCache.entries()) {
-    updates.set(name, serializeXml(doc));
-  }
-}
-
-export function patchFontBindingsInArchive(archive, updates, bindings, xmlCache = null) {
+export function patchFontBindings(pkg, bindings) {
   if (!bindings?.length) return;
-  const doc = readDoc(archive, updates, xmlCache, 'ppt/presentation.xml');
+  const doc = pkg.readXml('ppt/presentation.xml');
   const root = doc.documentElement;
   const listing = firstChild(root, P, 'embeddedFontLst');
   const entries = listing ? childElements(listing) : [];
@@ -87,19 +67,10 @@ export function patchFontBindingsInArchive(archive, updates, bindings, xmlCache 
   }
   root.setAttribute('embedTrueTypeFonts', '1');
   root.setAttribute('saveSubsetFonts', '0');
-
-  writeDoc(updates, xmlCache, 'ppt/presentation.xml', doc);
+  pkg.writeXml('ppt/presentation.xml', doc);
 }
 
-export function patchFontBindings(pptxBuffer, bindings) {
-  if (!bindings?.length) return pptxBuffer;
-  const archive = readZip(pptxBuffer);
-  const updates = new Map();
-  patchFontBindingsInArchive(archive, updates, bindings);
-  return updateArchive(archive, updates);
-}
-
-function replaceFill(doc, properties, fillNode) {
+function replaceFill(properties, fillNode) {
   const nodes = childElements(properties);
   const existing = nodes.filter((node) => FILL_NAMES.has(node.localName));
   const anchor = existing[0] ?? nodes.find((node) => AFTER_FILL.has(node.localName)) ?? null;
@@ -167,7 +138,7 @@ function buildImageFill(doc, fill, relationship, info, width, height) {
   return result;
 }
 
-export function patchTableImagesInArchive(archive, updates, project, mediaByKey, xmlCache = null) {
+export function patchTableImages(pkg, project, mediaByKey) {
   const theme = project.theme ?? {};
   const pageJobs = [];
   for (let i = 0; i < project.pages.length; i++) {
@@ -177,7 +148,7 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey,
       if (table.elementType !== 'table') continue;
       const tableFill = table.fill && typeof table.fill === 'object' && table.fill.type === 'image' ? table.fill : null;
       const cellFills = [];
-      for (const cell of tableCells(table, theme, table.elementId)) {
+      for (const cell of expandTableCells(table, theme)) {
         const fill = cell.style.fill;
         if (fill && typeof fill === 'object' && fill.type === 'image') {
           cellFills.push({ cell, fill });
@@ -193,15 +164,14 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey,
   }
   if (!pageJobs.length) return 0;
 
-  const typesDoc = readDoc(archive, updates, xmlCache, '[Content_Types].xml');
+  const typesDoc = pkg.readXml('[Content_Types].xml');
   const extensions = new Set(
     childElements(typesDoc.documentElement, null, 'Default').map((el) => el.getAttribute('Extension')?.toLowerCase()),
   );
   const known = new Map();
-  for (const name of archive.names()) {
+  for (const name of pkg.names()) {
     if (name.startsWith('ppt/media/')) {
-      const partBytes = updates.has(name) ? updates.get(name) : archive.read(name);
-      const digest = crypto.createHash('sha256').update(partBytes).digest('hex');
+      const digest = crypto.createHash('sha256').update(pkg.readBytes(name)).digest('hex');
       known.set(digest, name);
     }
   }
@@ -210,11 +180,9 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey,
   let updatedTypes = false;
   for (const { pageIndex, pagePath, tableTasks } of pageJobs) {
     const slideName = `ppt/slides/slide${pageIndex}.xml`;
-    const slideDoc = readDoc(archive, updates, xmlCache, slideName);
+    const slideDoc = pkg.readXml(slideName);
     const relsName = `ppt/slides/_rels/slide${pageIndex}.xml.rels`;
-    const relsDoc = archive.has(relsName) || updates.has(relsName) || xmlCache?.has(relsName)
-      ? readDoc(archive, updates, xmlCache, relsName)
-      : createXmlDocument(REL, 'Relationships');
+    const relsDoc = pkg.readOrCreateXml(relsName, REL, 'Relationships');
     const existingIds = new Set(childElements(relsDoc.documentElement).map((el) => el.getAttribute('Id')));
     let relIdx = 1;
 
@@ -228,7 +196,7 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey,
       if (!target) {
         target = `ppt/media/pptd-table-${digest.slice(0, 24)}.${info.ext}`;
         known.set(digest, target);
-        updates.set(target, data);
+        pkg.writeBytes(target, data);
       }
       while (existingIds.has(`rIdPptdTableImage${relIdx}`)) relIdx += 1;
       const relationship = `rIdPptdTableImage${relIdx}`;
@@ -248,7 +216,7 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey,
         extensions.add(info.ext);
         updatedTypes = true;
       }
-      replaceFill(slideDoc, properties, buildImageFill(slideDoc, fill, relationship, info, width, height));
+      replaceFill(properties, buildImageFill(slideDoc, fill, relationship, info, width, height));
       count += 1;
     };
 
@@ -291,19 +259,12 @@ export function patchTableImagesInArchive(archive, updates, project, mediaByKey,
       }
     }
 
-    writeDoc(updates, xmlCache, slideName, slideDoc);
-    writeDoc(updates, xmlCache, relsName, relsDoc);
+    pkg.writeXml(slideName, slideDoc);
+    pkg.writeXml(relsName, relsDoc);
   }
 
-  if (updatedTypes) writeDoc(updates, xmlCache, '[Content_Types].xml', typesDoc);
+  if (updatedTypes) pkg.writeXml('[Content_Types].xml', typesDoc);
   return count;
-}
-
-export function patchTableImages(pptxBuffer, project, mediaByKey) {
-  const archive = readZip(pptxBuffer);
-  const updates = new Map();
-  const count = patchTableImagesInArchive(archive, updates, project, mediaByKey);
-  return { buffer: updates.size ? updateArchive(archive, updates) : Buffer.from(pptxBuffer), count };
 }
 
 function replaceTransitionInDoc(doc, transition) {
@@ -332,22 +293,15 @@ export function replaceTransition(slideXml, transition) {
   return serializeXml(doc);
 }
 
-export function patchTransitionsInArchive(archive, updates, transition, xmlCache = null) {
+export function patchTransitions(pkg, transition) {
   let slideCount = 0;
-  for (const name of archive.names()) {
+  for (const name of pkg.names()) {
     if (!SLIDE_NAME_PATTERN.test(name)) continue;
-    const doc = readDoc(archive, updates, xmlCache, name);
+    const doc = pkg.readXml(name);
     replaceTransitionInDoc(doc, transition);
-    writeDoc(updates, xmlCache, name, doc);
+    pkg.writeXml(name, doc);
     slideCount += 1;
   }
   if (slideCount === 0) throw new Error('exported PPTX contains no slide XML');
   return slideCount;
-}
-
-export function patchTransitions(pptxBuffer, transition) {
-  const archive = readZip(pptxBuffer);
-  const updates = new Map();
-  const slideCount = patchTransitionsInArchive(archive, updates, transition);
-  return { buffer: updateArchive(archive, updates), slideCount };
 }

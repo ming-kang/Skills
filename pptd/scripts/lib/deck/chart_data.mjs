@@ -1,5 +1,5 @@
 // Validate and shape the four chart types that the WASM writer cannot emit natively.
-import { ADVANCED_CHART_TYPES } from '../deck/contract.mjs';
+import { ADVANCED_CHART_TYPES } from './contract.mjs';
 
 export { ADVANCED_CHART_TYPES };
 

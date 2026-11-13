@@ -1,5 +1,5 @@
-// Shared invariants for every deck value that can reach OOXML, plus path containment
-// and the JSON/YAML boundary.
+// Shared invariants for every deck value that can reach OOXML, plus path containment,
+// element normalization and the JSON/YAML boundary.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,10 +8,8 @@ const XML_FORBIDDEN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ud800-\udfff\ufff
 
 export const ADVANCED_CHART_TYPES = new Set(['heatmap', 'treemap', 'sunburst', 'sankey']);
 
-export class DeckError extends Error {}
-
 export function fail(message) {
-  throw new DeckError(message);
+  throw new Error(message);
 }
 
 export function isFiniteNumber(value) {
@@ -97,10 +95,31 @@ export function requireString(value, label) {
   return value;
 }
 
+/** The writer's custom-shape path may carry a `width,height;` prefix instead of a viewBox. */
+function normalizeCustomShape(shape, size) {
+  if (shape?.shapeName !== 'custom' || !shape.path || shape.viewBox) return shape;
+  const separator = String(shape.path).indexOf(';');
+  if (separator >= 0) {
+    const [width, height] = String(shape.path).slice(0, separator).split(',').map(Number);
+    if (!(width > 0) || !(height > 0)) return shape;
+    return { ...shape, viewBox: [width, height], path: String(shape.path).slice(separator + 1) };
+  }
+  return { ...shape, viewBox: size };
+}
+
+export function normalizeElement(element) {
+  const size = [element.bounds?.[2], element.bounds?.[3]];
+  if (element.elementType === 'shape') return normalizeCustomShape(element, size);
+  if (element.elementType === 'image' && element.cropShape) {
+    return { ...element, cropShape: normalizeCustomShape(element.cropShape, size) };
+  }
+  return element;
+}
+
 const MATH_MARKER = /\\[()]|data-math/;
 
 export function hasFormulas(pages) {
-  return pages.some((page) => (page.elements ?? page.data?.elements ?? []).some((el) => {
+  return pages.some((page) => (page.elements ?? []).some((el) => {
     if (el.elementType === 'text') return MATH_MARKER.test(el.content?.text ?? '');
     if (el.elementType === 'table') {
       return el.rows.some((row) => row.some((cell) => MATH_MARKER.test(cell.text ?? '')));

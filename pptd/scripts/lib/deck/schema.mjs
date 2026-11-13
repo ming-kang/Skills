@@ -12,7 +12,8 @@ import {
   normalizeLocalPath,
   requireString,
 } from './contract.mjs';
-import { prepareAdvancedChartData } from '../prepare/chart_data.mjs';
+import { checkColorSpec, checkHexColor } from '../core/color.mjs';
+import { prepareAdvancedChartData } from './chart_data.mjs';
 
 export const ELEMENT_TYPES = new Set(['text', 'shape', 'line', 'image', 'icon', 'table', 'chart']);
 export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg']);
@@ -43,43 +44,7 @@ const SINGLE_SERIES = new Set(['pie', 'waterfall', 'heatmap', 'treemap', 'sunbur
 const CARTESIAN = new Set(['bar', 'line', 'area', 'scatter', 'bubble', 'candlestick']);
 const CHART_DEFAULT_TYPES = new Set(['bar', 'line', 'area', 'scatter', 'bubble', 'candlestick', 'radar']);
 
-function hexColor(value, label) {
-  if (typeof value !== 'string' || !/^#?[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(value)) {
-    fail(`${label} must be a six/eight-digit HEX color`);
-  }
-}
-
-// Color is HEX6, HEX8 or a `$token` theme reference.
-export function checkColor(value, label, themeColors = null) {
-  if (typeof value === 'string') {
-    if (value.startsWith('$')) {
-      const token = value.slice(1);
-      if (!token) fail(`${label} theme color reference must name a token`);
-      if (themeColors && !Object.hasOwn(themeColors, token)) {
-        fail(`${label} references an unknown theme color: ${JSON.stringify(value)}`);
-      }
-      return;
-    }
-    return hexColor(value, label);
-  }
-  if (isPlainObject(value)) {
-    if (value.type !== 'gradient') fail(`${label}.type must be gradient for a gradient mapping`);
-    if (!['linear', 'radial'].includes(value.gradientType)) fail(`${label}.gradientType must be linear or radial`);
-    const stops = value.stops;
-    if (!Array.isArray(stops) || stops.length < 2) fail(`${label}: a gradient requires at least two color stops`);
-    for (const [index, stop] of stops.entries()) {
-      if (!isPlainObject(stop) || !isFiniteNumber(stop.position) || stop.position < 0 || stop.position > 1) {
-        fail(`${label}.stops[${index}] must have a position in [0, 1]`);
-      }
-      checkColor(stop.color, `${label}.stops[${index}].color`, themeColors);
-    }
-    if (value.gradientType === 'linear' && value.angle !== undefined && (!isFiniteNumber(value.angle) || value.angle < 0 || value.angle >= 360)) {
-      fail(`${label}.angle must be in [0, 360)`);
-    }
-    return;
-  }
-  fail(`${label} must be a HEX color, a $theme token or a gradient mapping`);
-}
+export const checkColor = checkColorSpec;
 
 export function checkStyle(style, label, themeColors = null) {
   if (!isPlainObject(style)) return;
@@ -371,6 +336,28 @@ export function tableCells(table, theme, label, context = null) {
   }));
 }
 
+/** Lightweight table grid & style expansion for already-validated decks. */
+export function expandTableCells(table, theme = {}) {
+  const ref = table.style;
+  const config = ref === undefined || ref === null ? {} : typeof ref === 'string' ? (theme.tableStyles?.[ref.slice(1)] ?? {}) : ref;
+  const occupied = new Set();
+  const cells = [];
+  for (let rowIndex = 0; rowIndex < table.rows.length; rowIndex++) {
+    let column = 0;
+    for (const cell of table.rows[rowIndex]) {
+      while (occupied.has(`${rowIndex}:${column}`)) column += 1;
+      const rowSpan = cell.rowSpan ?? 1;
+      const colSpan = cell.colSpan ?? 1;
+      for (let r = rowIndex; r < rowIndex + rowSpan; r++) {
+        for (let c = column; c < column + colSpan; c++) occupied.add(`${r}:${c}`);
+      }
+      cells.push({ row: rowIndex, column, rowSpan, colSpan, style: cellStyle(table, theme, rowIndex, column, cell, config), cell });
+      column += colSpan;
+    }
+  }
+  return cells;
+}
+
 function checkChartData(chart, label) {
   const data = chart.data;
   if (!isPlainObject(data)) fail(`${label}.data must be a mapping`);
@@ -476,18 +463,22 @@ export function checkChart(chart, label) {
     const kind = types[index];
     const encode = series.encode;
     if (!isPlainObject(encode)) fail(`${field}.encode must be a mapping`);
-    const optional = { candlestick: ['open'], waterfall: ['isTotal'], treemap: ['parent'], sunburst: ['parent'] }[kind] ?? [];
-    for (const channel of [...CHART_CHANNELS[kind], ...optional.filter((name) => name in encode)]) {
-      if (!(channel in encode) || !cols.includes(encode[channel])) {
-        fail(`${field}.encode.${channel} references an unknown column: ${JSON.stringify(encode[channel])}`);
-      }
-    }
     const filter = series.dataFilter;
     if (filter !== undefined && filter !== null && (
       !isPlainObject(filter) || !cols.includes(filter.col) || (typeof filter.value !== 'string' && typeof filter.value !== 'number'))) {
       fail(`${field}.dataFilter must reference a column and a string or numeric value`);
     }
-    let numeric = new Set([...CHART_CHANNELS[kind]].filter((channel) => !['category', 'parent', 'source', 'target', 'x'].includes(channel)));
+    if (ADVANCED_CHART_TYPES.has(kind)) {
+      checkAdvancedChart(chart, label);
+      continue;
+    }
+    const optional = { candlestick: ['open'], waterfall: ['isTotal'] }[kind] ?? [];
+    for (const channel of [...CHART_CHANNELS[kind], ...optional.filter((name) => name in encode)]) {
+      if (!(channel in encode) || !cols.includes(encode[channel])) {
+        fail(`${field}.encode.${channel} references an unknown column: ${JSON.stringify(encode[channel])}`);
+      }
+    }
+    const numeric = new Set([...CHART_CHANNELS[kind]].filter((channel) => !['category', 'x'].includes(channel)));
     if (CARTESIAN.has(kind) || kind === 'waterfall') {
       const xAxis = checkAxis(chart, 'xAxis', series, field);
       const yAxis = checkAxis(chart, 'yAxis', series, field);
@@ -496,13 +487,12 @@ export function checkChart(chart, label) {
       if (['scatter', 'bubble'].includes(kind) || xType === 'value' || yType === 'category') numeric.add('x');
       if (yType === 'category' && ['bar', 'line', 'area', 'waterfall'].includes(kind)) numeric.delete('y');
     }
-    if (kind === 'heatmap') numeric = new Set(['value']);
     if ('open' in encode && kind === 'candlestick') numeric.add('open');
     for (const channel of numeric) {
       const column = cols.indexOf(encode[channel]);
       for (const [rowIndex, row] of rows.entries()) {
         const value = numericCell(row[column], `${field}.data.rows[${rowIndex}].${channel}`);
-        if (['pie', 'treemap', 'sunburst', 'sankey'].includes(kind) && value !== null && value < 0) {
+        if (kind === 'pie' && value !== null && value < 0) {
           fail(`${field}.data.rows[${rowIndex}].${channel} must not be negative`);
         }
       }
@@ -535,7 +525,6 @@ export function checkChart(chart, label) {
       stacks.set(kind, stack);
     }
     if (kind === 'scatter' && series.marker === false) fail(`${field}.marker scatter markers cannot be disabled`);
-    if (ADVANCED_CHART_TYPES.has(kind)) checkAdvancedChart(chart, label);
   }
   return warnings;
 }
@@ -559,7 +548,7 @@ function checkAnimations(page, label) {
     if ('durationMs' in animation && (!isFiniteNumber(animation.durationMs) || animation.durationMs <= 0)) fail(`${field}.durationMs must be positive`);
     if ('delayMs' in animation && (!isFiniteNumber(animation.delayMs) || animation.delayMs < 0)) fail(`${field}.delayMs must be non-negative`);
     if ('repeat' in animation && (!Number.isInteger(animation.repeat) || animation.repeat <= 0)) fail(`${field}.repeat must be a positive integer`);
-    if (['fill-color', 'color-pulse'].includes(animation.effect)) hexColor(animation.color, `${field}.color`);
+    if (['fill-color', 'color-pulse'].includes(animation.effect)) checkHexColor(animation.color, `${field}.color`);
     if (animation.effect === 'transparency' && (!isFiniteNumber(animation.amount) || animation.amount < 0 || animation.amount > 1)) {
       fail(`${field}.amount requires a target opacity in [0, 1]`);
     }

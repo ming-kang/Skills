@@ -1,6 +1,5 @@
 // Byte identity and intrinsic dimensions: a URL or file suffix is only a source label.
-import { DOMParser } from '../../../assets/vendor/xmldom.mjs';
-import { fail } from '../deck/contract.mjs';
+import { parseXml } from './xml.mjs';
 
 export const MIME_TYPES = {
   png: 'image/png',
@@ -39,14 +38,14 @@ function jpegSize(data) {
 }
 
 function parseSvgSize(text) {
-  let failed = false;
-  const doc = new DOMParser({
-    onError(level) {
-      if (level !== 'warning') failed = true;
-    },
-  }).parseFromString(text, 'application/xml');
-  const root = doc?.documentElement;
-  if (failed || !root || root.localName !== 'svg' || (root.namespaceURI && root.namespaceURI !== SVG_NS)) {
+  let doc;
+  try {
+    doc = parseXml(text, 'SVG', { mime: 'application/xml' });
+  } catch {
+    return null;
+  }
+  const root = doc.documentElement;
+  if (!root || root.localName !== 'svg' || (root.namespaceURI && root.namespaceURI !== SVG_NS)) {
     return null;
   }
   const dims = ['width', 'height'].map((attr) => {
@@ -93,24 +92,12 @@ export function imageInfo(bytes, label = 'image') {
       text = null;
     }
     if (text !== null) {
-      if (/<!\s*(DOCTYPE|ENTITY)\b/i.test(text)) fail(`${label}: SVG images must not contain DTD/entities`);
+      if (/<!\s*(DOCTYPE|ENTITY)\b/i.test(text)) throw new Error(`${label}: SVG images must not contain DTD/entities`);
       if (/^\s*(?:<\?xml[^>]*>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg(?:\s|>)/.test(text)) {
         const info = parseSvgSize(text);
         if (info) return info;
       }
     }
   }
-  fail(`${label}: bytes are not a supported PNG/JPEG/GIF/SVG image`);
-}
-
-/** Every image holder, including table-cell and background image fills, not chart data. */
-export function* imageHolders(value) {
-  if (Array.isArray(value)) {
-    for (const item of value) yield* imageHolders(item);
-  } else if (value && typeof value === 'object') {
-    if (value.elementType === 'image' || value.type === 'image') yield value;
-    for (const [key, item] of Object.entries(value)) {
-      if (key !== 'data') yield* imageHolders(item);
-    }
-  }
+  throw new Error(`${label}: bytes are not a supported PNG/JPEG/GIF/SVG image`);
 }

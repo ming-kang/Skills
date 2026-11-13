@@ -8,6 +8,7 @@ import test from 'node:test';
 import { DOMParser } from '../../../pptd/assets/vendor/xmldom.mjs';
 import { exportPptx } from '../../../pptd/scripts/export.mjs';
 import { readFontFaces } from '../../../pptd/scripts/lib/prepare/font_data.mjs';
+import { PptxPackage } from '../../../pptd/scripts/lib/pptx/package.mjs';
 import { patchTransitions, replaceTransition } from '../../../pptd/scripts/lib/pptx/patch.mjs';
 import {
   PPTX_CONTENT_TYPE,
@@ -92,9 +93,10 @@ test('nested transition is relocated to slide root and patchTransitions preserve
     { name: 'ppt/presentation.xml', data: "<p:presentation xmlns:p='urn:test'/>" },
     { name: 'ppt/slides/slide1.xml', data: '<p:sld xmlns:p="urn:test"><p:cSld/></p:sld>' },
   ]);
-  const patched = patchTransitions(zip, 'fade');
-  assert.equal(patched.slideCount, 1);
-  const summary = verifyOutput(patched.buffer, 'fade');
+  const pkg = PptxPackage.open(zip);
+  const slideCount = patchTransitions(pkg, 'fade');
+  assert.equal(slideCount, 1);
+  const summary = verifyOutput(pkg.toBuffer(), 'fade');
   assert.equal(summary.slides, 1);
   assert.equal(summary.fadeTransitions, 1);
 });

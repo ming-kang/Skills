@@ -66,8 +66,8 @@ test('YAML 1.2 dates and yes/no stay strings', () => {
       ].join('\n'),
     });
     const project = readProject(manifestPath);
-    assert.equal(project.pages[0].data.notes, '2026-11-14');
-    assert.equal(project.pages[0].data.elements[0].content.text, 'yes');
+    assert.equal(project.pages[0].notes, '2026-11-14');
+    assert.equal(project.pages[0].elements[0].content.text, 'yes');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -175,7 +175,7 @@ test('schema catches shape header leak, bad adjustments, invalid lines, missing 
       }),
     });
     const project = readProject(okManifest);
-    assert.equal(project.pages[0].data.elements.length, 3);
+    assert.equal(project.pages[0].elements.length, 3);
 
     // Reject shapeName: "shapeName" header leak and wrong adjustment arity
     const badShapes = [

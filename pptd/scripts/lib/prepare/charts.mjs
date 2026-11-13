@@ -1,16 +1,13 @@
-import { DOMParser, XMLSerializer } from '../../../assets/vendor/xmldom.mjs';
-import { ADVANCED_CHART_TYPES, prepareAdvancedChartData } from './chart_data.mjs';
-import { chartStyle, lineStyle } from './chart_style.mjs';
+import { checkHexColor, resolveThemeColor } from '../core/color.mjs';
+import { parseXml, serializeNode } from '../core/xml.mjs';
+import { ADVANCED_CHART_TYPES, prepareAdvancedChartData } from '../deck/chart_data.mjs';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const PPTD_NS = 'https://pptd.local/ns/2026/pptd/schema';
-const svgParser = new DOMParser({
-  onError(level, message) {
-    if (level !== 'warning') throw new Error(`invalid chart SVG: ${message}`);
-  },
-});
-const svgSerializer = new XMLSerializer();
-
+// Matches the WASM writer's native chart cycle, so advanced and native charts in one deck match.
+const DEFAULT_PALETTE = ['#1783FF', '#68B8A8', '#C9A86A', '#8C84C9', '#8D98A8', '#5F9CF5', '#7BB6D9', '#B28A9E'];
+const DARK_LABEL = '#111827';
+const LIGHT_LABEL = '#FFFFFF';
 // Matches the previous editor: same-colored hierarchy nodes need a separator to stay readable.
 const DEFAULT_HIERARCHY_BORDER = { width: 1, color: '#FFFFFF' };
 // Chromium resolves `dominant-baseline: central` to (ascent - descent) / 2 of the primary font;
@@ -18,6 +15,121 @@ const DEFAULT_HIERARCHY_BORDER = { width: 1, color: '#FFFFFF' };
 const CENTRAL_BASELINE_EM = 0.35;
 // Frame layers repeat the chart's animations; these effects would recolor a frame instead.
 const UNMIRRORED_EFFECTS = new Set(['fill-color', 'color-pulse']);
+
+function lineStyle(value = 'solid') {
+  const types = { solid: 'solid', dash: 'dashed', dot: 'dotted' };
+  if (!Object.hasOwn(types, value)) throw new Error(`invalid chart line style: ${value}`);
+  return types[value];
+}
+
+function formatNumber(value, format) {
+  if (value == null) return '';
+  if (!format) return String(value);
+  if (format === '#,##0') return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  if (format === '0.0E+00') {
+    const [mantissa, exponent] = value.toExponential(1).split('e');
+    return `${mantissa}E${Number(exponent) < 0 ? '-' : '+'}${String(Math.abs(Number(exponent))).padStart(2, '0')}`;
+  }
+  const match = /^0(?:\.(0+))?(%)?$/.exec(format);
+  if (!match) throw new Error(`unsupported chart numberFormat: ${format}`);
+  return (value * (match[2] ? 100 : 1)).toFixed(match[1]?.length ?? 0) + (match[2] ?? '');
+}
+
+function chartFontFamily(value) {
+  if (value == null) return 'MiSans, sans-serif';
+  if (typeof value === 'string' && value.trim()) return value;
+  if (value && typeof value.latin === 'string' && typeof value.ea === 'string') {
+    return [value.latin, value.ea].filter(Boolean).join(', ');
+  }
+  throw new Error('chart fontFamily must be a font name or {latin, ea}');
+}
+
+function chartStyle(chart, theme, colorApi) {
+  const colors = theme?.colors ?? {};
+  const color = (value) => colorApi.stringify(colorApi.parse(checkHexColor(resolveThemeColor(value, colors, 'chart color'), 'chart color')), 'rgba');
+  const palette = DEFAULT_PALETTE;
+  const textColor = Object.hasOwn(colors, 'text') ? color('$text') : '#333333';
+
+  const perceivedLightness = (value) => (value && typeof value === 'object'
+    ? value.colorStops.reduce((sum, stop) => sum + perceivedLightness(stop.color), 0) / value.colorStops.length
+    : colorApi.lum(value, 1));
+
+  const labelColor = (series, fill) => {
+    const configured = series.dataLabels?.color ?? chart.dataLabels?.color;
+    if (configured !== undefined) return color(configured);
+    if (perceivedLightness(fill) <= 0.6) return LIGHT_LABEL;
+    return perceivedLightness(textColor) < 0.4 ? textColor : DARK_LABEL;
+  };
+
+  const scaleColor = (stops, [min, max], value) => colorApi.lerp(Math.min(1, Math.max(0, (value - min) / (max - min))), stops);
+
+  const shade = (value, depth) => {
+    const resolved = color(value);
+    if (!depth) return resolved;
+    const rgb = colorApi.parse(resolved).slice(0, 3);
+    const lightness = (Math.max(...rgb) + Math.min(...rgb)) / 510;
+    return colorApi.modifyHSL(resolved, null, null, Math.max(0, lightness - depth * 0.1));
+  };
+
+  const paint = (value, fallback = DEFAULT_PALETTE[0], depth = 0) => {
+    if (value == null) value = fallback;
+    if (typeof value === 'string') return shade(value, depth);
+    if (value.type === 'solid') return shade(value.color, depth);
+    if (value.type !== 'gradient' || !['linear', 'radial'].includes(value.gradientType)) {
+      throw new Error('chart paint must be a color or a linear/radial gradient');
+    }
+    if (!Array.isArray(value.stops) || value.stops.length < 2) throw new Error('chart gradients need at least two stops');
+    const colorStops = value.stops.map((stop) => {
+      if (!Number.isFinite(stop.position) || stop.position < 0 || stop.position > 1) {
+        throw new Error('chart gradient stop.position must be between 0 and 1');
+      }
+      return { offset: stop.position, color: shade(stop.color, depth) };
+    }).sort((a, b) => a.offset - b.offset);
+    if (value.gradientType === 'radial') return { type: 'radial', x: 0.5, y: 0.5, r: 0.5, colorStops };
+    const angle = (value.angle ?? 0) * Math.PI / 180;
+    if (!Number.isFinite(angle)) throw new Error('chart gradient angle must be finite');
+    return {
+      type: 'linear',
+      x: 0.5 - Math.cos(angle) / 2, y: 0.5 - Math.sin(angle) / 2,
+      x2: 0.5 + Math.cos(angle) / 2, y2: 0.5 + Math.sin(angle) / 2,
+      colorStops,
+    };
+  };
+
+  const text = (config = {}, size = 12) => {
+    config ??= {};
+    if (config.fontSize !== undefined && !(Number.isFinite(config.fontSize) && config.fontSize > 0)) {
+      throw new Error('chart fontSize must be positive and finite');
+    }
+    return {
+      color: config.color === undefined ? textColor : color(config.color),
+      fontSize: config.fontSize ?? size,
+      fontFamily: chartFontFamily(config.fontFamily ?? chart.fontFamily),
+    };
+  };
+
+  const border = (config) => {
+    if (config == null) return { borderWidth: 0 };
+    const width = config.width ?? 1;
+    if (!Number.isFinite(width) || width < 0) throw new Error('chart border width must be non-negative and finite');
+    return { borderWidth: width, borderColor: color(config.color ?? '#000000'), borderType: lineStyle(config.style) };
+  };
+
+  const label = (series, defaultContent, valueOf = (params) => params.value) => {
+    const config = { ...chart.dataLabels, ...series.dataLabels };
+    const content = config.content ?? defaultContent;
+    const allowed = series.type === 'heatmap' ? ['value'] : ['category', 'value'];
+    if (!allowed.includes(content)) throw new Error(`${series.type} does not support dataLabels.content: ${content}`);
+    formatNumber(0, config.numberFormat);
+    return {
+      show: config.show === true,
+      ...text(config),
+      formatter: (params) => (content === 'category' ? params.name : formatNumber(valueOf(params), config.numberFormat)),
+    };
+  };
+
+  return { color, palette, paint, text, border, label, labelColor, scaleColor };
+}
 
 function isAdvancedChart(element) {
   return element.elementType === 'chart' && Array.isArray(element.series) &&
@@ -298,7 +410,7 @@ function officeTextBaselines(doc) {
 
 function chartSvg(svg, chart, dash, outlineText) {
   if (!/^<svg\b/.test(svg)) throw new Error('chart renderer did not return SVG');
-  const doc = svgParser.parseFromString(svg, 'image/svg+xml');
+  const doc = parseXml(svg, 'chart SVG', { mime: 'image/svg+xml' });
   if (dash) treemapDashGrid(doc, dash);
   // Keep dominant-baseline intact when a font outliner runs so it uses real ascent/descent metrics.
   if (!outlineText) officeTextBaselines(doc);
@@ -310,7 +422,7 @@ function chartSvg(svg, chart, dash, outlineText) {
   metadata.appendChild(sourceEl);
   doc.documentElement.insertBefore(metadata, doc.documentElement.firstChild);
   if (outlineText) outlineText(doc);
-  return svgSerializer.serializeToString(doc);
+  return serializeNode(doc);
 }
 
 function defined(object) {

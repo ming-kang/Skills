@@ -12,8 +12,10 @@ import {
   hasFormulas,
   isFiniteNumber,
   isPlainObject,
+  normalizeElement,
   requireString,
 } from './contract.mjs';
+import { resolveThemeColor } from '../core/color.mjs';
 import {
   checkColor,
   checkPage,
@@ -70,14 +72,7 @@ function checkTheme(manifest, context) {
   const colors = theme?.colors ?? {};
   for (const [token, value] of Object.entries(colors)) {
     checkColor(value, `manifest.theme.colors.${token}`, colors);
-    const visited = new Set([token]);
-    let current = value;
-    while (typeof current === 'string' && current.startsWith('$')) {
-      const next = current.slice(1);
-      if (visited.has(next)) fail(`manifest.theme.colors.${token} contains a cyclic color reference`);
-      visited.add(next);
-      current = colors[next];
-    }
+    resolveThemeColor(value, colors, `manifest.theme.colors.${token}`);
   }
   for (const [name, style] of Object.entries(theme?.textStyles ?? {})) {
     checkStyle(style, `manifest.theme.textStyles.${name}`, colors);
@@ -103,8 +98,8 @@ function checkCustomFonts(manifest, root, realRoot) {
 }
 
 /**
- * Read, validate and return the project. `pages[i].path` stays relative to the manifest;
- * `pages[i].data` is the page mapping. Media entries record the local files the export needs.
+ * Read, validate and return the canonical DeckIR project.
+ * `pages[i].pagePath` stays relative to the manifest (POSIX slashes) and elements are normalized.
  */
 export function readProject(source) {
   loadAssets();
@@ -132,13 +127,17 @@ export function readProject(source) {
   if (!pages.every((entry) => typeof entry === 'string' && entry.trim())) fail('every manifest.pages entry must be a non-empty string');
   if (new Set(pages).size !== pages.length) fail('manifest.pages contains duplicate paths');
 
-  const project = [];
+  const projectPages = [];
   for (const entry of pages) {
     const relative = checkRelativePath(entry, 'manifest.pages entry');
     const pagePath = checkContainedFile(root, realRoot, relative, 'manifest.pages entry', `missing page file: ${entry}`);
     const data = readYamlMapping(fs.readFileSync(pagePath, 'utf8'), pagePath);
     checkPage(data, entry, { size, theme, shapes: SHAPES, iconNames: ICON_NAMES, warnings, media });
-    project.push({ path: entry, data });
+    projectPages.push({
+      ...data,
+      pagePath: String(entry).replaceAll('\\', '/'),
+      elements: data.elements.map(normalizeElement),
+    });
   }
 
   for (const item of media.values()) {
@@ -148,7 +147,17 @@ export function readProject(source) {
     if (!IMAGE_EXTENSIONS.has(extension)) fail(`${item.label}: unsupported local image type: ${item.path}`);
   }
 
-  return { manifestPath, manifest, pages: project, warnings: [...warnings], media: [...media.values()] };
+  return { manifestPath, manifest, pages: projectPages, warnings: [...warnings], media: [...media.values()] };
+}
+
+/** Build an isolated, mutable WASM writer project from a canonical DeckIR project. */
+export function buildWasmProject(project) {
+  return {
+    ...structuredClone(project.manifest),
+    version: 'v2',
+    pages: structuredClone(project.pages),
+    pptdFileName: path.basename(project.manifestPath),
+  };
 }
 
 /** Full semantic + local-asset validation used by `validate.mjs`. */
@@ -157,7 +166,7 @@ export async function validateProject(source) {
   const root = path.dirname(project.manifestPath);
 
   if (project.media.length) {
-    const { imageInfo } = await import('../prepare/media.mjs');
+    const { imageInfo } = await import('../core/media.mjs');
     for (const item of project.media) {
       if (!item.path) continue;
       const bytes = fs.readFileSync(path.join(root, item.path));
@@ -167,7 +176,7 @@ export async function validateProject(source) {
 
   if (hasFormulas(project.pages)) {
     const { validateFormulas } = await import('../prepare/formulas.mjs');
-    validateFormulas(project.pages.map(({ path: pagePath, data }) => ({ pagePath, elements: data.elements })));
+    validateFormulas(project.pages);
   }
 
   const localFonts = (project.manifest.customFonts ?? []).filter((f) => !/^https:\/\//i.test(f.src));
@@ -190,7 +199,7 @@ export function projectSummary(project) {
     manifest: project.manifestPath,
     title: project.manifest.title,
     slides: project.pages.length,
-    elements: project.pages.reduce((sum, page) => sum + page.data.elements.length, 0),
+    elements: project.pages.reduce((sum, page) => sum + page.elements.length, 0),
     warnings: project.warnings,
   };
 }

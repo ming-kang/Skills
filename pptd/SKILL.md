@@ -28,9 +28,10 @@ scripts/
   validate.mjs         # structural check without exporting
   render_slides.py     # optional local Office/LibreOffice QA renderer
   render_powerpoint.ps1
-  lib/deck/            # YAML 1.2 reader and the v2 schema
-  lib/prepare/         # fonts, icons, images, formulas, advanced charts, SVG text
-  lib/pptx/            # version-locked WASM writer, ZIP, OOXML patch & verify
+  lib/core/            # shared XML DOM, theme/HEX colors, media sniffing, bounded HTTP
+  lib/deck/            # YAML 1.2 reader, canonical DeckIR, and the v2 schema
+  lib/prepare/         # fonts, assets (icons/images), formulas, advanced charts, SVG text
+  lib/pptx/            # version-locked WASM writer, ZIP, PptxPackage, OOXML patch & verify
 ```
 
 Node.js 26+ is the only mandatory runtime requirement. Python 3 + PyMuPDF are only needed when running the optional `render_slides.py` visual review helper.

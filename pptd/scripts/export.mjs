@@ -5,20 +5,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { ADVANCED_CHART_TYPES, hasFormulas } from './lib/deck/contract.mjs';
-import { readProject } from './lib/deck/project.mjs';
+import { buildWasmProject, readProject } from './lib/deck/project.mjs';
+import { PptxPackage } from './lib/pptx/package.mjs';
 import {
-  flushXmlCache,
-  patchFontBindingsInArchive,
-  patchTableImagesInArchive,
-  patchTransitionsInArchive,
+  patchFontBindings,
+  patchTableImages,
+  patchTransitions,
 } from './lib/pptx/patch.mjs';
 import { verifyOutput } from './lib/pptx/verify.mjs';
 import { loadWasmExporter } from './lib/pptx/writer.mjs';
-import { readZip, updateArchive } from './lib/pptx/zip.mjs';
+import { prepareIcons, resolveImages } from './lib/prepare/assets.mjs';
 import { prepareAdvancedCharts } from './lib/prepare/charts.mjs';
 import { prepareFonts } from './lib/prepare/fonts.mjs';
-import { prepareIcons } from './lib/prepare/icons.mjs';
-import { resolveImages } from './lib/prepare/images.mjs';
 
 const SKILL_DIR = path.resolve(import.meta.dirname, '..');
 export const CANONICAL_WASM = path.join(SKILL_DIR, 'assets', 'wasm', 'pptd_wasm_bg.wasm');
@@ -48,43 +46,6 @@ export function resolveWasm(override = null) {
     }
   }
   return { path: target, bytes };
-}
-
-/** The writer's custom-shape path may carry a `width,height;` prefix instead of a viewBox. */
-function normalizeCustomShape(shape, size) {
-  if (shape?.shapeName !== 'custom' || !shape.path || shape.viewBox) return shape;
-  const separator = String(shape.path).indexOf(';');
-  if (separator >= 0) {
-    const [width, height] = String(shape.path).slice(0, separator).split(',').map(Number);
-    if (!(width > 0) || !(height > 0)) return shape;
-    return { ...shape, viewBox: [width, height], path: String(shape.path).slice(separator + 1) };
-  }
-  return { ...shape, viewBox: size };
-}
-
-export function normalizeElement(element) {
-  const size = [element.bounds?.[2], element.bounds?.[3]];
-  if (element.elementType === 'shape') return normalizeCustomShape(element, size);
-  if (element.elementType === 'image' && element.cropShape) {
-    return { ...element, cropShape: normalizeCustomShape(element.cropShape, size) };
-  }
-  return element;
-}
-
-export function buildWasmProject(project) {
-  return {
-    ...structuredClone(project.manifest),
-    version: 'v2',
-    pages: project.pages.map(({ path: pagePath, data }) => {
-      const cloned = structuredClone(data);
-      return {
-        ...cloned,
-        pagePath: String(pagePath).replaceAll('\\', '/'),
-        elements: cloned.elements.map(normalizeElement),
-      };
-    }),
-    pptdFileName: path.basename(project.manifestPath),
-  };
 }
 
 function projectHasAdvancedCharts(project) {
@@ -159,36 +120,30 @@ export async function exportPptx(source, options = {}) {
     chartImages: [],
   };
 
-  let bytes;
-  let formulas = 0;
-  if (hasFormulas(wasmProject.pages)) {
-    const { exportWithMath } = await import('./lib/prepare/formulas.mjs');
-    ({ bytes, formulas } = exportWithMath(exportPPTDToPPTXBytes, wasmProject, writerOptions, offlineSignature));
-  } else {
-    bytes = exportPPTDToPPTXBytes(
-      wasmProject,
-      {
-        ...writerOptions,
-        mathLoader: (latex) => {
-          throw new Error(`writer requested an unexpected formula: ${JSON.stringify(latex)}`);
-        },
+  const math = hasFormulas(wasmProject.pages)
+    ? (await import('./lib/prepare/formulas.mjs')).createMathBridge(wasmProject)
+    : null;
+  const bytes = exportPPTDToPPTXBytes(
+    wasmProject,
+    {
+      ...writerOptions,
+      mathLoader: math ? math.mathLoader : (latex) => {
+        throw new Error(`writer requested an unexpected formula: ${JSON.stringify(latex)}`);
       },
-      offlineSignature(JSON.stringify(wasmProject)),
-    );
-  }
+    },
+    offlineSignature(JSON.stringify(wasmProject)),
+  );
+  const formulas = math ? math.assertComplete() : 0;
 
   let pptxBuffer = Buffer.from(bytes);
 
   // Single-pass archive postprocessing (fonts + table image fills + slide transitions).
-  const archive = readZip(pptxBuffer);
-  const updates = new Map();
-  const xmlCache = new Map();
-  patchFontBindingsInArchive(archive, updates, fonts.bindings, xmlCache);
-  const tableImageFills = patchTableImagesInArchive(archive, updates, wasmProject, mediaByKey, xmlCache);
-  const transitionPatchedSlides = patchTransitionsInArchive(archive, updates, transition, xmlCache);
-  flushXmlCache(updates, xmlCache);
-  if (updates.size) {
-    pptxBuffer = updateArchive(archive, updates);
+  const pkg = PptxPackage.open(pptxBuffer);
+  patchFontBindings(pkg, fonts.bindings);
+  const tableImageFills = patchTableImages(pkg, wasmProject, mediaByKey);
+  const transitionPatchedSlides = patchTransitions(pkg, transition);
+  if (pkg.dirty) {
+    pptxBuffer = pkg.toBuffer();
   }
 
   const summary = verifyOutput(pptxBuffer, transition, wasmProject.pages.length);
