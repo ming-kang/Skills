@@ -5,9 +5,9 @@
   "scripts": {
     "test": "npm run test:visualize && npm run test:pptd",
     "test:visualize": "python -B -m unittest discover -s tools/visualize -p test_*.py",
-    "test:pptd": "node --test \"tools/pptd/tests-node/*.test.js\" && python -B -m unittest discover -s tools/pptd/tests -p \"test_*.py\"",
+    "test:pptd": "node --test \"tools/pptd/tests-node/*.test.js\"",
     "validate:skills": "python -B tools/quick_validate.py",
-    "pptd:build-charts": "node tools/pptd/build_charts.mjs",
+    "pptd:build-assets": "node tools/pptd/build_vendor.mjs && python -B tools/pptd/build_fonts.py",
     "visualize:build": "python tools/visualize/build_gallery.py",
     "visualize:render": "node tools/visualize/render_gallery.mjs",
     "visualize:validate": "python -B visualize/scripts/validate_svg.py --strict -q visualize/assets",
@@ -17,7 +17,14 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "echarts": "6.0.0",
-    "playwright": "^1.63.0"
+    "@fortawesome/free-brands-svg-icons": "7.3.1",
+    "@fortawesome/free-regular-svg-icons": "7.3.1",
+    "@fortawesome/free-solid-svg-icons": "7.3.1",
+    "@xmldom/xmldom": "0.9.12",
+    "echarts": "6.1.0",
+    "esbuild": "0.28.2",
+    "fontkit": "2.0.4",
+    "katex": "0.18.2",
+    "yaml": "2.9.1"
   }
 }

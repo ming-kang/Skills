@@ -119,7 +119,7 @@ The whole deck is organized around a "diagnostic narrative arc," with a reusable
 ## Prohibited Items
 
 - Do not copy any third-party logo, conference mark, brand name, trademark, or mascot graphic.
-- Do not use real product/website screenshots, real data, or the original charts and specific values from the source deck.
+- Do not reuse the reference deck's original screenshots, charts or values. Use the current task's user-provided or verified real data; do not invent values to satisfy this preset.
 - Do not quote sentences from the source deck's body text; definitions and copy must be rewritten following this system's sentence patterns.
 - Do not include photos of people or a speaker's likeness.
 - Do not mix multiple decorative colors: each page is limited to one section accent color for decoration (except the three-state status legend).

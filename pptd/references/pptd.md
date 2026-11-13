@@ -116,7 +116,7 @@ Charts involve multiple kinds of styles (series body colors, fonts, data labels,
 **3.1 Series body color priority chain:**
 1. A series' explicit `fill` / `lineColor` / `areaColor` (field names differ per type; see [Color Mechanism](#52-color-mechanism))
 2. The same-named field for the corresponding type in [Chart.seriesDefaults](#seriesdefaults)
-3. The [Theme.colors](#theme) theme color cycle (colors are picked in the order the series appear in the array)
+3. The writer's native default color cycle (`#1783FF`, `#68B8A8`, `#C9A86A`, `#8C84C9`, …). Theme tokens apply only where explicitly referenced; arbitrary `Theme.colors` entries are not an automatic series palette.
 
 > [scatter](#scatter) is an exception: marker color resolves as `marker.fill > series.fill > theme color cycle`; marker.border likewise takes precedence over series.border.
 >
@@ -178,9 +178,9 @@ project/
 2. **Only relative paths are supported** (relative to the directory containing the `.pptd` file):
    - The `pages` list in `.pptd`: `pages/1_cover.page`
    - Image paths in `.page`: `media/image1.jpg`
-3. **Media supports URLs**: `Image.src`, and the [ImageFill](#fill).src of `background` / `fill`, may be `https://...` (only jpg/jpeg/png/gif supported)
+3. **Media supports URLs**: `Image.src`, and the [ImageFill](#fill).src of `background` / `fill`, may be `https://...` (jpg/jpeg/png/gif/svg supported; actual bytes determine the image type)
 
-**Main entry is required:** everything must be loaded through the `.pptd` main entry file; a `.page` cannot be passed alone to `scripts/validate_pptd.py` or `scripts/export_pptx.py`
+**Main entry is required:** everything must be loaded through the `.pptd` main entry file; a `.page` cannot be passed alone to `scripts/validate.mjs` or `scripts/export.mjs`
 
 ---
 
@@ -357,7 +357,7 @@ fill:
 interface Presentation {
   version: "v2";                // required, fixed to "v2" (version identifier)
   title?: string;              // default: no title
-  customFonts?: CustomFont[];  // default: no custom fonts are loaded
+  customFonts?: CustomFont[];  // default: use bundled/installed fonts; custom sources are optional
   size: [number, number];      // [width, height]; see "Coordinate System and Units" for PPT and poster recommendations
   theme?: Theme;
   pages: string[];             // list of relative paths to page files, e.g. "pages/cover.page"
@@ -486,10 +486,12 @@ interface TableStyleConfig {
 
 ```ts
 interface CustomFont {
-  family: string;  // font family name for use in fontFamily fields
-  src: string;     // Google Fonts CSS URL; format: https://fonts.googleapis.com/css2?family=Noto+Serif+SC; only the default weight is supported — weight selection is not supported
+  family: string;  // must match the source's actual font-family metadata
+  src: string;     // project-relative TTF/TTC/OTF/EOT path, or Google Fonts CSS URL (complete normal/default weight)
 }
 ```
+
+Local font paths obey the same project-containment rule as media. Local TTC files may contain the family's style-linked faces; Google CSS must supply one complete normal/default-weight TrueType face and is cached without a browser. The CLI embeds permitted static TrueType/EOT data and repairs family/style bindings; CFF, variable or restricted faces remain external with warnings. See [fonts.md](./fonts.md) for aliases, licensing and offline options.
 
 ---
 
@@ -725,6 +727,8 @@ Rich text supports embedding LaTeX formulas with the `\(...\)` delimiters:
 - Rich text tags are **not allowed** inside a formula.
 - A formula **only inherits** the `color` and `font-size` styles from its context; other text styles are not passed through.
 - A `<p>` tag can wrap a LaTeX formula to control the alignment
+- Local export uses strict KaTeX → MathML → editable OMML, for both text boxes and table cells. Plain text and rich text are normalized separately; legacy `data-math-node`/`data-tex` spans are restored to literal delimiters in memory. Unknown/unmapped constructs and callback failures are errors, never silently flattened or handed to the writer's incomplete fallback.
+- Ordinary fractions/scripts/radicals/matrices/delimiters/accents/limits are supported. Ruled arrays, unmapped explicit script levels and negative spacing currently require an equivalent supported expression; do not imply an unsupported construct was preserved.
 
 ```yaml
 content:
@@ -1104,7 +1108,7 @@ type SeriesConfig =
 ```ts
 interface ChartData {
   cols: string[];                                   // column names; constraint: unique, non-empty strings
-  rows: (number | string | null)[][];               // constraint: each row's length = cols.length
+  rows: (number | string | boolean | null)[][];     // booleans are for waterfall isTotal; each row's length = cols.length
 }
 ```
 

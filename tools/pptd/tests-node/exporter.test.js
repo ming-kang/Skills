@@ -1,18 +1,27 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
-  buildProject,
+  buildWasmProject,
+  checkNodeVersion,
+  exportPptx,
   normalizeElement,
-  resolveImages,
-} from '../../../pptd/scripts/export_pptd.mjs';
-import { loadWasmExporter } from '../../../pptd/scripts/wasm-exporter.mjs';
+} from '../../../pptd/scripts/export.mjs';
+import { loadWasmExporter } from '../../../pptd/scripts/lib/pptx/writer.mjs';
+import { latexToOmml } from '../../../pptd/scripts/lib/prepare/formulas.mjs';
+import { resolveImages } from '../../../pptd/scripts/lib/prepare/images.mjs';
 
-const WASM = new URL('../../../pptd/assets/wasm/pptd_wasm_bg.wasm', import.meta.url);
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const SKILL_ROOT = path.join(REPO_ROOT, 'pptd');
+const WASM = path.join(SKILL_ROOT, 'assets', 'wasm', 'pptd_wasm_bg.wasm');
+const WASM_HASH = '589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e';
+const MINIMAL = path.join(REPO_ROOT, 'tools', 'pptd', 'tests', 'fixtures', 'minimal');
 
 test('custom shapes accept bare and viewBox-prefixed paths', () => {
   const bare = normalizeElement({
@@ -32,8 +41,8 @@ test('custom shapes accept bare and viewBox-prefixed paths', () => {
   assert.equal(prefixed.path, 'M0 0L200 100');
 });
 
-test('project JSON becomes the page-object shape expected by WASM', () => {
-  const project = buildProject({
+test('project becomes the page-object shape expected by WASM', () => {
+  const project = buildWasmProject({
     manifestPath: path.resolve('fixture', 'deck.pptd'),
     manifest: { version: 'v2', title: 'Fixture', pages: ['pages/01.page'] },
     pages: [{ path: 'pages/01.page', data: { elements: [] } }],
@@ -48,7 +57,7 @@ test('local media resolves to bytes and all matching sources are remapped', asyn
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-media-'));
   try {
     fs.mkdirSync(path.join(root, 'media'));
-    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const bytes = fs.readFileSync(new URL('../tests/fixtures/qa-deck/media/pixel.png', import.meta.url));
     fs.writeFileSync(path.join(root, 'media', 'pixel.png'), bytes);
     const project = {
       pages: [
@@ -78,7 +87,86 @@ test('media paths cannot escape the project', async () => {
   await assert.rejects(resolveImages(project, os.tmpdir()), /escapes the PPTD directory/);
 });
 
-test('the bundled writer matches the version-locked adapter', async () => {
-  const exporter = await loadWasmExporter(fileURLToPath(WASM));
+test('bad image bytes are rejected and actual SVG bytes override a misleading URL suffix', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-media-identity-'));
+  const originalFetch = globalThis.fetch;
+  try {
+    fs.writeFileSync(path.join(root, 'fake.png'), '<html>not an image</html>');
+    await assert.rejects(resolveImages({ pages: [{ elements: [{ elementType: 'image', src: 'fake.png' }] }] }, root), /not a supported/);
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>');
+    globalThis.fetch = async () => ({ ok: true, arrayBuffer: async () => svg });
+    const project = { pages: [{ elements: [{ elementType: 'image', src: 'https://example.invalid/picture.png' }] }] };
+    const images = await resolveImages(project, root);
+    assert.equal(project.pages[0].elements[0].src, 'wasm-assets/img-0.svg');
+    assert.deepEqual(Buffer.from(images['wasm-assets/img-0.svg']), svg);
+  } finally {
+    globalThis.fetch = originalFetch;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('math spacing and display style are preserved, while ruled arrays fail explicitly', () => {
+  const slash = String.fromCharCode(92);
+  assert.notEqual(latexToOmml('a' + slash + 'quad b'), latexToOmml('a' + slash + 'qquad b'));
+  assert.notEqual(latexToOmml(slash + 'tfrac{x}{y}'), latexToOmml(slash + 'dfrac{x}{y}'));
+  assert.match(latexToOmml('x+1', { bold: true, opacity: 0.5 }), /b="1"/);
+  assert.match(latexToOmml('x+1', { bold: true, opacity: 0.5 }), /a:alpha val="50000"/);
+  assert.equal(latexToOmml('x+1', { opacity: null }), latexToOmml('x+1'));
+  assert.throws(() => latexToOmml(slash + 'begin{array}{c|c}1&2' + slash.repeat(2) + '3&4' + slash + 'end{array}'), /ruled formula arrays/);
+});
+
+test('the bundled writer is unique, byte-stable, and matches the version-locked adapter', async () => {
+  const found = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.wasm')) found.push(full);
+    }
+  };
+  walk(SKILL_ROOT);
+  assert.deepEqual(found, [WASM]);
+  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(WASM)).digest('hex'), WASM_HASH);
+
+  const exporter = await loadWasmExporter(WASM);
   assert.equal(typeof exporter.exportPPTDToPPTXBytes, 'function');
+});
+
+test('old Node versions are rejected and existing output is preserved without force', async () => {
+  assert.throws(() => checkNodeVersion('v16.20.2'), /Node\.js 18\+/);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-no-overwrite-'));
+  try {
+    const output = path.join(dir, 'deck.pptx');
+    fs.writeFileSync(output, 'keep');
+    await assert.rejects(exportPptx(MINIMAL, { output, quiet: true }), /already exists/);
+    assert.equal(fs.readFileSync(output, 'utf8'), 'keep');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('vendored bundles resolve without node_modules', () => {
+  const vendorDir = path.join(SKILL_ROOT, 'assets', 'vendor');
+  for (const name of fs.readdirSync(vendorDir).sort()) {
+    if (!name.endsWith('.mjs')) continue;
+    const text = fs.readFileSync(path.join(vendorDir, name), 'utf8');
+    assert.doesNotMatch(text, /node_modules/, `${name} references node_modules`);
+  }
+  const vendorUrl = pathToFileURL(vendorDir).href;
+  const probe = [
+    `import { create } from '${vendorUrl}/fontkit.mjs';`,
+    `import { katex } from '${vendorUrl}/katex.mjs';`,
+    `import { DOMParser } from '${vendorUrl}/xmldom.mjs';`,
+    `import { parseDocument } from '${vendorUrl}/yaml.mjs';`,
+    'console.log(typeof create, typeof katex.renderToString, typeof DOMParser, typeof parseDocument);',
+  ].join('\n');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-vendor-probe-'));
+  try {
+    const probePath = path.join(dir, 'probe.mjs');
+    fs.writeFileSync(probePath, probe, 'utf8');
+    const stdout = execFileSync(process.execPath, [probePath], { encoding: 'utf8' });
+    assert.match(stdout, /^function function function function/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

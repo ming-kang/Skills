@@ -1,0 +1,2 @@
+# Optional repository visual-review dependency; not required for PPTD/PPTX export.
+PyMuPDF==2.1

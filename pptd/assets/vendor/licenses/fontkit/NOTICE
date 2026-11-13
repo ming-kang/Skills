@@ -1,0 +1,75 @@
+Browser-free SVG glyph outline parser/shaper
+
+fontkit 2.0.4 dist/browser-module.mjs, bundled with esbuild 0.28.2 for Node 18+.
+The complete parser, shaper, Unicode tries and pure-JS Brotli decoder/dictionary
+are included. No external imports, browser engine, adjacent node_modules or WASM.
+
+BUNDLED NPM INPUTS
+
+@swc/helpers 0.5.24 (Apache-2.0)
+git+https://github.com/swc-project/swc.git
+Notices: swc-helpers-LICENSE
+
+base64-js 1.5.1 (MIT)
+git://github.com/beatgammit/base64-js.git
+Notices: base64-js-LICENSE
+
+brotli 1.3.3 (MIT)
+https://github.com/devongovett/brotli.js.git
+Notices: NOTICE-brotli
+
+clone 2.1.2 (MIT)
+git://github.com/pvorb/node-clone.git
+Notices: clone-LICENSE
+
+dfa 1.2.0 (MIT)
+git+ssh://git@github.com/devongovett/dfa.git
+Notices: NOTICE-dfa
+
+fast-deep-equal 3.1.3 (MIT)
+git+https://github.com/epoberezkin/fast-deep-equal.git
+Notices: fast-deep-equal-LICENSE
+
+fontkit 2.0.4 (MIT)
+git://github.com/foliojs/fontkit.git
+Notices: LICENSE-fontkit
+
+restructure 3.0.2 (MIT)
+git://github.com/devongovett/restructure.git
+Notices: restructure-LICENSE
+
+tiny-inflate 1.0.3 (MIT)
+git://github.com/devongovett/tiny-inflate.git
+Notices: tiny-inflate-LICENSE
+
+unicode-properties 1.4.1 (MIT)
+git://github.com/devongovett/unicode-properties.git
+Notices: unicode-properties-LICENSE
+
+unicode-trie 2.0.0 (MIT)
+git://github.com/devongovett/unicode-trie.git
+Notices: unicode-trie-LICENSE
+
+ADDITIONAL UPSTREAM LICENSE SOURCES
+
+LICENSE-fontkit: https://raw.githubusercontent.com/foliojs/fontkit/811d374105e6e818fc411cd7604f81661f582b1b/LICENSE
+SHA-256: cf22b8198f0886a8d4626121579114f23141070e1fceab02ab3c1c361e163440
+
+LICENSE-base64-arraybuffer: https://raw.githubusercontent.com/niklasvh/base64-arraybuffer/5339d8f0abed59c893e87116a785bf52acdc17aa/LICENSE
+SHA-256: f3eca6ff762533fa5a77caf954a143e48afa204668cf97dce758c45a9e006be3
+
+LICENSE-Unicode: https://www.unicode.org/license.txt
+SHA-256: e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96
+
+fontkit 2.0.4's npm package omits LICENSE; the original upstream MIT license
+is copied at the pinned source above. Brotli and dfa omit LICENSE even at their
+release commits: NOTICE-brotli and NOTICE-dfa copy their MIT declarations from
+the shipped package metadata/README without invented copyright text.
+
+Brotli dec/*.js include Google copyright/Apache-2.0 headers, reproduced in
+NOTICE-source-headers. The full Apache-2.0 text is in the copied
+swc-helpers-LICENSE. fontkit's base64 decoder attributes base64-arraybuffer
+(MIT); its original license is also copied. Unicode-generated data in fontkit
+and unicode-properties is accompanied by the authoritative Unicode license.
+
+Selected fonts are supplied separately by the caller and retain their own licenses.

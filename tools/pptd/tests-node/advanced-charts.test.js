@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { prepareAdvancedCharts } from '../../../pptd/scripts/advanced-charts.mjs';
+import { prepareAdvancedCharts } from '../../../pptd/scripts/lib/prepare/charts.mjs';
 
 const HIERARCHY = {
   cols: ['node', 'parent', 'value'],

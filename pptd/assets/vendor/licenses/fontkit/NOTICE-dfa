@@ -1,0 +1,20 @@
+dfa 1.2.0
+Source: https://github.com/devongovett/dfa/tree/3f5e603e5082caedabefefdf53e8a6ca3111e966
+
+Original package.json licensing/author/repository fields:
+{
+  "name": "dfa",
+  "version": "1.2.0",
+  "author": "Devon Govett <devongovett@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/devongovett/dfa.git"
+  }
+}
+
+Original README.md license section:
+## License
+
+MIT
+

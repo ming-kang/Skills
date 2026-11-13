@@ -7,7 +7,7 @@ Every task delivers two artifacts by default:
 1. a self-contained, editable **PPTD project**;
 2. the matching **.pptx**, with a fade slide transition on every slide.
 
-The core provides PPTD authoring, structural validation, and one-way PPTX export, including a browser-free SVG renderer for advanced charts. It does not include a browser editor, full-slide renderer, slide image-export pipeline, font embedding, or PPTX importer.
+The core provides PPTD authoring, semantic/package validation, and one-way PPTX export without a browser: editable vector icons, font loading and permitted embedding, native Office Math, native table image fills, and advanced-chart SVG pictures. Optional installed PowerPoint or LibreOffice can render the final PPTX to PNGs for visual review. There is no browser editor, PPTX importer, or independent slide-layout engine.
 
 ## Install
 
@@ -17,16 +17,9 @@ npx skills add ming-kang/skills
 
 Runtime requirements:
 
-- **Node.js 18+** for the WASM writer;
-- **Python 3** and **PyYAML** for validation and the export wrapper.
+- **Node.js 18+** (the sole runtime: YAML 1.2 reader, format validation, local adapters, WASM writer, OOXML patching and package verification).
 
-Install PyYAML into the Python environment used to run the scripts if necessary:
-
-```bash
-python -m pip install PyYAML
-```
-
-No browser, npm packages inside the skill, cloud account, or background service is required.
+No Python runtime, browser, npm packages inside the skill, cloud account, or background service is required.
 
 ## Use
 
@@ -58,7 +51,7 @@ Keep all page and media paths relative to the manifest directory. The complete p
 ## Validate and export
 
 ```bash
-python scripts/export_pptx.py \
+node scripts/export.mjs \
   /absolute/path/deck/deck.pptd \
   --output /absolute/path/deck/deck.pptx
 ```
@@ -67,26 +60,49 @@ Options:
 
 - `--transition none` removes slide transitions instead of applying the default fade;
 - `--force` replaces an existing output;
-- `--wasm PATH` deliberately tests another compatible writer build.
+- `--wasm PATH` deliberately tests another compatible writer build;
+- `--font-dir PATH` adds a local font directory (repeatable);
+- `--no-embed-fonts` leaves fonts external instead of embedding eligible faces;
+- `--offline` requires local media and bundled/local/cached fonts.
 
-A project directory can be passed instead of the manifest when it contains exactly one `.pptd`. The command checks YAML syntax, the v2 manifest, page files, project-contained paths, element IDs and bounds, required text content, and local media references before calling the bundled WASM writer. It then writes transitions in valid OOXML slide order, verifies PPTX ZIP/XML structure, prints a JSON summary, and leaves no temporary output on failure.
+A project directory can be passed instead of the manifest when it contains exactly one `.pptd`. The command checks YAML scalars, the v2 manifest, contained paths, element IDs/bounds, chart types/data/mappings, table grids, animation targets/parameters, crop constraints, XML-safe strings, and real image bytes. It prepares icons, fonts and formulas, invokes the bundled writer, repairs font style bindings and table image fills, writes schema-ordered transitions, and checks every XML/rels part, internal targets, content types, image signatures, slide count and ZIP CRC. The JSON summary includes fonts, icons, formulas, image-fill counts and warnings. A failed export preserves the existing output and cleans temporary files.
 
 For PPTD-only output or a standalone structural check, run:
 
 ```bash
-python scripts/validate_pptd.py /absolute/path/deck/deck.pptd
+node scripts/validate.mjs /absolute/path/deck/deck.pptd
 ```
 
-The JSON summary separates errors from canvas-overflow warnings; intentional bleed can remain a warning. Structural validation cannot detect every visual problem, so text overflow, occlusion, contrast, and final appearance still need judgment or an external rendering tool when rendered visual QA is required.
+Validation errors stop the command; warnings appear in its JSON summary. Intentional bleed can remain a warning. Static checking cannot establish text fit, occlusion, contrast or final appearance.
 
-Export is offline for local media. Remote image URLs still require network access. Fonts are referenced by name but not embedded; install the selected fonts on the intended rendering or playback machine. Package verification alone does not prove identical rendering in PowerPoint, WPS, or Keynote.
+Export is offline for local media and bundled/local/cached fonts. Remote images and uncached Google Fonts CSS need network access. A fetched image is embedded in PPTX, but its remote URL remains in the original PPTD source: localize it before claiming self-contained delivery. Package verification alone does not prove identical rendering in PowerPoint, WPS, or Keynote.
+
+## Fonts, icons and formulas
+
+- Font Awesome Free `fas`, `far`, and `fab` icons resolve locally to native vector paths. Unknown names fail instead of becoming ellipses.
+- Licensed original Latin fonts and a Noto Sans SC fallback are bundled. Installed fonts, additional font directories, and project-contained custom font files are supported. Eligible static TTF/TTC/EOT faces are embedded; style-linked families and regular/bold/italic/bold-italic bindings are preserved. CFF/variable or restricted fonts are not silently packaged as fake font data; warnings describe the external dependency. See [fonts.md](../pptd/references/fonts.md).
+- Google Fonts CSS is resolved without a browser, cached locally, and must provide a complete normal-weight TrueType font. Deck text is never sent as a `text=` subset request. Prefer bundled/project-local fonts for reproducible offline delivery.
+- Literal `\(...\)` formulas in text boxes and table cells become editable OMML. Fractions, scripts, radicals, ordinary matrices, delimiters, accents and limits are handled locally. Invalid/unmapped constructs stop export rather than invoking the writer's incomplete fallback. Ruled arrays, unsupported explicit script levels and negative spacing currently require rewriting; no whole-slide rasterization is used.
+
+## Conditional visual review — no browser
+
+When a local engine is available:
+
+```bash
+python tools/pptd/render_slides.py /absolute/path/deck/deck.pptx \
+  --output /absolute/path/deck/.qa-images --if-available
+```
+
+Auto prefers installed PowerPoint on Windows, otherwise LibreOffice. Both export PDF first and use optional PyMuPDF to rasterize pages, preserving embedded fonts that PowerPoint's direct PNG exporter substitutes. Install PyMuPDF explicitly only when visual review is wanted (`python -m pip install PyMuPDF`). These are **not mandatory export dependencies** and are never auto-installed. The helper preserves landscape/portrait/custom ratios, opens the source read-only, and protects unrelated output files and other Office presentations. `--force` replaces only its managed prior render set.
+
+`status: rendered` supplies per-page PNG paths, not an acceptance verdict. Inspect the pages, fix the source, re-export and re-render. `status: skipped` means dependencies are unavailable; continue source-layout/package checks and disclose that visual review was skipped. Neither case starts or installs a browser.
 
 ## Advanced charts
 
 `heatmap`, `treemap`, `sunburst`, and `sankey` are rendered locally with the bundled ECharts SVG renderer and embedded as correctly typed `.svg` pictures. No browser, cloud service, runtime npm install, or second WASM binary is needed. Other chart types retain their native PowerPoint chart export.
 
 - Keep authoring these as normal PPTD `chart` elements; no extra files or options are required.
-- The exporter preserves their bounds, labels, and element animations. The chart frame (fill, border, shadow) becomes native PowerPoint rectangles around the picture and animates with it.
+- The exporter preserves their bounds, labels, and element animations. SVG labels use selected font glyph outlines, avoiding picture-renderer font substitution without flattening the slide. Simple horizontal Latin/CJK labels are supported; unmapped complex/bidi shaping fails explicitly. The chart frame (fill, border, shadow) becomes native PowerPoint rectangles around the picture and animates with it.
 - Series without an explicit `fill` use the same default color cycle as native charts. Labels inside cells and sectors switch between white and dark text for contrast unless `dataLabels.color` is set, and treemap/sunburst nodes are separated by a 1px white line unless `border` is set.
 - Chart data remains editable in the original `.page` files and is retained in the SVG metadata. The resulting PowerPoint picture is **not** a native chart with an **Edit Data** worksheet.
 - Missing heatmap values stay transparent. Hierarchy totals are computed before limiting visible levels. Cycles, invalid column mappings, and invalid values fail with the page and chart ID, rather than silently falling back to a bar chart.
@@ -103,8 +119,10 @@ Export is offline for local media. Remote image URLs still require network acces
 
 ## WASM core
 
-The only required binary is [`assets/wasm/pptd_wasm_bg.wasm`](../pptd/assets/wasm/pptd_wasm_bg.wasm). Its source is unavailable, so the binary and Node adapter are version-locked. The expected SHA-256 and compatibility notes are recorded beside it in [assets/wasm/README.md](../pptd/assets/wasm/README.md).
+The only required binary is [`assets/wasm/pptd_wasm_bg.wasm`](../pptd/assets/wasm/pptd_wasm_bg.wasm). Its source is unavailable, so the binary and the Node adapter (`scripts/lib/pptx/writer.mjs`) are version-locked. The expected SHA-256 and compatibility notes are recorded beside it in [assets/wasm/README.md](../pptd/assets/wasm/README.md).
+
+Every other runtime dependency is vendored under [`assets/vendor/`](../pptd/assets/vendor/) — the ECharts SVG renderer, the fontkit outline parser, KaTeX's MathML generation, xmldom and the YAML 1.2 reader — each with its upstream license. The skill runs with no npm packages beside it.
 
 ## License and attribution
 
-This is an independent, unofficial project. Third-party product names and trademarks belong to their owners. Repository-authored code is MIT-licensed; see [../LICENSE](../LICENSE). The bundled ECharts renderer and its subcomponents retain their upstream licenses and notices under [assets/charts/](../pptd/assets/charts/README.md).
+This is an independent, unofficial project. Third-party product names and trademarks belong to their owners. Repository-authored code is MIT-licensed; see [../LICENSE](../LICENSE). The vendored [chart renderer](../pptd/assets/vendor/licenses/echarts/), [Font Awesome outlines](../pptd/assets/icons/README.md), [formula dependencies](../pptd/assets/vendor/licenses/katex/), [SVG font shaper](../pptd/assets/vendor/licenses/fontkit/), [YAML reader](../pptd/assets/vendor/licenses/yaml/), and [font assets](../pptd/assets/fonts/README.md) retain their upstream licenses and attribution.
