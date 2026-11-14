@@ -1,53 +1,8 @@
 # Apricot White Brief · Consulting STYLE DESIGN SYSTEM
 
-**Create at Full Strength**: Bring your full creativity and imagination to the work. Treat every slide as an independent, complete design artifact worthy of close consideration. Structure, composition, charts, imagery, and visual storytelling must all be driven by the content; do not default to preset layouts.
+Category baseline: [baselines/consulting.md](baselines/consulting.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-**No AI Slop**: Do not produce low-judgment, templated, decoration-heavy AI defaults, including unjustified card arrays, evenly divided grids, arbitrary blue-purple gradients or glassmorphism, icon walls, empty oversized text, repetitive skeletons, or visual gimmicks unrelated to the content. Every slide must reflect a clear design decision grounded in the content.
-
-**Landscape Delivery**: The final presentation must use a consistent 16:9 landscape format. Portrait or non-16:9 source material may be used only as a style reference; it must be recomposed for 16:9 landscape and must not retain the original canvas ratio.
-
-**Layout Coordination**: style.md is the final authority on style (typography/color palette/components/chart language/prohibited elements); the “Layout/Visual Task” line for each slide in query.md governs that slide’s content structure, primary anchor, and reading order. Both are execution requirements: follow the task line in query.md for layout intent, and style.md for the final visual treatment.
-### Global Prohibitions
-
-1. **Do Not Use Cards by Default**: Unless the user explicitly requests them, never use rounded rectangles or rectangular cards to create hierarchy or alignment. Functional containers such as status indicators, assumption boxes, and quotation frames are not considered cards. Lines, whitespace, type size, and weight differences are preferred.
-2. **Do Not Use Evenly Divided Compositions**: Unless no viable alternative exists, do not default to three equal columns, four equal columns, or a 2×2 grid. Equal division must be justified by the content structure (three scenarios naturally support three columns; frameworks explicitly named in the content are exempt).
-3. **Do Not Use Arbitrary AI Color Schemes**: Institution-specific palettes named in the content are exempt. What is prohibited is any generic, familiar, or ungrounded default palette, including blue-purple gradients, cyan-purple neon, rainbow flares, glass cards, and glowing borders.
-4. **Do Not Introduce Elements That Conflict with the Overall Style**: Never use styles outside the system—for example, rounded icons or rounded rectangles within a sharp-edged visual language.
-5. **Keep Chart Backgrounds Transparent**: Use transparency or the page background, except for reversed charts on dark backgrounds.
-6. **Use Large Areas of Whitespace Carefully**: Maintain appropriate density in the body area. Diluting sparse content into an artificially crowded slide is a defect. Whitespace used for breathing room, grouping, and rhythm is permitted; form must follow content, and nothing should be forced in merely to fill space.
-
-## PART A — Category Baseline (General Minimum Standard)
-
-A professional, high-density consulting presentation benchmarked against top-tier strategy firms (McKinsey/BCG), with the sensibility of premium editorial publishing.
-
-Content and layout:
-1. Rich data visualization: slides are filled with complex, precise charts (stacked columns, waterfalls, and line charts) and detailed data tables with complete rows and columns.
-2. Structured frameworks: include strategy maps or 2×2 matrices constructed with fine, crisp lines.
-3. High information density: use complex, multi-column layouts that resemble real business-analysis presentations rather than cover slides dominated by whitespace.
-
-Visual style:
-1. Aesthetic: balance a technology-forward sensibility with substantial information density. Clean, clear, and authoritative.
-2. Typography: use a bold sans serif for primary titles; chart labels and numerical data use the same sans family.
-3. Color: pure white background and pure black text; use deep royal blue for charts and graphic elements, with varying gray values to establish hierarchy.
-4. Graphics: use fine borders for tables and precise vector lines for charts.
-
-Structure and discipline (distilled from work we consider exemplary):
-1. Every body slide title must be a complete assertion—a conclusion sentence—with a one-line scope/methodology subtitle beneath it explaining what the slide covers and how to read it.
-2. Every body slide includes a chapter breadcrumb/tab bar with the current chapter highlighted, so any individual slide can be located within the narrative.
-3. Use one named analytical framework per slide, never a loose collage: a pressure-convergence bar, a phased timeline with a TODAY marker and stage gates, a three-scenario table (conservative/base/accelerated), a Five Forces diagram, a heat table, a difficulty × impact 2×2 with an observation zone, a three-stage upstream/midstream/downstream value chain, or a multidimensional profile matrix—select the framework according to the content.
-4. Present parallel evidence in 2–3 equal-width columns. Number independent judgments (1/2/3), each with a bold assertion line and one concise explanation.
-5. Chart annotation discipline: place data labels on marks, add growth/level callouts (for example, “+42% p.a.”), include a TODAY marker, use dashed lines for forecasts, and pair uncertainty with named observable indicators. Never rely on the legend alone to explain a chart.
-6. Close most slides with a synthesis strip at the bottom (“How to read this slide” / “Profile interpretation” / a one-sentence so-what) that converts the evidence above into a single takeaway.
-7. Fixed three-part page furniture: source/footnote line at bottom left and page number at bottom right. Never omit these elements or use them decoratively. Generated decks must never include watermarks, confidentiality statements/stamps, copyright lines, or logo placeholders.
-8. Open with a one-slide executive summary and a numbered, paginated table of contents. Close with numbered conclusions (claims, not summaries) and a implications slide organized by reader type (for example, policymakers/operators/buyers), with each column ending in an action.
-9. Every number must include its unit, time range, and basis of calculation. Express uncertainty through monitorable indicators, not hedging language.
-
-Default baseline (distilled from the layout skill; PART B may override): body slides use high-density, multi-column layouts and contain at least one complex chart or one multi-row, multi-column data table. Never use “one oversized sentence + vast whitespace” as a body slide. Build framework diagrams (strategy maps/2×2 matrices/driver trees) with fine, crisp vector lines rather than stacked color blocks. Use fine table borders without heavy fills, and limit the primary hues on any slide to ≤2.
-
-> Priority note: This section defines the minimum baseline for consulting use cases. Where it conflicts with the signature system below (PART B), the signature system takes precedence—especially for backgrounds, color, and typography. The typography and color requirements above apply as defaults only where the signature system is silent.
-
-
-## PART B — Signature System (Distinctive Signature of This Template; Overrides PART A in Case of Conflict)
+## Signature system
 
 One-sentence style signature: the restrained authority of an editorial report on white paper, with black serif body text carrying long-form content, vivid red marking judgments and focal points, and charts rendered primarily in grayscale—high in information density, yet disciplined in its use of whitespace.
 
@@ -65,7 +20,7 @@ Verified source fonts: the PDF embeds the serif TiemposText-Regular (body copy) 
 
 【Chart Language】
 
-Observed in actual use: single- and multi-series column charts, stacked columns and 100% stacked columns, line charts, column-line combinations, quantile range/distribution charts, waterfall/driver decompositions, donut proportions, and side-by-side KPIs. No consistent standalone data-table treatment was observed; inherit table requirements from PART A. ⭐Fix the caption format as “red figure number + black complete judgment sentence,” followed by a bold metric name, and repeat this system throughout chart slides; ⭐use #CC2027/#F16667 for the focal period or series, push historical context into grayscale, and directly label line ends, bar tops, quantile points, and key deltas wherever possible rather than hiding meaning in a legend; ⭐a slide often links 2 vertically stacked charts into an evidence chain, with each chart retaining its own title and Notes/Source, and with modules separated by whitespace rather than cards; ⭐a waterfall or distribution chart may be paired with a percentage ring, zero line, or quantile marker to explain “contribution/range”; occasional use: a five-column oversized-number KPI strip, with red numbers above and black descriptions below.
+Observed in actual use: single- and multi-series column charts, stacked columns and 100% stacked columns, line charts, column-line combinations, quantile range/distribution charts, waterfall/driver decompositions, donut proportions, and side-by-side KPIs. No consistent standalone data-table treatment was observed; inherit table requirements from the category baseline. ⭐Fix the caption format as “red figure number + black complete judgment sentence,” followed by a bold metric name, and repeat this system throughout chart slides; ⭐use #CC2027/#F16667 for the focal period or series, push historical context into grayscale, and directly label line ends, bar tops, quantile points, and key deltas wherever possible rather than hiding meaning in a legend; ⭐a slide often links 2 vertically stacked charts into an evidence chain, with each chart retaining its own title and Notes/Source, and with modules separated by whitespace rather than cards; ⭐a waterfall or distribution chart may be paired with a percentage ring, zero line, or quantile marker to explain “contribution/range”; occasional use: a five-column oversized-number KPI strip, with red numbers above and black descriptions below.
 
 【Signature Components】
 

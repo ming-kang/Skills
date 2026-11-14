@@ -1,48 +1,8 @@
 # Silver-Gray Luxury Magazine · Promotion STYLE DESIGN SYSTEM
 
-## PART A — Category Baseline (General Minimum)
+Category baseline: [baselines/promotion.md](baselines/promotion.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-A brand presentation that leads with emotion while keeping its evidence auditable, benchmarked against top-tier agency annual reports, campaign retrospectives, and destination/product launch decks. Every slide must land one memorable creative idea, while every claim remains verifiable—bold in form, disciplined with numbers.
-
-Content and layout:
-1. Creative-led structure: a single proposition for the year/campaign → audience and market evidence → development of the big idea (waves/chapters) → channel and content system → results with full measurement context → direction for the following year.
-2. Make major numbers the hero: give a small set of headline metrics full-slide or large-type emphasis; arrange supporting evidence around them in compact modules.
-3. Use medium density to create rhythm: alternate evidence-dense slides with spacious statement slides; the deck should rise and fall like a story, not fill every space like a report.
-
-Visual style:
-1. Aesthetic: confident, contemporary, and brand-led; use photographic or illustrative texture only when it is genuinely present in the source style—never substitute generic stock imagery.
-2. Typography: one expressive display face carries major propositions in line with the style signature; one highly legible workhorse face handles body copy and data. Set major numbers in the display face. Apply capitalization and tracking rules consistently throughout the deck.
-3. Color: give each deck one brand color family—a primary color plus lighter and darker steps—and one contrasting accent used only for CTAs and highlighted data. Let the style signature determine the background. No rainbow charts.
-4. Graphics: reduce charts to the story line—few series and direct labels. Timelines, funnels, and audience bars are signature graphic forms. Icons must follow the style's established line or fill language; no multicolored clip art.
-
-Structure and discipline (derived from work we recognize as benchmark quality):
-1. One big idea per slide: the slide title states the campaign proposition or chapter message, and every module on the slide serves that single idea.
-2. Campaign evidence must include complete measurement context: impressions, completion rate, engagement rate, and conversion—always specify platform, period, and sample scope. Vanity numbers without context are a defect.
-3. Timeline slides are first-class citizens: each wave, season, or phase needs a named cadence and phase-specific metrics. A campaign deck without a pacing slide is incomplete.
-4. Audience slides use funnels, tiers, or segment bars—demographics must be tied to behavior and value; never present bare percentages alone.
-5. Results slides distinguish outputs (impressions, content volume) from outcomes (search lift, share of new customers, sell-through rate); outcomes must sit higher in the visual hierarchy than outputs.
-6. Use fixed fields for case deep dives: context → action → numerical evidence → takeaway. Parallel cases must use consistent, comparable fields.
-7. Social/UGC evidence must cite real scale and show a representative content structure; always redraw third-party platform screenshots.
-8. The ending must establish direction: next year's theme, overall budget and allocation, and measurement framework. A closing slide that only says thank you is a defect.
-9. Every number must include its unit, time point, and source/methodology context; label estimates as internal illustrative assumptions.
-10. Imagery and shape language: when permitted by the style signature, proactively source authentic imagery and use creative shape language—torn edges, collage, irregular crops, and signature shapes—instead of ordinary rectangular blocks. Flat rectangles are the last resort, not the default.
-
-Default baseline (derived from the layout skill; PART B may override): one proposition per screen, with each slide communicating only one core message; continuous body copy on content slides must not exceed 3 lines. Visual tension must come clearly from at least one of the following—generous negative space, strong contrast, a large field of the primary brand color, or full-bleed product/portrait imagery—and remain consistent throughout the deck. Do not stack tables; prioritize major numbers, single charts, and comparison bars. Use one decorative language throughout; never mix more than 2 decorative systems.
-
-**Title Read-Through Test**: Reading only the slide titles across the deck should tell the complete story. If the sequence does not flow, the structure has failed.
-
-Density anchor: the specific minimum for each style—the number of evidence modules and charts per slide, plus annotation conventions—is defined by the style's 【Density Baseline】 reverse-engineered from the source deck. This baseline does not impose a uniform number.
-
-### Global Prohibitions (AI Defaults · Mandatory)
-
-1. **No cards by default**: unless the user explicitly requests them, never use rounded rectangles or rectangular cards to create hierarchy or alignment. Functional information containers—status indicators, assumption boxes, and quotation frames—do not count as cards. Lines, negative space, type size, and weight differences are better tools.
-2. **No equal-split compositions**: unless no other layout is viable, do not default to 3 equal columns, 4 equal columns, or a 2×2 matrix. Equal splits must be justified by the content structure—3 scenarios naturally support 3 columns; frameworks explicitly named in the source copy are exempt.
-3. **No ungrounded AI color schemes**: institution-specific palettes stated in the content are exempt. Prohibited choices are moderate, familiar, and unjustified defaults—blue-purple gradients, cyan-purple neon, rainbow flares, glass cards, and glowing borders.
-4. **No element that conflicts with the overall style**: do not introduce off-style treatments, such as rounded icons or rounded rectangles in a sharp-edged visual system.
-5. **Keep chart backgrounds transparent**: use transparency or the slide background, except for reversed-out charts on dark backgrounds.
-6. **No empty regions**: do not leave an entire planned region of the content area blank. Every allocated region must be filled with real content; failure to fill it is the most serious form of roughness.
-
-## PART B — Signature System (Template-Specific Signature; Overrides PART A in Case of Conflict)
+## Signature system
 
 One-line style signature: austere luxury editorial—cool white, deep black, and desaturated documentary photography as the foundation; narrow copper-brown and warm-gold accents; spacious narrative slides; dense data and appendix slides.
 

@@ -1,47 +1,8 @@
 # Lake Blue Memo · Finance STYLE DESIGN SYSTEM
 
-## PART A — Category Baseline (Universal Minimum)
+Category baseline: [baselines/finance.md](baselines/finance.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-Institutional-grade investment research presentations benchmarked against top-tier fund research reports, due diligence materials, and strategy outlooks (global investment bank and sovereign wealth fund standards). Chart-heavy and text-dense, these decks should feel more like formal reports than consulting presentations: Excel-style financial model tables (three financial statements, scenario analyses, and sensitivity grids) carry the argument. Every figure must be traceable, every assumption explicit, and every conclusion actionable.
-
-Content and layout:
-1. Thesis-led structure: transaction decks follow “Executive Summary → Investment Highlights → Target/Market → Business Plan/Financial Diagnosis → Valuation and Returns → Risks and Mitigations → Decision Request”; research and outlook decks follow “Core View → Evidence → Scenario Analysis → Allocation Recommendation.” The ending must resolve into a clear decision or position.
-2. Tables take center stage: valuation ranges, trading comparables, three-statement financials, scenario analyses, and sensitivity grids should follow the row-and-column discipline of an Excel financial model, with clearly separated assumption columns, driver rows, and check rows. Charts serve the numbers—football-field valuation charts, IRR bridges, attribution waterfalls, and scenario fan charts—and are never decorative.
-3. High but orderly density: use multi-column layouts with a clear information hierarchy. Each page answers one investment committee question. Density comes from evidence modules, not walls of text.
-
-Visual style:
-1. Aesthetic: restrained, authoritative, and compliance-clean. Do not use lifestyle photography, decorative icons, or marketing superlatives.
-2. Typography: when institutional gravitas is required, use serif type for titles; use sans serif for table body text, chart labels, and all numbers. Always align numbers by column.
-3. Color: use a conservative institutional palette—navy/charcoal structural colors, with one restrained accent (such as gold or signal blue) reserved for key figures and recommended actions. Use one consistent red/green pair for positive and negative values, and only to convey financial meaning.
-4. Graphics: use fine table rules, precise vector chart lines, and thin bridge-chart connectors. Do not use 3D, shadows, or gradient fills as standard chart language.
-
-Structure and discipline (distilled from work we recognize as benchmark quality):
-1. Every content-page title must be a complete investment assertion (for example, “The asset will reprice because capacity is scarce,” not “Market Overview”), followed by a one-line subtitle defining scope and how to read the page.
-2. Every number must include a unit, point in time, and basis of measurement; estimates must be labeled (illustrative/internal estimate). Bare numbers are not allowed.
-3. Present returns only as scenario ranges (downside/base/upside, with probabilities or driver assumptions), never as a single-point IRR; every valuation conclusion must include a sensitivity table.
-4. Assumptions must be made explicit in a box on the page whose conclusion depends on them. Hidden assumptions are treated as defects.
-5. Pair every risk with its mitigation (Risk → Probability/Impact → Mitigation → Owner/Status). A page that presents risks without mitigations is defective.
-6. Every valuation page must have an anchor: trading comparables, precedent transactions, or DCF cross-validation. A multiple without a benchmark set is not evidence.
-7. Place parallel evidence in 2–3 equal-width columns; each numbered argument includes a one-line bold assertion plus one concise proof statement.
-8. Chart annotation discipline: label data marks directly, annotate bridge-chart blocks one by one, show forecast periods with dashed lines, and name key drivers inside the chart. Charts must never rely on legends alone.
-9. End with a decision or position: specify the requested action (approve/reject/approve with conditions) or a clear allocation stance (overweight/underweight/range), plus an action list and timeline. Do not end with a thank-you page.
-
-Default baseline (distilled from the layout skill; PART B may override): numbers first—key metrics (amounts/growth rates/multiples) must appear independently at a larger size than body text, immediately adjacent to their units and basis; retain at least one class of high-density financial table (three statements/comparables/sensitivity), with right-aligned numbers, thousands separators, and a consistent negative-number convention throughout; lock positive and negative semantic colors, using one fixed color for gains/positive values and one for declines/negative values throughout; forecasts and historicals must be visually distinct (dashed lines/light tints/hatched bands) and their basis labeled; place the data source, basis, and date range in small gray text at the bottom of every page, and never place unsourced figures in the primary visual area; maintain one visual character (dark navy/charcoal + metallic accents, or traditional white + blue-gray), selecting only one per deck.
-
-**Title Read-Through Test**: Reading only the page titles should tell the complete story; if they do not flow as a coherent narrative, the structure has failed.
-
-Density anchor: the specific minimum for each style—evidence modules per page, chart count, and annotation conventions—is defined by the 【Density Baseline】 reverse-engineered from that style’s source deck. This baseline does not impose a single universal number.
-
-### Global Prohibitions (AI Defaults · Mandatory)
-
-1. **No cards by default**: Unless the user explicitly requests them, do not use rounded rectangles or rectangular cards to create hierarchy or alignment. Containers with a genuine information function (status lights, assumption boxes, quotation boxes) are not considered cards. Lines, whitespace, type size, and weight differences are better tools.
-2. **No equal-split compositions**: Unless no other viable layout exists, do not default to three equal columns, four equal columns, or a 2×2 matrix. Equal division must be justified by the content structure (three scenarios naturally warrant three columns; frameworks explicitly named in the content are exempt).
-3. **No ungrounded AI color schemes**: The institutional palette specified in the body is exempt. Prohibited choices are generic, familiar, and unjustified defaults—blue-purple gradients, cyan-purple neon, rainbow flares, glass cards, and glowing borders.
-4. **No elements that clash with the overall style**: Do not introduce out-of-style treatments, such as rounded icons or rounded rectangles in a sharp-edged visual system.
-5. **Keep chart backgrounds transparent**: Use transparency or the page background color, except when reversing out on a dark background.
-6. **No empty regions**: Do not leave large blank areas in the body content zone. Every planned region must be filled with real content; an unfilled region is the most serious form of visual roughness.
-
-## PART B — Signature System (Template-Specific Signature; PART B Prevails in Case of Conflict with PART A)
+## Signature system
 
 One-line style signature: a portrait institutional editorial-report aesthetic, grounded in paper white and deep lake blue, with grape purple as the title axis and bright blue-gray charts as evidence—dense without boxes, like a research journal designed to be browsed.
 
@@ -61,7 +22,7 @@ Useful chart types include line charts, grouped/stacked bar charts, stacked area
 Borderless purple pull quote: extract one judgment statement from the long-form text and place it at the bottom or side of a column, no more than 1 time per page, never overlapping a chart. Large cyan number + short gray rule above: use only for sections presenting a sequence of numbered viewpoints, with 1 per viewpoint and no more than 2 on a page. Green upward triangle/red downward triangle: use only for grouped positive and negative judgment lists, never as a replacement for ordinary bullets. Solid orange dot + question number: mark only the beginning of one question-and-answer sequence; do not repeat it on continuation pages. Photography is a hard constraint: the cover uses one full-bleed, shallow-depth-of-field natural macro photograph, with the title positioned over a low-texture area. Content pages must not substitute photography for data evidence; small portraits are limited to the contents-page information sidebar.
 
 【Prohibited】
-Do not use serif titles; in this template, the Ghost sans-serif family overrides PART A’s option for formal serif typography. Do not use large dark backgrounds with reversed body text on content pages; a solid deep lake-blue block is allowed only in the contents-page sidebar. Do not expand purple or blue into large content containers; they appear only in text, chart lines, table headers, or small signals. Do not center large content-page titles; section names, viewpoints, and questions are all left-aligned. Do not replace cross-supported small-multiple evidence with a single unannotated “hero image”; if one chart spans the full width, it must still include an evidence conclusion, basis, and source.
+Do not use serif titles; in this template, the Ghost sans-serif family overrides the category baseline’s option for formal serif typography. Do not use large dark backgrounds with reversed body text on content pages; a solid deep lake-blue block is allowed only in the contents-page sidebar. Do not expand purple or blue into large content containers; they appear only in text, chart lines, table headers, or small signals. Do not center large content-page titles; section names, viewpoints, and questions are all left-aligned. Do not replace cross-supported small-multiple evidence with a single unannotated “hero image”; if one chart spans the full width, it must still include an evidence conclusion, basis, and source.
 
 【Slide Types and Layouts】
 Section opener｜Begin a new argumentative section｜Giant title in the top 30%, two columns or “text + table/chart” in the bottom 70%｜2–4 modules｜Section number, pull quote｜Not suitable for continuous data updates.  

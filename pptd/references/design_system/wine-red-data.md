@@ -1,47 +1,8 @@
 # Wine Red Data · Academic STYLE DESIGN SYSTEM
 
-## PART A — Category Baseline (General Minimum Standard)
+Category baseline: [baselines/academic.md](baselines/academic.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-A rigorous, formally typeset academic presentation benchmarked against top-tier research talks and thesis defenses (at the standard of NeurIPS/CHI/SIGGRAPH main conferences), where clarity of argument takes precedence over decoration. This deck must read as a reproducible scientific claim, not as marketing collateral. Use academic language throughout: standard terminology for research questions, hypotheses, evidence, significance, contributions, and limitations, with no marketing language or business jargon. Shift the visual emphasis by discipline: theoretical work should devote substantial space to equations and proof steps; computer science and engineering should be structured around system diagrams, code, execution traces, and performance curves; experimental research should tightly organize equations, charts, and images around a single conclusion; and humanities and social sciences should layer archival materials, maps, manuscripts, and other textual evidence with a sense of narrative, without compromising academic rigor.
-
-Content and layout:
-1. Use a fixed argumentative structure: Research Question → Gap in Related Work → Data and Methods → Main Results → Ablation/Analysis → Limitations → Future Work. A short deck may compress this structure, but must not change the sequence.
-2. Evidence-first slides: results tables must include baseline comparison columns, comparison charts, and architecture/process diagrams; core contributions must be expressed through formally typeset equations.
-3. Moderate information density: one argument per slide, with evidence organized around that argument. Slides should be composed, not filled—whitespace is a legitimate way to separate stages of the argument.
-
-Visual style:
-1. Aesthetic: plain, precise, and scholarly. Do not use promotional copy, decorative photography, or clip-art icons.
-2. Typography: use a clear sans serif for body text and labels (render with Liter / Chinese: MiSans); titles may use a serif when the source style does. Equations must be formally typeset (KaTeX quality), with correct equation numbering and italic treatment for variables.
-3. Color: use a two-color system for each deck—one primary structural color plus one accent, with gray carrying hierarchy; use a white or near-white background; use only one consistent warning color for negative results or ablation signals.
-4. Graphics: use thin, precise vector lines for diagrams; minimal horizontal rules for tables; and axis labels, units, and sample definitions for charts. Do not use 3D, shadows, or gradients as decoration.
-
-Structure and discipline (derived from work we recognize as benchmark quality):
-1. Every content-slide title must state an argument—a finding, not a section label: “Attention Lapses Can Be Predicted 10 Seconds in Advance,” not “Experimental Results.” The evidence supporting that argument follows on the same slide.
-2. Claim–evidence alignment: every quantitative conclusion on a slide must be supported on that same slide by a chart, table, or cited result. No orphan numbers.
-3. The main results table must include baseline comparison columns and mark the best value; show relative improvement alongside absolute values.
-4. Method slides must include the information needed for reproducibility: data scale, annotation protocol, inter-annotator agreement, and key hyperparameters. Show only the core idea as an equation; move derivations to appendix slides.
-5. Every figure must be self-contained: include axis labels with units, a legend or direct labels, and a caption area stating sample size and confidence basis. Figures must not rely on legends alone.
-6. Ablations and limitations are mandatory slides, not optional ones: ablations isolate the contribution of each component; limitations candidly state scope of applicability, failure modes, and ethics/de-identification status.
-7. Every number must include its unit, time range, dataset, and statistical basis (mean ± variance, sample size); express uncertainty through observable quantities or confidence intervals, never vague wording.
-8. Open with the problem statement plus a one-sentence contribution; close with numbered conclusions—claims, not a summary—and an explicit list of open questions.
-9. Citations appear as compact footnote lines at the bottom of the slides where they are referenced; do not create a full-slide wall of dense references unless the genre requires it.
-
-Default baseline (derived from the layout skill; PART B may override): Organize each slide around one evidence unit (figure/table/equation); give charts complete axis labels, units, and sample definitions; keep charts honest by avoiding truncated vertical axes that exaggerate differences, and distinguish correlation from causation explicitly in the copy; ensure projection readability, with body text at ≥14pt equivalent and chart labels at ≥10pt equivalent on a 960×540 canvas.
-
-**Title read-through test**: Reading only the slide titles should tell the complete story. If the sequence does not flow, the structure has not been established.
-
-Density anchor: The specific minimum standard for each style—the number of evidence modules and charts per slide, plus annotation conventions—is defined by that style’s 【Density Baseline】 reverse-engineered from the source deck. This baseline does not impose a uniform number.
-
-### Global Prohibitions (Default AI Patterns · Mandatory)
-
-1. **No default card layouts**: Unless the user explicitly requests them, never use rounded rectangles or rectangular cards to create hierarchy or alignment. Containers with a genuine information function—status indicators, assumption boxes, and quotation frames—do not count as cards. Rules, whitespace, type size, and weight contrast are preferable.
-2. **No equal-split compositions**: Unless no other layout is viable, do not default to equal thirds, equal quarters, or two-by-two matrices. Equal splits must be justified by the content structure—three scenarios naturally warrant three columns; frameworks explicitly named in the content are exempt.
-3. **No arbitrary AI-default color schemes**: Institutionally specified palettes in the body are exempt. What is prohibited is a generic, commonplace, unjustified default palette—blue-purple gradients, cyan-purple neon, rainbow glows, glass cards, and luminous borders.
-4. **No elements inconsistent with the overall style**: Do not introduce out-of-style treatments—for example, rounded icons or rounded rectangles in a sharp-edged visual system.
-5. **Keep chart backgrounds transparent**: Use transparency or the slide background, except for reversed-out charts on dark backgrounds.
-6. **No empty regions**: Do not leave large blank areas in the body-content region. Every planned area must be filled with real content; an unfilled region is the most serious form of roughness.
-
-## PART B — Signature System (Template-Specific Signature; This Section Prevails in Case of Conflict with PART A)
+## Signature system
 
 One-sentence style signature: predominantly white-background academic lecture notes, with black type accented by wine red and purple-orange; full-slide solid-color chapter transitions; and information consistently resolved into “argument—evidence—source.”
 

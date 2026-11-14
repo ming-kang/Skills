@@ -1,44 +1,8 @@
 # Warm Clay Works · work_report STYLE DESIGN SYSTEM
 
-## PART A — work_report Baseline (Universal Floor)
+Category baseline: [baselines/work-report.md](baselines/work-report.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-**Master-crafted**: every page is polished to the standard of a master charging a six-figure fee per slide — layout, type, color, and alignment carry no defaults and no AI-template smell; details decide success.
-
-Conclusion-first business reporting, benchmarked against top-tier business reviews and project progress briefings: every page scannable in 30 seconds, every number able to withstand drill-down — status backed by evidence, deviations attributed, asks spelled out.
-
-Content and layout:
-1. Management structure: executive overview (one-page verdict on completion) → core metrics vs. targets → revenue/mix analysis → deviation attribution → project status → cost and efficiency → next-period actions → items needing decisions and support.
-2. Status visualization is the signature: target vs. actual tables, progress with numeric labels, deviation attribution, milestone timelines; status components drawn one way across the deck.
-3. Grid discipline: pages are built from aligned status modules and tables; zero decoration; every module answers "so what" on the spot.
-
-Visual style:
-1. Aesthetics: crisp and corporate; the reader can audit the quarter from the pages alone.
-2. Type: a restrained set of families, hierarchy built on weight and size rather than decorative lettering; numbers always column-aligned.
-3. Color: a neutral structural palette, status colors strictly reserved for meaning, one accent for emphasis and current-period highlights; status colors never decorate.
-4. Graphics: simple chart types; fine table rules, right-aligned numbers; no 3D, no pictographs as data, no gradient fills.
-
-Structure and discipline:
-1. Page one is always the verdict: one sentence on overall completion + target vs. actual for 3–5 headline metrics; no filler cover fluff.
-2. Every metric shows the trio — target / actual / attainment rate; actual without target is a defect.
-3. Deviation pages attribute quantitatively: the gap decomposes into named causes that sum exactly to the total gap — no unexplained remainder.
-4. Project status comes as a trio: status + evidence (progress, milestones) + corrective action (with owner and date).
-5. Next-period actions are commitments, not wishes: each carries an owner, a deadline, and an expected quantified effect.
-6. Trend pages mark the reporting-period boundary, with inflection causes annotated inside the chart; forecast segments use dashed lines labeled with their basis.
-7. Parallel modules align strictly to the grid: same row, same height, same baseline; mixed content is grouped by meaning, not scattered.
-8. Numbers must carry unit, period, and basis; estimates and modeled values follow the conventions of the source materials.
-9. The deck closes on items for management decision and support, each with the consequence of delay; no thank-you page endings.
-
-### Global Prohibitions (AI Default Patterns · Mandatory)
-1. No default cards — containers serving information functions (status lights, assumption boxes, quote boxes) do not count as cards; rules, whitespace, and size/weight contrast are the better solution.
-2. No evenly split compositions — unless the split is justified by content structure.
-3. No unmotivated AI color schemes — blue-purple gradients, cyan-purple neon, rainbow flares, glass cards, glowing borders.
-4. No element that clashes with the overall style.
-5. Transparent chart backgrounds — transparent or the page background color, except reversed-out on dark.
-6. Care with large empty areas — whitespace for breathing, grouping, and rhythm is allowed; padding to fill space, or stretching thin content into a crowded page, is treated as a defect.
-
-Density anchor: per-page minimums for evidence modules, charts, and labeling habits follow the density-baseline section reverse-engineered from the source deck for this style — this baseline imposes no uniform numbers.
-
-## PART B — Signature System
+## Signature system
 
 One-line style signature: a "kiln-crafted" business narrative on warm off-white — ink-brown kai-flavored serif titles, a single terracotta-orange accent point, blush-pink soft ornaments, hairline-split columns, big numbers with their basis — low density and generous whitespace, like a handmade annual fired with restraint.
 

@@ -1,47 +1,8 @@
 # Warm Jade Annual Report · Work Report STYLE DESIGN SYSTEM
 
-## PART A — Category Baseline (Universal Minimum)
+Category baseline: [baselines/work-report.md](baselines/work-report.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-Lead with the conclusion in an operational performance report benchmarked against top-tier business reviews and project progress briefings. Every page in this deck must be scannable within 30 seconds, and every number must withstand drill-down scrutiny: status must be evidenced, variances attributed, and requests stated clearly.
-
-Content and layout:
-1. Executive structure: conclusion overview (a one-page verdict on overall attainment) → core metrics vs targets → revenue/mix analysis → variance attribution → project status (red/amber/green) → cost and efficiency → next-period actions → decisions and support required.
-2. Status visualization is the signature: red/amber/green status indicators, target vs actual tables, progress bars with numeric labels, variance waterfalls, and milestone timelines.
-3. Medium-high density with strict grid discipline: pages are built from aligned status modules and tables; zero decoration; every module answers “So what?” in place.
-
-Visual style:
-1. Aesthetic: crisp, corporate, and utilitarian; readers should be able to audit the quarter from the pages alone.
-2. Typography: use one sans-serif family throughout; establish hierarchy through weight and size, not decorative type; always align numbers in columns, and never use serif display type for numerals.
-3. Color: a neutral structural palette (deep slate/graphite + gray), with status colors reserved strictly for meaning—green/amber/red indicate status only, while one accent color (defined by the style) marks priorities and the current period; never use status colors decoratively.
-4. Graphics: simple chart types (comparative bars, trend lines, variance waterfalls); fine table rules and right-aligned numbers; no 3D, no pictograms as data, and no gradient fills.
-
-Structure and discipline (distilled from benchmark-quality deliverables):
-1. The first page is always the verdict: one sentence on overall attainment + target vs actual values for 3–5 headline metrics; never pad it with generic cover-page language.
-2. Every metric must show target, actual, and attainment rate together; a metric with an actual but no target is defective.
-3. Variance pages must quantify attribution: break the gap into named causes whose values sum to the total gap; unexplained residuals are not allowed.
-4. The three-part project status unit: status indicator + evidence (progress %, milestone) + corrective action (with owner and date); a red item without a recovery plan is defective.
-5. Next-period actions are commitments, not aspirations: every item includes an owner, timing, and expected quantified impact.
-6. Trend pages must mark the reporting-period boundary and annotate the reasons for inflection points within the chart; use dashed lines for forecast segments and label them as planned/estimated.
-7. Align parallel modules rigorously to the grid: modules in the same row share height and baseline; group mixed content by meaning rather than scattering it.
-8. Every number must include unit, period, and definition (GMV or revenue, order volume or sales value); label estimated values as internally defined examples.
-9. End with decisions and support required from management—list each item separately with the consequence of delay; never close with a thank-you page.
-
-Default baseline (distilled from the layout skill; PART B may override): use one consistent lightweight component language for progress, attainment, and red/amber/green status throughout the deck; each page carries 1 topic + 2–4 supporting points, with the conclusion clear within 5 seconds; every metric must be accompanied by a “So what?”—the reason, impact, or next action—rather than left as a bare number.
-
-**Sequential-title test**: Read only the slide titles from beginning to end; they should tell the complete story. If they do not flow, the structure has not been established.
-
-Density anchor: the specific minimum for each style (evidence modules per page, chart count, annotation conventions) follows the 【Density Baseline】 reverse-engineered from that style’s source deck—this baseline imposes no universal number.
-
-### Global Prohibitions (Default AI Patterns · Mandatory)
-
-1. **Do not default to cards**: Unless explicitly requested by the user, rounded-rectangle or rectangular cards must not be used to create hierarchy or alignment—functional containers such as status indicators, assumption boxes, and quotation frames do not count as cards. Rules, whitespace, type size, and weight differences are the preferred tools.
-2. **Do not default to equal-split compositions**: Unless no other layout is viable, do not default to three equal columns, four equal columns, or a two-by-two matrix—equal division must be justified by the content structure (three scenarios naturally warrant three columns; frameworks named explicitly in the brief are exempt).
-3. **Do not use unmotivated AI color palettes**: Institution-specific palettes defined in the brief are exempt; prohibited choices are bland, common, and unjustified defaults—blue-purple gradients, cyan-purple neon, rainbow flares, glassmorphism cards, and glowing borders.
-4. **Do not use any element that conflicts with the overall style**: Out-of-style treatments are forbidden, such as rounded icons or rounded rectangles in a sharp-edged visual system.
-5. **Keep chart backgrounds transparent**: Use transparency or the page background, except for reversed charts on dark backgrounds.
-6. **Do not leave planned regions empty**: The main content area must not contain large blank regions; every planned zone must be filled with real content. Failure to fill it is the most serious form of roughness.
-
-## PART B — Signature System (Template-Specific Signature; Overrides PART A in Case of Conflict)
+## Signature system
 
 One-sentence style signature: a warm ivory ground, charcoal-black type with serif body copy, and honey-amber accents, shaped into an auditable editorial annual report through fine column rules and high-density tables; photography occupies large areas only on section openers and at key narrative moments.
 
@@ -49,7 +10,7 @@ One-sentence style signature: a warm ivory ground, charcoal-black type with seri
 
 【Layout Skeleton】Source-deck fact: the canvas is 13.333×7.5 inches, 16:9. Content pages use a fixed micro-navigation strip at the top: three fine horizontal lines at top left, a section label beginning around 0.5 inches from the edge, and the report name centered; a small page number sits at bottom left, with small organization/report text at bottom right. Main titles are left-aligned by default, placed in a title band approximately 0.5 inches from the left edge and 0.7–1.1 inches from the top; overview pages such as “At a glance” instead use a large centered title. The content area generally uses 3–4 columns divided by approximately 1 px vertical rules; tables are grouped with horizontal rules, not enclosed in containers. The reading path is title conclusion → left-side metric/chart → right-side explanation → bottom footnote. Section openers use a dedicated structure: the left 40–45% contains a warm off-white large title and an underlined table of contents, while the right 55–60% is full-height photography; another section-page type uses a full-bleed photograph with a white-text table of contents overlaid. The cover uses only full-page photography and a centered white title, without the content-page grid.
 
-【Typography】Source-deck fact: titles, navigation, numeric labels, and table headers primarily use the sans-serif Tahoma; long-form body copy explicitly uses the serif Cambria, creating a “sans-serif heading + serif body” pairing that overrides PART A’s single-sans-serif default. Render with {latin: QuattrocentoSans, ea: MiSans} (sans titles/labels) and {latin: Unna, ea: 思源宋体} (serif body). Cambria body text at 8 pt is defined as 1x; module headings use Tahoma at 8–12 pt; standard page titles use Tahoma at 36–40 pt, approximately 4.5–5x; large figures/percentages are 24–28 pt, approximately 3–3.5x; footnotes are 6 pt, approximately 0.75x; cover titles are approximately 75 pt and reserved for special pages. Use sentence case for titles, with all caps permitted for short labels; keep years, percentages, and units adjacent to their values, and right-align table numbers by column. When adapting to other languages, preserve these weight and scale relationships, prioritizing the readability of 8 pt body copy in a 960×540 preview.
+【Typography】Source-deck fact: titles, navigation, numeric labels, and table headers primarily use the sans-serif Tahoma; long-form body copy explicitly uses the serif Cambria, creating a “sans-serif heading + serif body” pairing that overrides the category baseline’s single-sans-serif default. Render with {latin: QuattrocentoSans, ea: MiSans} (sans titles/labels) and {latin: Unna, ea: 思源宋体} (serif body). Cambria body text at 8 pt is defined as 1x; module headings use Tahoma at 8–12 pt; standard page titles use Tahoma at 36–40 pt, approximately 4.5–5x; large figures/percentages are 24–28 pt, approximately 3–3.5x; footnotes are 6 pt, approximately 0.75x; cover titles are approximately 75 pt and reserved for special pages. Use sentence case for titles, with all caps permitted for short labels; keep years, percentages, and units adjacent to their values, and right-align table numbers by column. When adapting to other languages, preserve these weight and scale relationships, prioritizing the readability of 8 pt body copy in a 960×540 preview.
 
 【Chart Language】Chart types actually used include donut-share charts, multi-year trends combining gray bars with a black line, horizontal or vertical stacked bars, multi-year financial tables with grouping rules, two-column side-by-side data tables, and a small number of ESG charts with broken axes/hatched target bars.
 ⭐ Donut chart (recurring): place two donuts side by side, use amber to highlight one primary share, and assign black/dark gray/light gray to the remaining shares; place labels outside the rings and connect them with fine leader lines. Use only for conclusions about composition/breakdown.

@@ -1,47 +1,8 @@
 # Pastel Derivation · Academic STYLE DESIGN SYSTEM
 
-## PART A — Category Baseline (General Minimum Standard)
+Category baseline: [baselines/academic.md](baselines/academic.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-A rigorous, formally typeset academic presentation benchmarked against top-tier research talks and thesis defenses (main-stage NeurIPS/CHI/SIGGRAPH quality), where clarity of argument takes precedence over decoration. The deck must read as a reproducible scientific claim, not as marketing collateral. Use academic language throughout, with disciplined wording for research questions, hypotheses, evidence, significance, contributions, and limitations; do not mix in marketing or business language. Shift the visual emphasis by field: theoretical derivations should devote most of the canvas to equations and proof steps; computer science and engineering should be structured around system diagrams, code, execution traces, and performance curves; experimental research should tightly organize equations, charts, and images around a single conclusion; humanities and social sciences should add narrative texture and textual evidence—such as archives, maps, and manuscripts—without compromising academic rigor.
-
-Content and layout:
-1. Use a fixed argument structure: research question → gap in related work → data and methods → main results → ablation/analysis → limitations → future work. A short deck may compress this structure, but must not change its order.
-2. Build evidence-first slides: include result tables with baseline comparison columns, comparison charts, and architecture/process diagrams; present the core contribution as a formally typeset equation.
-3. Maintain medium information density: one claim per slide, with evidence organized around that claim. Slides must be composed, not filled—white space is a valid way to separate stages of the argument.
-
-Visual style:
-1. Aesthetic: restrained, precise, and scholarly. Do not use promotional copy, decorative photography, or clip-art icons.
-2. Typography: use a clear sans serif (render with Liter / Chinese: MiSans) for body text and labels; headings may use a serif if the source style does. Equations must be professionally typeset (KaTeX quality), with standard equation numbering and italic variables.
-3. Color: use a two-color system for each deck—one primary structural color and one accent color—with gray establishing hierarchy. Use a white or near-white background. Use only one consistent warning color for negative or ablation signals.
-4. Graphics: use thin, precise vector lines for diagrams and minimal horizontal rules for tables. Charts must include axis labels, units, and sample definitions. Do not use 3D, shadows, or gradients as decoration.
-
-Structure and discipline (distilled from work recognized as benchmark quality):
-1. Every body-slide title must state a claim—a finding, not a section label: “Distraction Can Be Predicted 10 Seconds in Advance,” not “Experimental Results.” The evidence supporting that claim must follow on the same slide.
-2. Align claims with evidence: every quantitative statement on a slide must be supported on that slide by a chart, table, or cited result. No orphan numbers.
-3. The main results table must include baseline comparison columns and identify the best value; show relative improvement alongside absolute values.
-4. Method slides must include reproducibility details: dataset scale, annotation protocol, inter-annotator agreement, and key hyperparameters. Show only the central idea in equations; move derivations to appendix slides.
-5. Every figure must be self-contained: provide axis labels with units, a legend or direct labels, and a caption area specifying sample size and confidence basis. A figure must not rely on its legend alone.
-6. Ablations and limitations are required slides, not optional ones: ablations isolate the contribution of each component; limitations accurately state scope, failure modes, and ethical/anonymization status.
-7. Every number must include its unit, time span, dataset, and statistical basis (mean ± variance, sample size). Express uncertainty through measurable quantities or confidence intervals, not vague language.
-8. Open with the problem statement and a one-sentence contribution. Close with numbered conclusions—claims, not a summary—and an explicit list of open questions.
-9. Place citations in a compact footnote line at the bottom of the relevant slide. Do not create a dense, full-slide bibliography wall unless the format requires it.
-
-Default baseline (distilled from the layout skill; PART B may override): organize each slide around one evidence unit (figure/table/equation); give charts complete axis labels, units, and sample definitions; keep charts honest—do not truncate the vertical axis to exaggerate differences—and distinguish correlation from causation explicitly in the copy; ensure projection readability, with body text at ≥14pt equivalent and chart labels at ≥10pt equivalent on a 960×540 canvas.
-
-**Title read-through test**: reading only the slide titles in sequence should tell the complete story. If the sequence does not flow, the structure is not working.
-
-Density anchor: the specific minimum for each style—evidence modules per slide, chart count, and annotation conventions—is defined by the 【Density Baseline】 reverse-engineered from that style's source deck. This baseline does not impose one universal number.
-
-### Global Prohibitions (Mandatory · Prevent Default AI Patterns)
-
-1. **Do not default to cards**: unless the user explicitly requests them, do not use rounded rectangles or rectangular cards to create hierarchy or alignment. Containers with a genuine information function—such as status indicators, hypothesis boxes, or quotation boxes—do not count as cards. Lines, white space, type size, and weight differences are preferable.
-2. **Do not default to equal-split compositions**: unless no other layout is viable, do not use three equal columns, four equal columns, or a two-by-two matrix by default. Equal division must be justified by the content structure (three scenarios naturally warrant three columns; a framework explicitly named in the content is exempt).
-3. **Do not use ungrounded AI color schemes**: an institutional palette specified in the content is exempt. Prohibited choices are generic, commonplace, and unjustified defaults—blue-purple gradients, cyan-purple neon, rainbow light blobs, glass cards, and glowing borders.
-4. **Do not use any element inconsistent with the overall style**: styles from outside the system are prohibited, such as rounded icons or rounded rectangles in a sharp-edged visual language.
-5. **Keep chart backgrounds transparent**: use transparency or the slide background color, except for reversed charts on dark backgrounds.
-6. **Do not leave regions blank**: do not leave an entire planned region empty within the body content area. Every planned region must contain real content; failing to fill it is the most serious sign of an unfinished layout.
-
-## PART B — Signature System (Distinctive Template Signature; PART B Takes Precedence in Conflicts with PART A)
+## Signature system
 
 One-line style signature: approachable, rational, whiteboard-like derivations on white, with pale pink–mist blue–mint chapter colors; electric blue and magenta carry fixed variable semantics; low-to-medium density with progressive reveal.
 
@@ -51,7 +12,7 @@ One-line style signature: approachable, rational, whiteboard-like derivations on
 
 【Typography】PDF embedding has been verified: use OptimisticDisplay-Medium for headings, with a single key phrase optionally switched to OptimisticDisplay-Bold. Use OptimisticText-Regular/Bold for body text and labels. Use STIXGeneral-Regular/Italic for equations, with italic variables and upright operators. Taking the source deck's body text size of 40 as 1x, the heading size of 74 is approximately 1.85x. There is no consistent large-numeral tier. Main equations are usually 1.4–1.75x, with occasional use of 2.8x on minimal mechanism slides; figure captions are 0.6–0.75x and citations 0.5x. Use sentence case for headings, never all caps. Serif type is reserved for mathematics. Render with {latin: Liter, ea: MiSans} (headings Medium/Bold); use STIX Two Text for equations (via customFonts).
 
-【Chart Language】The source uses single- and dual-line charts, paired bar comparisons, minimal comparison tables, sample matrices, scatter plots, vector fields, trajectory schematics, and process-node diagrams. Tables inherit PART A, with no consistent additional treatment. ⭐Almond sandbox: use contours, point clusters, fine trajectories, and a small number of samples to spatialize abstract objects. ⭐Color-linked equation and diagram: key equation terms share their color with the corresponding arrows, points, and labels in the figure. ⭐Fixed-base progression: retain the same base figure and viewpoint across 2–5 adjacent slides, adding only one trajectory, condition, or equation term per slide; only the new element receives color. Standard performance charts do not label every data point; retain axes, legend, and source.
+【Chart Language】The source uses single- and dual-line charts, paired bar comparisons, minimal comparison tables, sample matrices, scatter plots, vector fields, trajectory schematics, and process-node diagrams. Tables inherit the category baseline, with no consistent additional treatment. ⭐Almond sandbox: use contours, point clusters, fine trajectories, and a small number of samples to spatialize abstract objects. ⭐Color-linked equation and diagram: key equation terms share their color with the corresponding arrows, points, and labels in the figure. ⭐Fixed-base progression: retain the same base figure and viewpoint across 2–5 adjacent slides, adding only one trajectory, condition, or equation term per slide; only the new element receives color. Standard performance charts do not label every data point; retain axes, legend, and source.
 
 【Signature Components】①Light-gray theorem/conclusion strip: spans the lower half of the slide or sits next to the relevant equation; use no more than 2 per slide, and only for a theorem, condition, conclusion, or caveat. ②Almond canvas: uses a 1–2 px dark outline; use 1–3 per slide, and only for geometry, distributions, trajectories, and corresponding samples. ③Blue downward arrow + magenta upward arrow: expresses only inverse operations or two directions of operation; use no more than 1 pair per slide. ④Within-chapter route strip: place 3 thumbnails side by side; add a #F1F4F7 backplate to the current stage and reduce the others to approximately 40% opacity. Use only on subsection transition slides. ⑤Progressive construction sequence: established graphics remain fixed in place; each new slide reveals only one new piece of evidence or transformation. Do not use this pattern for a single-slide summary.
 

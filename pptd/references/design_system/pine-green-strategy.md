@@ -1,47 +1,8 @@
 # Pine Green Strategy · consulting STYLE DESIGN SYSTEM
 
-## PART A — Category Baseline (General Minimum)
+Category baseline: [baselines/consulting.md](baselines/consulting.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-A professional, high-density consulting presentation benchmarked against top-tier strategy firms (McKinsey/BCG), with the aesthetic of a premium editorial publication.
-
-Content and layout:
-1. Rich data visualization: fill the page with complex, precise charts (stacked columns, waterfall charts, line charts) and detailed data tables with complete rows and columns.
-2. Structured frameworks: include a strategy map or a 2×2 matrix built with fine, clear lines.
-3. High information density: use complex layouts and multi-column design that resemble a real business analysis presentation, not a cover with expansive blank space.
-
-Visual style:
-1. Aesthetic: balance a technological feel with information richness. Keep it concise, clear, and authoritative.
-2. Typography: use a bold sans serif for main titles; use the same sans family for chart labels and data figures.
-3. Color: use a pure white background and pure black text; use deep royal blue for charts and graphic elements, with different gray values to distinguish hierarchy.
-4. Graphics: use fine borders for tables and precise vector lines for charts.
-
-Structure and discipline (distilled from outputs we recognize as benchmarks):
-1. Every body-page title must be a complete assertion (a conclusion sentence), with a one-line scope/definition subtitle stating what the page covers and how to read it.
-2. Every body page carries a chapter breadcrumb/tab bar with the current chapter node highlighted, so any single page can be located in the storyline.
-3. One named analytical framework per page, not a loose collage: a pressure-convergence bar, a phased timeline with a TODAY marker and stage gates, a three-scenario table (conservative/base/accelerated), a five-forces diagram, a heat table, a difficulty × impact 2×2 (with an observation zone), an upstream/midstream/downstream value chain, a multidimensional persona matrix—choose the framework based on the content.
-4. Run parallel evidence in 2–3 equal-width columns; number independent judgments (1/2/3), each with a bold claim line + one brief explanation.
-5. Chart annotation discipline: place data labels on marks, growth/level callouts (such as「+42% p.a.」), and a TODAY marker; use dashed lines for forecasts; give uncertain quantities a named observable metric; never make a chart rely on the legend alone.
-6. Most pages close with a bottom synthesis bar (「how to read this page」/「persona interpretation」/a one-line so-what), converting the evidence above into a single takeaway.
-7. Fixed page trio: source/footnote line at bottom left and page number at bottom right; never omit them or use them as decoration. Generated decks never add watermarks, confidentiality notices/stamps, copyright lines, or logo placeholders.
-8. Open with one overview executive summary + a numbered page-by-page contents list; close with numbered conclusions (claims, not a summary) + an implications page split by reader type (such as policy makers/operators/buyers), with each column landing on an action.
-9. Numbers must carry units, time ranges, and definitions; express uncertainty through monitorable observable metrics, not hedging language.
-
-Default baseline (distilled from the layout skill, PART B may override): body pages are high-density and multi-column, carrying at least one complex chart or one multi-row, multi-column data table; never use「one large sentence + expansive blank space」as a body page; build framework diagrams (strategy maps/2×2/driver trees) with fine, clear vector lines rather than stacked color blocks; use fine table borders with no heavy fills, and keep the dominant hues on one page ≤2.
-
-**Read-the-titles test**: reading only the page titles across the deck should let you hear the complete story; if they do not read coherently, the structure is not working.
-
-> Priority note: this section is the minimum baseline for consulting contexts. When the Signature System below (PART B) conflicts with it, follow the Signature System—especially for background, color, and typography; the font/color items above apply as defaults only when the Signature System is silent.
-
-### Global Prohibitions (AI Default Patterns · Mandatory)
-
-1. **Do not default to cards**: unless the user explicitly requests them, never use rounded rectangles or rectangular cards to build hierarchy or alignment—containers that carry information functions (status lights, assumption boxes, quotation boxes) do not count as cards. Lines, whitespace, type size, and weight differences are preferable.
-2. **Do not default to equal-split composition**: unless no other usable layout exists, do not default to thirds, quarters, or a two-by-two matrix—equal splits must be justified by the content structure (three scenarios naturally mean three columns; frameworks explicitly named in the body are exempt).
-3. **No ungrounded AI color schemes**: the institutional palette specified in the body is exempt; what is prohibited is bland, common, unsupported default color—blue-purple gradients, cyan-purple neon, rainbow flares, glass cards, and glowing borders.
-4. **No elements that clash with the overall style**: do not introduce styles outside the visual language, such as rounded icons or rounded rectangles in a sharp-edged style.
-5. **Make chart backgrounds transparent**: use transparency or the page background, except for reversed type on a dark background.
-6. **No empty regions**: leave no solid block of blank space in the body content area; every planned region must be filled with real content, and failing to fill it is the most serious form of roughness.
-
-## PART B — Signature System (Template-Specific Signature; takes precedence over PART A in conflicts)
+## Signature system
 
 One-line style signature: use darkened technology photography as the header background, let deep forest green govern conclusions and structure, use bright mint green for emphasis, and keep the overall density high while allowing large light-gray/light-green zones to create breathing room.
 

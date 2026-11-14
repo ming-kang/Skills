@@ -181,7 +181,7 @@ Contrast floor: on `ink`, only white/light-teal text; data labels on deep `teal`
 
 - [ ] Every page has one and only one explicit conclusion, presented as an italic serif sentence directly under the title.
 - [ ] The 6 pages form a complete narrative: conclusion → market structure → consumer segmentation → channel and membership economics → opportunity map → action recommendations.
-- [ ] Every number can be traced one-to-one to query.md; nothing fabricated, no external data.
+- [ ] Every number can be traced one-to-one to the task query or user materials; nothing fabricated, no external data.
 - [ ] All colors come from the §4 tokens; chart coloring follows the §7 recipes; no gradients/shadows.
 - [ ] Only two font families: serif `{Oranienbaum, 思源宋体}` and sans-serif `MiSans`; sizes follow §3.
 - [ ] The header wordmark, beige footer band + page number, and under-chart source notes are present on every page at consistent positions.

@@ -1,45 +1,8 @@
 # Blue Flame Brand · work_report STYLE DESIGN SYSTEM
 
-## PART A — work_report Baseline (Universal Floor)
+Category baseline: [baselines/work-report.md](baselines/work-report.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-Conclusion-first business reporting, benchmarked against top-tier business reviews and project progress briefings: every page scannable in 30 seconds, every number able to withstand drill-down — status backed by evidence, deviations attributed, asks spelled out.
-
-Content and layout:
-1. Management structure: executive overview (one-page verdict on completion) → core metrics vs. targets → revenue/mix analysis → deviation attribution → project status (red/amber/green) → cost and efficiency → next-period actions → items needing decisions and support.
-2. Status visualization is the signature: red/amber/green status lights, target vs. actual tables, progress bars with numeric labels, variance waterfalls, milestone timelines.
-3. Medium-high density, grid discipline: pages are built from aligned status modules and tables; zero decoration; every module answers "so what" on the spot.
-
-Visual style:
-1. Aesthetics: crisp, corporate, instrumental; the reader can audit the quarter from the pages alone.
-2. Type: a single sans-serif family throughout, hierarchy built on weight and size; numbers column-aligned; never use serif display type (except the serif pairing specified in PART B).
-3. Color: a neutral structural palette plus one accent for emphasis and current-period highlights; green/amber/red express status only, never decoration.
-4. Graphics: simple chart types (bar comparisons, line trends, waterfall attribution); fine table rules, right-aligned numbers; no 3D, no pictographs as data, no gradient fills.
-
-Structure and discipline:
-1. Page one is always the verdict: one sentence on overall completion + target vs. actual for 3–5 headline metrics; no filler cover fluff.
-2. Every metric shows the trio — target / actual / attainment rate; actual without target is a defect.
-3. Deviation pages attribute quantitatively: the gap decomposes into named causes that sum exactly to the total gap — no unexplained remainder.
-4. Project status comes as a trio: status light + evidence (progress %, milestones) + corrective action (with owner and date); a red item without a recovery plan is a defect.
-5. Next-period actions are commitments: each carries an owner, a deadline, and an expected quantified effect.
-6. Trend pages mark the reporting-period boundary, with inflection causes annotated inside the chart; forecast segments use dashed lines labeled as plan/estimate.
-7. Parallel modules align strictly to the grid: same row, same height, same baseline; mixed content is grouped by meaning, not scattered.
-8. Numbers must carry unit, period, and basis; estimates and modeled values follow the conventions of the underlying project materials.
-9. The deck closes on items for management decision and support — listed one by one, each with the consequence of delay; no thank-you page endings.
-
-Default baseline (PART B may override): progress / attainment / red-amber-green status use one unified lightweight component, drawn one way across the deck; each page has 1 theme + 2–4 supporting points, the conclusion graspable within 5 seconds; every metric carries its "so what" — cause, impact, or next action — no bare-number piles. Density anchor: per-page minimums for evidence modules, charts, and labeling habits follow this style's density-baseline section; this baseline imposes no uniform numbers.
-
-**Headline read-through test**: reading only the page titles across the deck should tell the complete story; if the read-through fails, the structure has not been established.
-
-### Global Prohibitions (AI Default Patterns · Mandatory)
-
-1. **No default cards**: strictly no rounded-rectangle cards to build hierarchy or alignment — containers serving information functions (status lights, decision cards, quote boxes) do not count as cards. Rules, whitespace, and size/weight contrast are the better solution.
-2. **No evenly split compositions**: no default three-way, four-way, or 2×2 matrix splits — even splits must be justified by content structure.
-3. **No unmotivated AI color schemes**: palettes specified in the body are exempt; what is banned is the mediocre, unjustified default — blue-purple gradients, cyan-purple neon, rainbow flares, glass cards, glowing borders.
-4. **No element that clashes with the overall style**: nothing outside the style may appear.
-5. **Transparent chart backgrounds**: transparent or the page background color, except reversed-out on dark.
-6. **Care with large empty areas**: whitespace for breathing, grouping, and rhythm is allowed; padding to fill space, or stretching thin content into a crowded page, is treated as a defect.
-
-## PART B — Signature System
+## Signature system
 
 One-line style signature: a late-night operations war room — on a near-black blue ground, flame cyan and ice blue form two tiers carrying data and attainment, amber owns anomalies and consequences, mixed-weight conclusion titles sit in a fixed four-corner skeleton, and photography stays on the cover only.
 

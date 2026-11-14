@@ -1,23 +1,8 @@
 # Black Gold Ledger · finance STYLE DESIGN SYSTEM
 
-## PART A — finance Baseline (Universal Floor)
+Category baseline: [baselines/finance.md](baselines/finance.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-Institutional-grade investment research presentations, benchmarked against top-tier fund research reports, due diligence, and strategy outlooks. Chart-heavy, text on the dense side, more report than consulting: Excel-style financial model tables carry the argument; every number is traceable, every assumption made explicit, every conclusion executable.
-
-Content and layout:
-1. Thesis-driven structure: deal decks run "summary → highlights → target → financial diagnosis → valuation & returns → risk mitigation → decision ask"; research decks run "stance → evidence → scenarios → allocation advice". The ending must land on an explicit decision or stance.
-2. Tables are the protagonist: valuation ranges, comparable companies, the three financial statements, scenario modeling, sensitivity grids — all under strict row/column discipline (assumption columns, driver rows, check rows); charts serve the numbers, never decorate.
-3. High but ordered density: multi-column layouts with clear hierarchy; each page answers one investment-committee question; density comes from evidence modules, not walls of text.
-
-Visual style: restrained, authoritative, compliance-clean; no lifestyle photography, decorative icons, or marketing superlatives. Serif is allowed for titles when gravitas is needed; table body text, chart labels, and all figures use sans-serif, with numbers column-aligned. A conservative institutional palette: deep structural colors plus one restrained accent, reserved for key figures and recommended actions; positive/negative semantic colors fixed, expressing financial meaning only. Fine table rules, precise vector chart lines; no 3D or shadows; gradients are not part of the standard chart language.
-
-Structure and discipline: every body-page title must be a complete investment assertion, with a one-line subtitle stating scope and how to read it; every number must carry unit, as-of date, and measurement basis — estimates must be flagged, no bare numbers; returns are given only as scenario ranges (bear/base/bull, with probabilities or assumptions), never a single-point IRR, and every valuation conclusion ships with a sensitivity table; assumptions are boxed and made explicit, placed on the page whose conclusion depends on them; risks and mitigations appear in pairs (risk → probability/impact → mitigation → owner); every valuation page must have an anchor (comparable companies, precedent transactions, or DCF cross-check); parallel evidence runs in 2–3 equal-width columns, numbered arguments carrying one bolded claim line plus one proving sentence; chart labels sit on the marks, forecast segments use dashed lines, key drivers are named inside the chart — never rely on the legend alone; the deck closes on a decision or stance, with next actions and a timeline — never end on a thank-you page.
-
-Default baseline (PART B may override): key metrics are set in a size larger than body text, adjacent to their units and basis; at least one class of high-density financial table is kept, with right-aligned numbers, thousands separators, and a unified negative-number convention; positive/negative semantic colors fixed across the deck; forecast vs. historical visually distinguishable and labeled by basis; each page carries source, basis, and time range in small gray footer text; a single temperament per deck — choose one. Headline read-through test: reading only the page titles across the deck should tell the complete story. Density anchor: per-page minimums for evidence modules and charts follow the PART B density baseline.
-
-Global prohibitions (mandatory): no default cards (information containers such as status lights, assumption boxes, and verdict bands do not count as cards); no unearned even splits (three/four-way splits and 2×2 grids must be justified by content); no unmotivated AI color schemes (blue-purple gradients, cyan-purple neon, glass cards, glowing borders); no elements that clash with the overall style; chart backgrounds transparent or same as the page background (except reversed-out on dark); no large empty blocks in the body area — planned regions must be filled with real content.
-
-## PART B — Signature System
+## Signature system
 
 One-line style signature: financial-periodical order in black, white, and gray — white evidence pages carry verifiable numbers via axis-free charts and hairline tables, dark pages hold only judgments and decisions, a single gold anchors current values and key thresholds, and no stray hues appear anywhere in the deck.
 
@@ -36,7 +21,7 @@ All values below are approximations sampled from the reference images; a single 
 - Primary gold #D6A000 (approx.): the single strong accent anchor — KPI big numbers, current endpoints, threshold capsules, the short gold cover line, key horizontal bars; under 3% of any single page's area, one gold focus per page, no light/dark double gold.
 - Copper brown #A86038 (approx.): the only auxiliary semantic color, reserved for exit/risk-related amounts, low frequency.
 - Structural lines: on white pages #0A0A0A (approx.) sets page-level boundaries, #D6D6D6 / #E9E9E9 (approx.) separate rows and modules; on dark pages the divider is #302F2D (approx.).
-- No red/green up-down system (overrides the PART A baseline): gold marks current and key values, copper brown marks exits/risk, and all other data recedes into neutral gray steps.
+- No red/green up-down system (overrides the category baseline): gold marks current and key values, copper brown marks exits/risk, and all other data recedes into neutral gray steps.
 
 【Layout Skeleton】
 Source facts: 16:9 canvas (source images 1467×825 px, generated at 960×540 pt); left/right margins about 5.5% of canvas width (~52 pt), content span about 89%. The grid resolves to 12 columns, combined per content into thirds, roughly 2:1, roughly 1:1, or five-column tables, overall asymmetric; no logo, no breadcrumbs — the English masthead on the cover carries the publication identity.
@@ -73,7 +58,7 @@ Modern sans-serif for both CJK and Latin (Source Han Sans temperament). Title we
 
 【Prohibited】
 - No colored chart series or second accent: apart from gold (and low-frequency copper brown), all data series run in gray steps.
-- No red/green up-down pairs: positive/negative semantics are not carried by red and green (overrides the PART A baseline).
+- No red/green up-down pairs: positive/negative semantics are not carried by red and green (overrides the category baseline).
 - No pies, donuts, radars, stacked areas, 3D, shadows, gradients, glows, or default Office chart styles.
 - No y-axes, gridlines, or chart frames — axes keep only the baseline; no chart that can only be read via its legend.
 - No complex data grids on dark pages: dark pages carry only stage judgments, executive summaries, and decision asks.

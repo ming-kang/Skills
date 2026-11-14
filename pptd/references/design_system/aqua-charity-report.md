@@ -1,54 +1,8 @@
 # Aqua Charity Report · Promotion STYLE DESIGN SYSTEM
 
-**Create at Full Strength**: Bring your full creativity and imagination to the work. Treat every slide as an independent, complete design artifact worthy of close consideration; structure, composition, charts, imagery, and visual narrative must all be driven by the content rather than a default layout.
+Category baseline: [baselines/promotion.md](baselines/promotion.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-**No AI Slop**: Do not produce low-judgment, formulaic, decoration-heavy AI defaults, including arbitrary card arrays, evenly divided grids, unmotivated blue-purple gradients or glassmorphism, icon walls, hollow oversized text, repetitive skeletons, or visual gimmicks unrelated to the content. Every slide must reflect a clear design decision grounded in the material.
-
-**Landscape Delivery**: The final presentation must use a 16:9 landscape format throughout. Portrait or non-16:9 source material may be used only for style reference; it must be recomposed for 16:9 landscape and must not retain the source canvas ratio directly.
-
-**Layout Coordination**: style.md is the final authority for style (typography/color palette/components/chart language/prohibited elements); the “Layout/Visual Task” line for each slide in query.md governs that slide’s content structure, primary anchor, and reading order—both are execution specifications. Follow the task line in query.md for layout intent, while style.md remains the final authority for visual treatment.
-### Global Prohibitions
-
-1. **Do Not Use Cards by Default**: Unless the user explicitly requests them, never use rounded-rectangle or rectangular cards to create hierarchy or alignment—functional containers such as status indicators, assumption boxes, and quote boxes do not count as cards. Lines, whitespace, font-size contrast, and font-weight contrast are preferred.
-2. **Do Not Default to Equal-Division Layouts**: Unless no other layout is viable, do not default to three equal columns, four equal columns, or a two-by-two matrix. Equal division must be justified by the content structure (three scenarios naturally support three columns; frameworks explicitly named in the body copy are exempt).
-3. **Do Not Use Unmotivated AI Color Schemes**: Institution-specific palettes defined in the content are exempt. What is prohibited is a safe, familiar, unsupported default palette—blue-purple gradients, cyan-purple neon, rainbow light flares, glass cards, and glowing borders.
-4. **Do Not Introduce Elements That Conflict with the Overall Style**: Never use styling outside the design language, such as rounded icons or rounded rectangles within a sharp-edged visual system.
-5. **Keep Chart Backgrounds Transparent**: Use transparency or the slide background color, except when reversing content out of a dark background.
-6. **Use Large Areas of Whitespace Deliberately**: Maintain appropriate density in the main content area. Diluting content merely to reach a target count, or forcing content into a crowded slide, is a defect. Whitespace used for breathing room, grouping, and rhythm is permitted; form must follow content, and nothing should be forced in simply to fill the canvas.
-
-## PART A — Category Baseline (General Minimum Standard)
-
-An emotion-led yet fully auditable brand presentation, benchmarked against top-tier agency annual reports, campaign retrospectives, and destination/product launch decks. Every slide must land one memorable creative idea while keeping every claim verifiable—expressive in form, disciplined with numbers.
-
-Content and Layout:
-1. Creative-driven structure: a single annual/campaign proposition → audience and market evidence → development of the big idea (waves/chapters) → channel and content system → results with full measurement context → direction for the following year.
-2. Make major metrics the protagonists: give a small number of headline metrics full-slide or oversized typographic emphasis; arrange supporting evidence around them in compact modules.
-3. Build rhythm at medium density: alternate evidence-dense slides with spacious statement slides; the deck should rise and fall like a story rather than filling every surface like a report.
-
-Visual Style:
-1. Aesthetic: confident, contemporary, and brand-first. Use photographic or illustrative texture only when it is genuinely present in the source style—never use stock assets as filler.
-2. Typography: one expressive display face carries the major propositions according to the style signature, while one highly legible workhorse face handles body copy and data. Use the display face for large numbers; apply capitalization and letter-spacing rules consistently throughout the deck.
-3. Color: use one brand color family per deck (one primary color plus lighter and darker steps), with one contrasting accent reserved for CTAs and highlighted data. Background colors follow the style signature. No rainbow charts.
-4. Graphics: reduce charts to the story line (few series, direct labels). Timelines, funnels, and audience bars are signature graphic forms. Icons must follow the established line or filled language of the style; multicolored clip art is prohibited.
-
-Structure and Discipline (Derived from Outputs We Recognize as Best-in-Class):
-1. One big idea per slide: the slide title states the campaign proposition or chapter message, and every module on the slide serves that single idea.
-2. Campaign evidence must include complete measurement context: impressions, completion rate, engagement rate, and conversion must always specify platform, period, and sample scope. Vanity numbers without context are a defect.
-3. Timeline slides are first-class citizens: every wave, season, or phase has a named cadence and phase-specific metrics. A campaign deck without a rhythm slide is incomplete.
-4. Audience slides use funnels, tiers, or audience bars—demographics must be tied to behavior and value; never show bare percentages alone.
-5. Results slides distinguish outputs (impressions, content volume) from outcomes (search lift, share of new customers, sell-through rate). Outcomes must rank above outputs visually.
-6. Case-study deep dives use fixed fields: Context → Action → Numerical Evidence → Implication. Parallel cases must use consistent, comparable fields.
-7. Social/UGC evidence must cite realistic scale and show representative content structures. Always redraw third-party platform screenshots rather than reproducing them directly.
-8. The ending must set direction: next year’s theme, total budget and allocation, and the measurement framework. A closing slide that only says thank you is a defect.
-9. Every number must include a unit, point in time, and source/methodology context. Label estimates as internal illustrative assumptions.
-10. Imagery and Shape Expression: when permitted by the style signature, actively source authentic imagery and use a creative shape language (torn edges, collage, irregular crops, signature shapes) instead of ordinary rectangular blocks. Flat rectangles are a last resort, not the default.
-
-Default Baseline (Derived from the layout skill; PART B may override): one proposition per screen; each slide communicates only one core message; continuous body copy on content slides must not exceed 3 lines; visual tension must have a clear source (large whitespace/strong contrast/large fields of the primary brand color/full-bleed product or portrait imagery), with at least one applied consistently throughout the deck; no table-heavy layouts—prioritize big numbers, single charts, and comparison bars; use one decorative language throughout the deck and never mix more than two decorative systems.
-
-Density Anchor: the specific minimum for each style (number of evidence modules per slide, chart count, and labeling conventions) follows the 【Density Baseline】 reverse-engineered from that style’s source material—this baseline does not impose a universal number.
-
-
-## PART B — Signature System (Distinctive Template Signature; This Section Overrides PART A in Case of Conflict)
+## Signature system
 
 One-Sentence Style Signature: a humanistic documentary annual-report character + warm-white and cream grounds + aqua and yellow as primary accents, alternating cool-blue data slides with evidence slides and full-bleed photography.
 

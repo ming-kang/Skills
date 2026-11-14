@@ -1,54 +1,8 @@
 # Travel Green Handbook · Promotion STYLE DESIGN SYSTEM
 
-**Create at Full Capacity**: Apply your full creativity and imagination. Treat every slide as an independent, complete design work worthy of close consideration; structure, composition, charts, imagery, and visual storytelling must be driven by the content rather than forced into default layouts.
+Category baseline: [baselines/promotion.md](baselines/promotion.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-**No AI Slop**: Do not produce low-judgment, formulaic, decoration-heavy AI defaults, including unjustified card arrays, equal-split grids, arbitrary blue-purple gradients or glassmorphism, icon walls, hollow oversized text, repetitive skeletons, or visual gimmicks unrelated to the content. Every slide must demonstrate a clear design decision grounded in its content.
-
-**Landscape Delivery**: Deliver the final presentation in a consistent 16:9 landscape format. Portrait or non-16:9 source materials are references for style observation only; they must be recomposed for 16:9 landscape and must never retain the original canvas proportions directly.
-
-**Layout Coordination**: style.md is the final authority on style (typography, color, components, chart language, and prohibited treatments); the “Layout/Visual Task” line for each slide in query.md governs that slide’s content structure, primary anchor, and reading order. Both are execution specifications: follow the task behavior in query.md for layout intent and style.md for the final visual treatment.
-### Global Prohibitions
-
-1. **Do not use cards by default**: Unless the user explicitly requests them, never use rounded rectangles or rectangular cards to create hierarchy or alignment. Functional containers such as status indicators, assumption boxes, and quotation frames are not considered cards. Lines, negative space, type scale, and weight contrast are better tools.
-2. **Do not use equal-split compositions**: Unless no viable alternative exists, do not default to three equal columns, four equal columns, or a two-by-two matrix. An equal split must be justified by the content structure—three scenarios naturally warrant three columns, and frameworks explicitly named in the body content are exempt.
-3. **Do not use ungrounded AI color schemes**: Institutional palettes specified in the content are exempt. The prohibition applies to generic, overfamiliar, unjustified defaults—blue-purple gradients, cyan-purple neon, rainbow flares, glass cards, and glowing borders.
-4. **Do not introduce elements that conflict with the overall style**: Never use forms outside the established visual language, such as rounded icons or rounded rectangles in a sharp-edged style.
-5. **Keep chart backgrounds transparent**: Use transparency or the slide background color, except when reversing to light graphics on a dark background.
-6. **Use large areas of negative space deliberately**: Maintain appropriate density in the content area. Artificially padding or diluting content, or cramming a slide, is a defect. Negative space used for breathing room, grouping, and rhythm is permitted; form must follow content, and content must never be forced in merely to fill the canvas.
-
-## PART A — Category Baseline (Universal Minimum Standard)
-
-A brand presentation that leads with emotion while keeping every piece of evidence auditable, benchmarked against top-tier agency annual reports, campaign retrospectives, and destination or product launch decks. Every slide must land one memorable creative idea while keeping every claim verifiable—bold in form, disciplined with numbers.
-
-Content and layout:
-1. Creative-led structure: a single annual/campaign proposition → audience and market evidence → development of the big idea (waves/chapters) → channel and content system → results with full measurement context → direction for the following year.
-2. Make headline metrics the protagonists: give a small number of key figures full-slide or oversized-type emphasis; arrange supporting evidence around them in compact modules.
-3. Use medium density to create rhythm: alternate evidence-dense slides with spacious statement slides; the deck should rise and fall like a story, not fill every space like a report.
-
-Visual style:
-1. Aesthetic: confident, contemporary, and brand-first; use photography or illustration only when the source style genuinely calls for it—never use stock assets merely to fill space.
-2. Typography: one expressive display typeface carries the major propositions, as defined by the style signature; one highly legible workhorse typeface handles body copy and data. Set large numbers in the display typeface. Apply capitalization and tracking rules consistently across the deck.
-3. Color: one brand color family per deck—one primary color plus lighter and darker tonal steps—with a single contrasting accent reserved for CTAs and highlighted data; the background follows the style signature. No rainbow charts.
-4. Graphics: reduce charts to the story essentials, using few series and direct labels. Timelines, funnels, and audience bars are signature chart forms. Icons must follow the established line or fill language of the style; no multicolor clip art.
-
-Structure and discipline (derived from the work we recognize as benchmark quality):
-1. One big idea per slide: the slide title states the campaign proposition or chapter message, and every module on the slide serves that single idea.
-2. Campaign evidence must include complete measurement context: impressions, completion rate, engagement rate, and conversion must always specify platform, period, and sample scope. Vanity metrics without context are a defect.
-3. Timeline slides are first-class citizens: every wave, season, or phase has a named beat and phase-specific metric. A campaign deck without a pacing slide is incomplete.
-4. Audience slides use funnels, tiers, or audience bars—demographics must be tied to behavior and value; never show bare percentages alone.
-5. Results slides distinguish outputs, such as impressions and content volume, from outcomes, such as search lift, share of new customers, and sell-through rate. Outcomes take visual priority over outputs.
-6. Deep-dive case studies use fixed fields: context → action → numerical evidence → implication. Parallel cases must use consistent, comparable fields.
-7. Social/UGC evidence cites authentic scale and shows representative content structures. Always redraw screenshots from third-party platforms.
-8. The ending must provide direction: next year's theme, total budget and allocation, and measurement framework. A closing slide that only says thank you is a defect.
-9. Every number must include a unit, time reference, and source/methodology context; label estimates as internal illustrative assumptions.
-10. Imagery and shape language: when permitted by the style signature, proactively source authentic imagery and use expressive shapes—torn edges, collage, irregular crops, and signature forms—instead of generic rectangular blocks. Flat rectangles are the last resort, not the default.
-
-Default baseline (derived from the layout skill; PART B may override): one screen, one proposition; each slide communicates only one core message; continuous body copy on a content slide must not exceed 3 lines. Visual tension must come from at least one clearly defined source—expansive negative space, strong contrast, a large field of the brand color, or full-bleed product/people imagery—and remain consistent throughout the deck. Do not stack tables; prioritize oversized figures, a single chart, or comparison bars for data. Use one decorative language across the deck; never mix two or more decorative systems.
-
-Density anchor: the specific minimum for each style—the number of evidence modules and charts per slide, plus annotation conventions—must follow the 【Density Baseline】 reverse-engineered from that style's source deck. This baseline does not impose one universal numeric target.
-
-
-## PART B — Signature System (Template-Specific Signature; Overrides PART A in Case of Conflict)
+## Signature system
 
 One-line style signature: a warm, humanistic editorial handbook—gray-beige paper, a river-blue primary axis, and one chapter-level accent such as coral or burgundy, alternating medium-low-density narrative slides with high-density sample slides.
 
@@ -72,4 +26,4 @@ Image evidence matrix | Compare similar scenes or cases | Left lead-in 25%, righ
 Split-color principles | Present a rule overview | Left 1/3 lead-in, right 2/3 dark zone | 3–4 blocks | Split-color principles board | Not suitable for light-colored charts.
 Application showcase | Demonstrate finished applications | Open title area above, 1–4 samples arranged horizontally below | 1–4 blocks | Square-cornered samples | Not suitable for complex causality.
 
-【Density Baseline】 Do not impose one universal hard minimum across slide types. Narrative introduction slides use 1–2 blocks of 180–320 words/characters equivalent each and may contain 6–14 lines of body copy, overriding PART A’s default “three lines.” Left lead-in—right arguments slides use 4–5 blocks of 35–90 words/characters equivalent each. Central sample anatomy slides use 6–10 labels of 10–35 words/characters equivalent each. Image matrices use 4–6 images with 20–60 words/characters equivalent per image. Application showcase slides use 1–4 samples with only brief annotations. Source body slides typically contain 0 statistical charts; when a new deck must add one, use no more than 1 chart per slide and label only series endpoints and conclusion points, not every bar or data point. Concentrate negative space below titles, between columns, and above the footer as deliberately reserved space within the grid.
+【Density Baseline】 Do not impose one universal hard minimum across slide types. Narrative introduction slides use 1–2 blocks of 180–320 words/characters equivalent each and may contain 6–14 lines of body copy, overriding the category baseline’s default “three lines.” Left lead-in—right arguments slides use 4–5 blocks of 35–90 words/characters equivalent each. Central sample anatomy slides use 6–10 labels of 10–35 words/characters equivalent each. Image matrices use 4–6 images with 20–60 words/characters equivalent per image. Application showcase slides use 1–4 samples with only brief annotations. Source body slides typically contain 0 statistical charts; when a new deck must add one, use no more than 1 chart per slide and label only series endpoints and conclusion points, not every bar or data point. Concentrate negative space below titles, between columns, and above the footer as deliberately reserved space within the grid.

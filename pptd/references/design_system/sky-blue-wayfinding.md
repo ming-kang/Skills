@@ -1,52 +1,13 @@
 # Sky Blue Wayfinding · Work STYLE DESIGN SYSTEM
 
-## PART A — Category Baseline (General Minimum Standard)
+Category baseline: [baselines/work-report.md](baselines/work-report.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-A conclusion-first business performance report benchmarked against top-tier operating review meetings and project progress briefings. Every page in this deck must be scannable within 30 seconds, and every number must withstand drill-down questions: status is evidenced, variances are attributed, and requests are explicit.
-
-Content and layout:
-1. Executive structure: conclusion overview (a one-page completion verdict) → key metrics vs targets → revenue/mix analysis → variance attribution → project status (red/amber/green) → cost and efficiency → next-period actions → items requiring decisions and support.
-2. Status visualization is the signature: red/amber/green status lights, target vs actual tables, progress bars with numeric labels, variance waterfalls, and milestone timelines.
-3. Medium-high density with strict grid discipline: pages are built from aligned status modules and tables; zero decoration; every module answers “So what?” in place.
-
-Visual style:
-1. Aesthetic: crisp, corporate, and tool-like; the reader should be able to audit the quarter from the pages alone.
-2. Typography: one sans-serif family throughout the deck; hierarchy comes from weight and size, not decorative type; numbers are always column-aligned and never set in serif display faces.
-3. Color: a neutral structural palette (deep slate/graphite + gray), with status colors reserved strictly for meaning—green/amber/red indicate status only, while one style-specific accent color marks priorities and current-period highlights; never use status colors decoratively.
-4. Graphics: simple charts (bar comparisons, line trends, variance waterfalls); thin table rules and right-aligned numbers; no 3D, no pictograms as data, and no gradient fills.
-
-Structure and discipline (distilled from the work we recognize as benchmarks):
-1. The first page is always the verdict: one sentence on overall completion + target vs actual for 3–5 headline metrics; never pad the deck with generic cover copy.
-2. Every metric must show all three: target, actual, and attainment rate; an actual without a target is a defect.
-3. Variance pages must quantify attribution: split the gap into named causes whose amounts sum to the total gap; unexplained residuals are not allowed.
-4. Every project status requires the full triad: status light + evidence (progress %, milestones) + corrective action (with owner and date); a red item without a recovery plan is a defect.
-5. Next-period actions are commitments, not wishes: every item includes an owner, timing, and expected quantified impact.
-6. Trend pages mark the reporting-period boundary and annotate causes of inflection points inside the chart; forecast segments use dashed lines and are labeled as plan/estimate.
-7. Parallel modules follow the grid precisely: modules in the same row share height and baseline; mixed content is grouped by meaning, never scattered.
-8. Every number includes its unit, period, and definition (GMV or revenue, order volume or sales value); estimated values are labeled as internally defined examples.
-9. The deck must end with items requiring management decisions and support—list each item with the consequence of delay; never close with a thank-you page.
-
-Default baseline (derived from the layout skill; PART B may override): use one consistent lightweight component system throughout for progress, attainment, and red/amber/green status; each page has 1 theme + 2–4 supporting points, with the conclusion evident within 5 seconds; every metric must include a “So what?”—the cause, impact, or next action—rather than a pile of bare numbers.
-
-**Headline read-through test**: reading only the slide titles should tell the complete story; if the sequence does not flow, the structure is not working.
-
-Density anchor: the specific minimum for each style (number of evidence modules and charts per page, plus annotation conventions) follows that style’s 【Density Baseline】 reverse-engineered from the source deck—this baseline does not impose a single universal number.
-
-### Global Prohibitions (AI Default Patterns · Mandatory)
-
-1. **Do not default to cards**: unless explicitly requested by the user, do not use rounded rectangles or rectangular cards to create hierarchy or alignment—containers with a genuine information function (status lights, assumption boxes, quote frames) do not count as cards. Lines, whitespace, and differences in type size and weight are better tools.
-2. **Do not default to equal-split compositions**: unless no other layout is viable, do not use default three-way, four-way, or two-by-two grids—equal division must be justified by the content structure (three scenarios naturally warrant three columns; frameworks explicitly named in the brief are exempt).
-3. **Do not use ungrounded AI color schemes**: institution-specific palettes defined in the body are exempt; what is prohibited is a generic, conventional, unjustified default—blue-purple gradients, cyan-purple neon, rainbow glows, glass cards, and luminous borders.
-4. **Do not use elements inconsistent with the overall style**: nothing outside the visual language may appear, such as rounded icons or rounded rectangles in a sharp-edged style.
-5. **Keep chart backgrounds transparent**: use transparency or the page background, except for reversed charts on dark backgrounds.
-6. **Do not leave planned regions empty**: no large blank area may remain in the main content zone; every planned region must be filled with real content, and failure to fill it is the most serious form of roughness.
-
-## PART B — Signature System (Distinctive Template Signatures; This Section Prevails over PART A in Case of Conflict)
+## Signature system
 
 One-sentence style signature: a calm operating-review aesthetic built on white and pale sky blue, with electric blue as the sole strong accent and deep navy anchoring the data; medium-high density throughout, with the rigor of an auditable worksheet.
 
 【Color Palette】
-Use #FFFFFF as the primary background across most body content and tables. Use #C2E6FF as a sectional background only for right-side explanation panels, full data regions, or section transitions—not as the deck-wide background. Use #D6F1FF for row and column highlights, limited to the current period, priority rows, and small label bands. #000000 is the primary text color for body copy, tables, and footnotes; avoid blue for long-form reading. Use #007ACC consistently for titles, rules, primary bars, and key numbers, concentrating it in title areas, primary chart series, and conclusion values rather than spreading it across ordinary pages. Use #001142 for dark contrast, limited to comparison bars, baselines, dark stacked segments, and a small amount of emphasized text; use #F2F2F2/#F5F6F7 for fine rules and alternating fills. Only feature pages may introduce #00948A and #7E59BD, respectively for two thematic series or color-blocked sections; do not let them spread into standard metric pages. Positive/negative coloring follows PART A, because the source deck has no stable red-green semantics; express negative values with #001142, parentheses, or downward bars. Standard body pages should generally retain only the blue family plus neutrals, with no more than three chromatic colors; flag/feature-chart pages may make localized exceptions without carrying them elsewhere. Never use #007ACC as a full-page fill; reserve an intense full-blue page for special slides such as disclaimers.
+Use #FFFFFF as the primary background across most body content and tables. Use #C2E6FF as a sectional background only for right-side explanation panels, full data regions, or section transitions—not as the deck-wide background. Use #D6F1FF for row and column highlights, limited to the current period, priority rows, and small label bands. #000000 is the primary text color for body copy, tables, and footnotes; avoid blue for long-form reading. Use #007ACC consistently for titles, rules, primary bars, and key numbers, concentrating it in title areas, primary chart series, and conclusion values rather than spreading it across ordinary pages. Use #001142 for dark contrast, limited to comparison bars, baselines, dark stacked segments, and a small amount of emphasized text; use #F2F2F2/#F5F6F7 for fine rules and alternating fills. Only feature pages may introduce #00948A and #7E59BD, respectively for two thematic series or color-blocked sections; do not let them spread into standard metric pages. Positive/negative coloring follows the category baseline, because the source deck has no stable red-green semantics; express negative values with #001142, parentheses, or downward bars. Standard body pages should generally retain only the blue family plus neutrals, with no more than three chromatic colors; flag/feature-chart pages may make localized exceptions without carrying them elsewhere. Never use #007ACC as a full-page fill; reserve an intense full-blue page for special slides such as disclaimers.
 
 【Layout Skeleton】
 Source-deck facts: the canvas is 720×405pt, 16:9. Body-slide titles are fixed near the upper-left boundary at approximately 34pt, at around 18pt type size. Many slides begin with a pale-blue horizontal bar spanning roughly one quarter of the canvas width, containing a shorter section label; the evidence area begins below the title. The standard reading path is title conclusion → left-side table/chart → right-side explanation or action → bottom footnote and page number. Two columns form the primary skeleton, typically with 55–65% on the left for data and 35–45% on the right for explanation/small charts; side-by-side comparison may also be created with square-corner white and #C2E6FF regions. In multi-period tables, left-align labels and right-align numbers. Project status pages use approximately 25–30% of the left side as a metadata rail and 70–75% of the right side for three to four narratives with leader lines. Only cover, section, Q&A, and appendix divider slides use full-bleed photography or a white title frame; special slides do not inherit the standard body grid.

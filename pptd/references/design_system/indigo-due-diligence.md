@@ -1,47 +1,8 @@
 # Indigo Due Diligence · Consulting STYLE DESIGN SYSTEM
 
-## PART A — Category Baseline (General Minimum)
+Category baseline: [baselines/consulting.md](baselines/consulting.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-A professional, information-dense consulting presentation benchmarked against top-tier strategy consulting firms (McKinsey/BCG), with a premium editorial aesthetic.
-
-Content and layout:
-1. Rich data visualization: Pages are filled with sophisticated, precise charts (stacked columns, waterfall charts, line charts) and detailed data tables with complete row and column structures.
-2. Structured frameworks: Include strategy maps or 2×2 matrices built with fine, crisp lines.
-3. High information density: Use complex, multi-column layouts that resemble real-world business analysis presentations rather than cover pages dominated by empty space.
-
-Visual style:
-1. Aesthetic: Balance a technology-forward feel with information density. Clean, clear, and authoritative.
-2. Typography: Use a serif typeface for primary titles (render with {latin: Oranienbaum, ea: 思源宋体}) to evoke a premium financial-report aesthetic; use a clean sans serif for chart labels and data figures.
-3. Color palette: Pure white background and pure black text; use deep royal blue for charts and graphic elements, with different gray values to distinguish hierarchy.
-4. Graphics: Use fine borders for tables and precise vector lines for charts.
-
-Structure and discipline (distilled from work we consider best-in-class):
-1. Every content slide title must be a complete assertion (a conclusion statement), followed by a one-line scope/method subtitle explaining what the slide covers and how to read it.
-2. Every content slide must include a chapter breadcrumb/tab bar with the current chapter highlighted, so any slide can be located within the narrative.
-3. Use one named analytical framework per slide, never a loose collage: pressure columns, phased timelines with a TODAY marker and stage gates, three-scenario tables (conservative/base/accelerated), Five Forces diagrams, heat tables, difficulty × impact 2×2 matrices (with an observation zone), three-part upstream/midstream/downstream value chains, or multidimensional profile matrices—select the framework to fit the content.
-4. Present parallel evidence in 2–3 equal-width columns; number independent judgments (1/2/3), each with a bold assertion line + one concise explanation.
-5. Chart annotation discipline: Place data labels directly on marks; add growth/level callouts (such as “+42% p.a.”), a TODAY marker, dashed lines for forecasts, and named observable indicators for uncertain quantities. Never rely on the legend alone.
-6. Conclude most slides with a synthesis bar at the bottom (“How to read this slide” / “Profile interpretation” / a one-sentence so-what) that converts the evidence above into a single takeaway.
-7. Fixed three-part slide furniture: source and footnote lines at bottom left, page number at bottom right; never omit these or treat them as decoration. Generated decks must never include watermarks, confidentiality notices/stamps, copyright lines, or logo placeholders.
-8. Open with a one-slide executive-summary overview + a numbered table of contents with page numbers; close with numbered conclusions (claims, not summaries) + an implications slide divided by audience type (such as policymakers/operators/buyers), with each column ending in actions.
-9. Every number must include its unit, time range, and measurement basis; express uncertainty through observable monitoring indicators rather than hedging language.
-
-Default baseline (distilled from the layout skill; PART B may override): Content slides use information-dense, multi-column layouts and must contain at least one complex chart or one multi-row, multi-column data table. Never use “one oversized sentence + a large empty area” as a content slide. Build framework diagrams (strategy maps/2×2 matrices/driver trees) with fine, crisp vector lines rather than stacked color blocks. Tables use fine borders without heavy fills; limit each slide to ≤2 primary hues.
-
-**Title read-through test**: Reading only the slide titles should tell the complete story; if they do not flow coherently, the structure has not been established.
-
-> Priority note: This section defines the minimum baseline for consulting scenarios. Where the signature system below (PART B) conflicts with it, the signature system takes precedence—especially for background, color palette, and typography. The typography/color guidance above applies only as a default when the signature system is silent.
-
-### Global Prohibitions (AI Default Patterns · Mandatory)
-
-1. **No cards by default**: Unless the user explicitly requests them, do not use rounded rectangles or rectangular cards to establish hierarchy or alignment—containers with a functional information role (status indicators, assumption boxes, quotation boxes) do not count as cards. Lines, whitespace, type size, and weight contrast are preferred.
-2. **No equal-split compositions**: Unless no other layout is viable, do not default to three equal columns, four equal columns, or a two-by-two matrix. Equal division must be justified by the content structure (three scenarios naturally warrant three columns; explicitly named frameworks in the body are exempt).
-3. **No arbitrary AI color palettes**: Institution-specific palettes defined in the content are exempt. Prohibited choices are bland, common, unsupported defaults—blue-purple gradients, cyan-purple neon, rainbow flares, glass cards, and glowing borders.
-4. **No elements inconsistent with the overall style**: Do not introduce off-style treatments, such as rounded icons or rounded rectangles in an angular visual system.
-5. **Keep chart backgrounds transparent**: Use transparency or the slide background color, except for reversed content on a dark background.
-6. **No empty content regions**: Do not leave entire planned regions blank; every allocated area must be filled with real content. Failure to fill a region is the most severe form of visual roughness.
-
-## PART B — Signature System (Distinctive Template Signature; Overrides PART A in Case of Conflict)
+## Signature system
 
 One-sentence style signature: A white and cool-gray foundation, deep navy, and royal blue create a composed due-diligence tone; serif conclusion titles, sans-serif data, and a right-side judgment panel connect dense evidence into one clear path.
 
@@ -55,7 +16,7 @@ One-sentence style signature: A white and cool-gray foundation, deep navy, and r
 
 【Signature Components】Place a numbered circle (#041C2C fill, white text) at the far left of the title, typically 1 per slide. On sequential detailed customer-profile slides, arrange five navigation pills horizontally across the top, with only the active item highlighted in bright cyan-blue. The right-side gray judgment panel sits flush to the edge at approximately one-third of the slide width and contains 2–4 takeaways/quotations. Use deep-navy, square-cornered label blocks for profile, SWOT, and risk-table row labels. Use fine-bordered elliptical pills for percentages/CAGR, no more than once per metric. The source material does not rely on photography; do not add photos.
 
-【Prohibited】No blue-purple gradients, neon, or rainbows; do not expand gray panels into a full-slide card wall; do not mix multiple blue palettes without a legend; do not replace square-cornered headers/fine rules with rounded cards (navigation pills are exempt); do not turn the right panel into a second main chart or use color blocks that obscure data. Use red sparingly and only for warnings; all other prohibitions inherit from PART A.
+【Prohibited】No blue-purple gradients, neon, or rainbows; do not expand gray panels into a full-slide card wall; do not mix multiple blue palettes without a legend; do not replace square-cornered headers/fine rules with rounded cards (navigation pills are exempt); do not turn the right panel into a second main chart or use color blocks that obscure data. Use red sparingly and only for warnings; all other prohibitions inherit from the category baseline.
 
 【Slide Types and Layouts】
 Conclusion + main chart + gray panel｜Trend/share/profitability｜Left 64–72% chart, right 28–36% judgment｜4–8 blocks｜Diagonal arrow/elliptical value/quotation｜Not suitable for a single small table.

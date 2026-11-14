@@ -1,31 +1,8 @@
 # Deep Blue Atlas · academic STYLE DESIGN SYSTEM
 
-## PART A — academic Baseline (Universal Floor)
+Category baseline: [baselines/academic.md](baselines/academic.md) — read alongside this file; the signature system below overrides baseline visual defaults on conflict, never evidence boundaries.
 
-Academic presentations benchmarked against top-tier research talks and thesis defenses (NeurIPS/CHI/SIGGRAPH main-track caliber): clarity of argument outranks decoration; the whole deck must read as one reproducible scientific claim, not marketing collateral. Academic register throughout — the disciplined vocabulary of research questions, hypotheses, evidence, significance, contributions, and limitations; no marketing or business-speak mixed in.
-
-Content and layout:
-1. Fixed argument skeleton: research question → gap in related work → data and method → main results → ablation/analysis → limitations → future work; short decks may compress, but the order may not be reversed.
-2. Evidence first: results tables must include baseline comparison columns with the best values marked, relative gains beside absolute numbers; core contributions presented as formally typeset equations; method pages carry reproducibility information (data scale, annotation protocol, key hyperparameters).
-3. Medium information density: one claim per page, evidence organized around that claim; pages are designed, not filled — whitespace is a legitimate device for separating stages of the argument.
-
-Visual style:
-1. Aesthetics: plain, precise, scholarly; no slogans, decorative photography, or icon clip art.
-2. Body text and labels in a clear sans-serif; titles may use serif when the source style does; equations formally typeset (KaTeX-grade), with proper numbering and italicized variables.
-3. One two-color system: a primary structural color + one accent, grays carrying hierarchy; negative/ablation signals use a single consistent warning color.
-4. Diagrams in thin, precise vector lines, tables in minimal horizontal rules; charts carry axis labels, units, and sample basis; never truncate the y-axis to exaggerate differences; correlation and causation are explicitly distinguished in the copy; no 3D, shadows, or gradients as decoration.
-
-Structure and discipline:
-1. Every body-page title must be a claim (a finding, not a section name), with supporting evidence following on the page; every quantitative conclusion is backed on-page by a chart, table, or citation — no orphan numbers.
-2. Figures must be self-contained: axis labels with units, in-figure annotation or legends, captions giving sample size and confidence basis.
-3. Ablation and limitations pages are mandatory; numbers must carry units, time ranges, datasets, and statistical basis; uncertainty is expressed as confidence intervals.
-4. The opening is a problem statement plus a one-sentence contribution; the close is numbered conclusions plus a list of open questions; citations sit as compact footnote lines at the page bottom — no full-page reference walls.
-
-Global prohibitions (mandatory): no default cards (containers serving information functions do not count as cards); no evenly split compositions unless justified by content structure; no unmotivated AI color schemes (blue-purple gradients, neon, glass cards, glowing borders); no elements that clash with the overall style; chart backgrounds transparent or the page background color; care with large empty areas — and no padding just to fill space.
-
-Density anchor: per-page minimums for evidence modules, charts, and labeling follow the density-baseline section in PART B; this baseline imposes no uniform numbers.
-
-## PART B — Signature System
+## Signature system
 
 One-line style signature: a deep-blue linear-reasoning system on white — oversized conclusory titles deliver the judgment first, orthogonal segments and nodes organize the evidence, cyan singles out the one key piece of evidence, and trace orange-red handles thresholds and exceptions.
 
