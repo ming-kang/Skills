@@ -8,13 +8,12 @@ import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 
 import {
-  WASM_SHA256,
   checkNodeVersion,
   exportPptx,
 } from '../../../pptd/scripts/export.mjs';
 import { normalizeElement } from '../../../pptd/scripts/lib/deck/contract.mjs';
 import { buildWasmProject } from '../../../pptd/scripts/lib/deck/project.mjs';
-import { loadWasmExporter } from '../../../pptd/scripts/lib/pptx/writer.mjs';
+import { loadWasmExporter, WASM_SHA256 } from '../../../pptd/scripts/lib/pptx/writer.mjs';
 import { resolveImages } from '../../../pptd/scripts/lib/prepare/assets.mjs';
 import { latexToOmml } from '../../../pptd/scripts/lib/prepare/formulas.mjs';
 
@@ -44,10 +43,12 @@ test('custom shapes accept bare and viewBox-prefixed paths', () => {
 test('project becomes the page-object shape expected by WASM', () => {
   const project = buildWasmProject({
     manifestPath: path.resolve('fixture', 'deck.pptd'),
-    manifest: { version: 'v2', title: 'Fixture', pages: ['pages/01.page'] },
+    version: 'v2', title: 'Fixture', warnings: [], media: [],
     pages: [{ pagePath: 'pages/01.page', elements: [] }],
   });
   assert.equal(project.version, 'v2');
+  assert.equal(project.title, 'Fixture');
+  for (const key of ['manifest', 'manifestPath', 'warnings', 'media']) assert.equal(key in project, false);
   assert.equal(project.pptdFileName, 'deck.pptd');
   assert.equal(project.pages[0].pagePath, 'pages/01.page');
   assert.deepEqual(project.pages[0].elements, []);
@@ -94,7 +95,7 @@ test('bad image bytes are rejected and actual SVG bytes override a misleading UR
     fs.writeFileSync(path.join(root, 'fake.png'), '<html>not an image</html>');
     await assert.rejects(resolveImages({ pages: [{ elements: [{ elementType: 'image', src: 'fake.png' }] }] }, root), /not a supported/);
     const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>');
-    globalThis.fetch = async () => ({ ok: true, arrayBuffer: async () => svg });
+    globalThis.fetch = async () => new Response(svg);
     const project = { pages: [{ elements: [{ elementType: 'image', src: 'https://example.invalid/picture.png' }] }] };
     const images = await resolveImages(project, root);
     assert.equal(project.pages[0].elements[0].src, 'wasm-assets/img-0.svg');
@@ -220,10 +221,17 @@ test('resolveImages deduplicates identical payloads and formulas support cases/a
   assert.match(latexToOmml(slash + 'xrightarrow{f}'), /<m:limUpp>/);
 });
 
-test('readFontFacesFromFile matches readFontFaces for bundled CJK and Latin fonts', async () => {
-  const { readFontFaces, readFontFacesFromFile } = await import('../../../pptd/scripts/lib/prepare/font_data.mjs');
-  for (const rel of ['notosanssc/NotoSansSC-Regular.ttf', 'unna/Unna-Regular.ttf']) {
-    const file = path.join(SKILL_ROOT, 'assets', 'fonts', rel);
-    assert.deepEqual(readFontFacesFromFile(file), readFontFaces(fs.readFileSync(file)));
+test('every compressed bundled font keeps its original SHA-256 and family/style metadata', async () => {
+  const { readFontBytes, readFontFaces, readFontFacesFromFile } = await import('../../../pptd/scripts/lib/prepare/font_data.mjs');
+  const catalog = JSON.parse(fs.readFileSync(path.join(SKILL_ROOT, 'assets/fonts/catalog.json'), 'utf8'));
+  for (const entry of catalog.faces) {
+    assert.ok(entry.src.endsWith('.ttf.gz'), entry.src);
+    const file = path.join(SKILL_ROOT, 'assets/fonts', entry.src);
+    const bytes = readFontBytes(file);
+    assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), entry.sha256);
+    const faces = readFontFaces(bytes);
+    assert.deepEqual(readFontFacesFromFile(file), faces);
+    assert.equal(faces[0].family, entry.family);
+    assert.equal(faces[0].slot, entry.slot);
   }
 });

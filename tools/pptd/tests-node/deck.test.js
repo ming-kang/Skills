@@ -73,6 +73,22 @@ test('YAML 1.2 dates and yes/no stay strings', () => {
   }
 });
 
+test('YAML non-finite chart values cannot silently become missing cells during normalization', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-non-finite-'));
+  try {
+    for (const value of ['.nan', '.inf', '-.inf']) {
+      makeDeck(dir, { page: `elements:
+  - elementId: chart
+    elementType: chart
+    bounds: [0, 0, 300, 200]
+    data: {cols: [x, y], rows: [[A, 5], [B, ${value}]]}
+    series: [{type: bar, encode: {x: x, y: y}}]
+` });
+      assert.throws(() => readProject(dir), /finite number/);
+    }
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('invalid manifests, path escapes, customFonts escapes, and unknown $textStyle are rejected', () => {
   const head = 'version: v2\nsize: [960, 540]\n';
   const cases = [

@@ -61,7 +61,7 @@ test('fade transition is inserted before timing and replaces or clears existing 
   const text = result.toString('utf8');
   assert.ok(text.indexOf('<p:transition') > text.indexOf('<p:clrMapOvr'));
   assert.ok(text.indexOf('<p:transition') < text.indexOf('<p:timing'));
-  validateTransitionOrder(slideTransitionFacts(result), 'fade');
+  validateTransitionOrder(slideTransitionFacts(parseXml(result)), 'fade');
 
   const existing = Buffer.from(
     '<p:sld xmlns:p="urn:test"><p:cSld/><p:transition><p:wipe/></p:transition><p:extLst/></p:sld>',
@@ -79,7 +79,7 @@ test('nested transition is relocated to slide root and patchTransitions preserve
       '<p:transition><p:fade/></p:transition><p:extLst/>' +
       '</p:spTree></p:cSld><p:clrMapOvr/><p:extLst/></p:sld>',
   );
-  const facts = slideTransitionFacts(replaceTransition(nested, 'fade'));
+  const facts = slideTransitionFacts(parseXml(replaceTransition(nested, 'fade')));
   assert.deepEqual(facts.names, ['cSld', 'clrMapOvr', 'transition', 'extLst']);
 
   const zip = writeZip([

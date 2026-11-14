@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { prepareAdvancedCharts } from '../../../pptd/scripts/lib/prepare/charts.mjs';
+import { readFontBytes } from '../../../pptd/scripts/lib/prepare/font_data.mjs';
+import { NS, parseXml } from '../../../pptd/scripts/lib/core/xml.mjs';
 
 const HIERARCHY = {
   cols: ['node', 'parent', 'value'],
@@ -157,11 +159,42 @@ test('invalid advanced chart data names the page and chart', async () => {
   await assert.rejects(prepare([cyclic]), /^Error: pages\/01\.page: chart loop: sankey contains a cycle$/);
 });
 
+test('the chart-only outliner loads a selected font once and fails closed on unsupported SVG text layouts', async () => {
+  const { createSvgFontOutliner } = await import('../../../pptd/scripts/lib/prepare/svg_text.mjs');
+  const path = await import('node:path');
+  const bytes = readFontBytes(path.resolve('pptd/assets/fonts/unna/Unna-Regular.ttf.gz'));
+  let reads = 0;
+  const outline = createSvgFontOutliner([{ family: 'Unna', slot: 'regular', face: 0, read() { reads++; return bytes; } }]);
+  const label = '<text x="20" y="30" dominant-baseline="central" text-anchor="middle" style="font-size:16px;font-family:Unna;" fill="#111827">AV fi</text>';
+  const document = (body) => parseXml(`<svg xmlns="${NS.svg}" width="200" height="100" baseProfile="full">${body}</svg>`, 'chart test', { mime: 'image/svg+xml' });
+  const first = document(label + label);
+  assert.equal(outline(first), first);
+  assert.equal(reads, 1);
+  assert.equal(first.getElementsByTagNameNS(NS.svg, 'text').length, 0);
+  assert.equal(first.getElementsByTagNameNS(NS.svg, 'g').length, 2);
+  outline(document(label));
+  assert.equal(reads, 1);
+
+  const unsupported = [
+    '<g>' + label + '</g>',
+    label.replace('AV fi', '<tspan>AV fi</tspan>'),
+    label.replace('16px', '1em'),
+    label.replace('font-size:', 'font-kerning:none;font-size:'),
+    label.replace('style="', 'dx="3" style="'),
+    label.replace('central', 'middle'),
+    label.replace('AV fi', 'مرحبا'),
+    label.replace('AV fi', '\u{10FFFD}'),
+    '<style>text{fill:red}</style>' + label,
+  ];
+  for (const body of unsupported) assert.throws(() => outline(document(body)), /unsupported|standalone|positive px|no selected SVG font/);
+  assert.throws(() => outline(label), /SVG Document/);
+});
+
 test('heatmap recognizes array yAxis title and outliner keeps real font baseline metrics', async () => {
   const { createSvgFontOutliner } = await import('../../../pptd/scripts/lib/prepare/svg_text.mjs');
   const path = await import('node:path');
-  const notoPath = path.resolve('pptd/assets/fonts/notosanssc/NotoSansSC-Regular.ttf');
-  const outlineText = createSvgFontOutliner([{ family: 'Noto Sans SC', slot: 'regular', path: notoPath, face: 0, eot: false }]);
+  const notoPath = path.resolve('pptd/assets/fonts/notosanssc/NotoSansSC-Regular.ttf.gz');
+  const outlineText = createSvgFontOutliner([{ family: 'Noto Sans SC', slot: 'regular', face: 0, read: () => readFontBytes(notoPath) }]);
   const heatmap = {
     elementId: 'heat-arr', elementType: 'chart', bounds: [0, 0, 400, 300],
     fontFamily: 'Noto Sans SC',
