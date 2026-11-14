@@ -1,6 +1,7 @@
 // Byte identity and intrinsic dimensions: a URL or file suffix is only a source label.
-import { parseXml } from './xml.mjs';
+import { NS, parseXml } from './xml.mjs';
 
+export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg']);
 export const MIME_TYPES = {
   png: 'image/png',
   jpg: 'image/jpeg',
@@ -13,7 +14,7 @@ const PNG_IEND = Buffer.from([73, 69, 78, 68, 174, 66, 96, 130]);
 const JPEG_HEADER = Buffer.from([255, 216, 255]);
 const JPEG_EOI = Buffer.from([255, 217]);
 const SOF_MARKERS = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
-const SVG_NS = 'http://www.w3.org/2000/svg';
+const { svg: SVG_NS } = NS;
 
 function jpegSize(data) {
   let pos = 2;

@@ -2,6 +2,7 @@
 // YAML 1.1 loaders misread the private format: `notes: 2026-11-14` must stay a string,
 // `version: v2` a string, and 0o17/0x1F integers.
 import { parseDocument, visit } from '../../../assets/vendor/yaml.mjs';
+import { checkJsonValue } from './contract.mjs';
 
 // Only plain values reach the exporter: never trust a tag's semantics for data.
 function plainDocument(text, label) {
@@ -35,6 +36,8 @@ export function readYamlMapping(text, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`expected a YAML mapping in ${label}`);
   }
+  // Reject non-JSON numbers before stringify could silently turn .nan/.inf into null.
+  checkJsonValue(value, label);
   // A shared anchor node must be copied before it is normalized in two places.
   return JSON.parse(JSON.stringify(value));
 }

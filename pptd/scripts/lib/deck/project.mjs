@@ -6,39 +6,20 @@ import path from 'node:path';
 
 import {
   checkContainedFile,
-  checkJsonValue,
   checkRelativePath,
   fail,
-  hasFormulas,
-  isFiniteNumber,
   isPlainObject,
   normalizeElement,
   requireString,
 } from './contract.mjs';
+import { readCatalog } from '../core/catalog.mjs';
 import { resolveThemeColor } from '../core/color.mjs';
-import {
-  checkColor,
-  checkPage,
-  checkStyle,
-  checkTableStyleConfig,
-  IMAGE_EXTENSIONS,
-} from './schema.mjs';
+import { IMAGE_EXTENSIONS, imageInfo } from '../core/media.mjs';
+import { readContent } from './content.mjs';
+import { checkPage } from './schema.mjs';
+import { checkColor, checkStyle } from './style.mjs';
+import { checkTableStyleConfig } from './table.mjs';
 import { readYamlMapping } from './yaml.mjs';
-
-const SKILL_DIR = path.resolve(import.meta.dirname, '..', '..', '..');
-let SHAPES = null;
-let ICON_NAMES = new Set();
-
-function readText(relative) {
-  return fs.readFileSync(path.join(SKILL_DIR, relative), 'utf8');
-}
-
-function loadAssets() {
-  if (SHAPES) return;
-  SHAPES = JSON.parse(readText('assets/shapes.json'));
-  const catalog = JSON.parse(readText('assets/icons/fontawesome.json'));
-  ICON_NAMES = new Set([...Object.keys(catalog.icons), ...Object.keys(catalog.aliases)]);
-}
 
 export function findManifest(source) {
   const target = path.resolve(source);
@@ -102,13 +83,11 @@ function checkCustomFonts(manifest, root, realRoot) {
  * `pages[i].pagePath` stays relative to the manifest (POSIX slashes) and elements are normalized.
  */
 export function readProject(source) {
-  loadAssets();
   const manifestPath = findManifest(source);
   const manifest = readYamlMapping(fs.readFileSync(manifestPath, 'utf8'), manifestPath);
-  checkJsonValue(manifest, manifestPath);
   if (manifest.version !== 'v2') fail('only PPTD version: v2 is supported');
   const size = manifest.size;
-  if (!Array.isArray(size) || size.length !== 2 || !size.every((item) => isFiniteNumber(item) && item > 0)) {
+  if (!Array.isArray(size) || size.length !== 2 || !size.every((item) => Number.isFinite(item) && item > 0)) {
     fail('manifest.size must contain two positive finite numbers');
   }
   if ('title' in manifest && typeof manifest.title !== 'string') fail('manifest.title must be a string');
@@ -132,7 +111,7 @@ export function readProject(source) {
     const relative = checkRelativePath(entry, 'manifest.pages entry');
     const pagePath = checkContainedFile(root, realRoot, relative, 'manifest.pages entry', `missing page file: ${entry}`);
     const data = readYamlMapping(fs.readFileSync(pagePath, 'utf8'), pagePath);
-    checkPage(data, entry, { size, theme, shapes: SHAPES, iconNames: ICON_NAMES, warnings, media });
+    checkPage(data, entry, { size, theme, shapes: readCatalog('shapes.json'), warnings, media });
     projectPages.push({
       ...data,
       pagePath: String(entry).replaceAll('\\', '/'),
@@ -147,17 +126,13 @@ export function readProject(source) {
     if (!IMAGE_EXTENSIONS.has(extension)) fail(`${item.label}: unsupported local image type: ${item.path}`);
   }
 
-  return { manifestPath, manifest, pages: projectPages, warnings: [...warnings], media: [...media.values()] };
+  return { ...manifest, manifestPath, pages: projectPages, warnings, media: [...media.values()] };
 }
 
 /** Build an isolated, mutable WASM writer project from a canonical DeckIR project. */
 export function buildWasmProject(project) {
-  return {
-    ...structuredClone(project.manifest),
-    version: 'v2',
-    pages: structuredClone(project.pages),
-    pptdFileName: path.basename(project.manifestPath),
-  };
+  const { manifestPath, warnings, media, ...deck } = project;
+  return structuredClone({ ...deck, pptdFileName: path.basename(manifestPath) });
 }
 
 /** Full semantic + local-asset validation used by `validate.mjs`. */
@@ -166,7 +141,6 @@ export async function validateProject(source) {
   const root = path.dirname(project.manifestPath);
 
   if (project.media.length) {
-    const { imageInfo } = await import('../core/media.mjs');
     for (const item of project.media) {
       if (!item.path) continue;
       const bytes = fs.readFileSync(path.join(root, item.path));
@@ -174,12 +148,14 @@ export async function validateProject(source) {
     }
   }
 
-  if (hasFormulas(project.pages)) {
+  // Parse the same content plan as export, without mutating any source holder.
+  const content = readContent(project);
+  if (content.formulas.length) {
     const { validateFormulas } = await import('../prepare/formulas.mjs');
-    validateFormulas(project.pages);
+    validateFormulas(content.formulas);
   }
 
-  const localFonts = (project.manifest.customFonts ?? []).filter((f) => !/^https:\/\//i.test(f.src));
+  const localFonts = (project.customFonts ?? []).filter((f) => !/^https:\/\//i.test(f.src));
   if (localFonts.length) {
     const { matchFontFamily, readFontFacesFromFile } = await import('../prepare/font_data.mjs');
     for (const entry of localFonts) {
@@ -197,7 +173,7 @@ export function projectSummary(project) {
   return {
     valid: true,
     manifest: project.manifestPath,
-    title: project.manifest.title,
+    title: project.title,
     slides: project.pages.length,
     elements: project.pages.reduce((sum, page) => sum + page.elements.length, 0),
     warnings: project.warnings,

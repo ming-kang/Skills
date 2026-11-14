@@ -4,16 +4,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const XML_FORBIDDEN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ud800-\udfff\ufffe\uffff]/;
+import { checkXmlString } from '../core/xml.mjs';
 
 export const ADVANCED_CHART_TYPES = new Set(['heatmap', 'treemap', 'sunburst', 'sankey']);
 
 export function fail(message) {
   throw new Error(message);
-}
-
-export function isFiniteNumber(value) {
-  return typeof value === 'number' && Number.isFinite(value);
 }
 
 export function isPlainObject(value) {
@@ -23,8 +19,7 @@ export function isPlainObject(value) {
 /** Every string that can reach OOXML, and the JSON boundary itself. */
 export function checkJsonValue(value, label) {
   if (typeof value === 'string') {
-    const match = XML_FORBIDDEN.exec(value);
-    if (match) fail(`${label} contains an XML-forbidden character U+${match[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`);
+    checkXmlString(value, label);
     return;
   }
   if (Array.isArray(value)) {
@@ -49,7 +44,7 @@ export function checkJsonValue(value, label) {
 
 /** [x, y, width, height] with positive finite width and height. */
 export function checkBounds(value, label) {
-  if (!Array.isArray(value) || value.length !== 4 || !value.every(isFiniteNumber)) {
+  if (!Array.isArray(value) || value.length !== 4 || !value.every(Number.isFinite)) {
     fail(`${label} must be [x, y, width, height] with finite numbers`);
   }
   if (value[2] <= 0 || value[3] <= 0) fail(`${label} width and height must be positive`);
@@ -101,7 +96,6 @@ function normalizeCustomShape(shape, size) {
   const separator = String(shape.path).indexOf(';');
   if (separator >= 0) {
     const [width, height] = String(shape.path).slice(0, separator).split(',').map(Number);
-    if (!(width > 0) || !(height > 0)) return shape;
     return { ...shape, viewBox: [width, height], path: String(shape.path).slice(separator + 1) };
   }
   return { ...shape, viewBox: size };
@@ -114,16 +108,4 @@ export function normalizeElement(element) {
     return { ...element, cropShape: normalizeCustomShape(element.cropShape, size) };
   }
   return element;
-}
-
-const MATH_MARKER = /\\[()]|data-math/;
-
-export function hasFormulas(pages) {
-  return pages.some((page) => (page.elements ?? []).some((el) => {
-    if (el.elementType === 'text') return MATH_MARKER.test(el.content?.text ?? '');
-    if (el.elementType === 'table') {
-      return el.rows.some((row) => row.some((cell) => MATH_MARKER.test(cell.text ?? '')));
-    }
-    return false;
-  }));
 }
