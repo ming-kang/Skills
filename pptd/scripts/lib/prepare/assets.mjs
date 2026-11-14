@@ -2,22 +2,17 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 
+import { iconDefinition } from '../core/catalog.mjs';
 import { imageInfo } from '../core/media.mjs';
+import { walkObjects } from '../core/walk.mjs';
 import { fetchBounded } from '../core/net.mjs';
 import { checkContainedFile, checkRelativePath, normalizeLocalPath } from '../deck/contract.mjs';
-
-let catalog;
-function iconCatalog() {
-  catalog ??= JSON.parse(fs.readFileSync(new URL('../../../assets/icons/fontawesome.json', import.meta.url), 'utf8'));
-  return catalog;
-}
 
 export function resolveIcon(name) {
   if (typeof name !== 'string' || !/^(fas|far|fab):[a-z0-9][a-z0-9-]*$/.test(name)) {
     throw new Error('iconName must be a Font Awesome Free name such as fas:house, far:heart or fab:github');
   }
-  const { icons, aliases } = iconCatalog();
-  const definition = icons[aliases[name] ?? name];
+  const definition = iconDefinition(name);
   if (!definition) throw new Error(`unknown bundled Font Awesome Free icon: ${name}`);
   return definition;
 }
@@ -39,14 +34,9 @@ export function prepareIcons(project) {
   return count;
 }
 
-function* imageHolders(value) {
-  if (Array.isArray(value)) {
-    for (const item of value) yield* imageHolders(item);
-  } else if (value && typeof value === 'object') {
+function* imageHolders(project) {
+  for (const [value] of walkObjects(project)) {
     if (value.elementType === 'image' || value.type === 'image') yield value;
-    for (const [key, item] of Object.entries(value)) {
-      if (key !== 'data') yield* imageHolders(item);
-    }
   }
 }
 
@@ -66,14 +56,15 @@ async function imageBytes(src, projectRoot, getRealRoot, offline) {
 }
 
 /**
- * Returns WASM asset keys -> bytes, and populates `mediaByKey` with `{ key, bytes, info, remote }`
+ * Returns WASM asset keys -> bytes, and populates `mediaByKey` with `{ key, bytes, info, digest, remote }`
  * used later for native table image fills. Holders are remapped in place.
  */
 export async function resolveImages(project, projectRoot, mediaByKey = new Map(), offline = false) {
   const images = {};
   const remapped = new Map();
   const byDigest = new Map();
-  const sources = [...new Set([...imageHolders(project)].map((holder) => holder.src).filter(Boolean))];
+  const holders = [...imageHolders(project)];
+  const sources = [...new Set(holders.map((holder) => holder.src).filter(Boolean))];
   let realRoot;
   const getRealRoot = () => (realRoot ??= fs.realpathSync(projectRoot));
   const loaded = await Promise.all(sources.map(async (src) => {
@@ -93,14 +84,14 @@ export async function resolveImages(project, projectRoot, mediaByKey = new Map()
     if (!key) {
       key = `wasm-assets/img-${nextIndex++}${info.extension}`;
       byDigest.set(digest, key);
-      images[key] = new Uint8Array(bytes);
-      mediaByKey.set(key, { key, bytes, info, remote });
+      images[key] = new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      mediaByKey.set(key, { key, bytes, info, digest, remote });
     } else if (remote) {
       mediaByKey.get(key).remote = true;
     }
     remapped.set(src, key);
   }
-  for (const holder of imageHolders(project)) {
+  for (const holder of holders) {
     if (remapped.has(holder.src)) holder.src = remapped.get(holder.src);
   }
   return images;

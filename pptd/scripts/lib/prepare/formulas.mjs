@@ -1,10 +1,8 @@
 import { katex } from '../../../assets/vendor/katex.mjs';
 import { NAMED_COLORS } from '../core/color.mjs';
-import { childElements, createElement, createXmlDocument, parseXml, serializeNode } from '../core/xml.mjs';
+import { NS, childElements, createElement, createXmlDocument, parseXml, serializeNode } from '../core/xml.mjs';
 
-const M = 'http://schemas.openxmlformats.org/officeDocument/2006/math';
-const A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
-const XML = 'http://www.w3.org/XML/1998/namespace';
+const { math: M, drawing: A, xml: XML } = NS;
 const document = createXmlDocument('', 'root');
 const children = (node) => childElements(node);
 const first = (node) => children(node)[0];
@@ -154,122 +152,60 @@ function compile(node, inherited = {}) {
   }
   throw new Error(`unsupported formula construct: <${tag}>`);
 }
-export function latexToOmml(latex, style = {}) {
+function mathTree(latex) {
   const rendered = katex.renderToString(latex, { output: 'mathml', displayMode: false, throwOnError: true, trust: false, strict: 'error', maxExpand: 1000 });
   const parsed = parse(rendered);
   const math = parsed.getElementsByTagName('math')[0];
   const semantics = math?.getElementsByTagName('semantics')[0];
   const tree = first(semantics ?? math);
   if (!tree) throw new Error('formula has no MathML presentation tree');
+  return tree;
+}
+
+function officeMath(tree, style = {}) {
   const nodes = compile(tree, { color: style.color ?? undefined, fontSize: style.fontSize ?? undefined, bold: style.bold, opacity: style.opacity ?? undefined });
   if (!nodes.length) throw new Error('formula produced no Office Math content');
   return serializeNode(element('m:oMath', nodes));
 }
 
-function normalizeLegacy(text, location) {
-  if (!text.includes('data-math')) return text;
-  const parsed = parse(`<body>${text}</body>`, 'text/html');
-  for (const node of [...parsed.getElementsByTagName('span')]) {
-    if (!node.hasAttribute('data-math-node') && !node.hasAttribute('data-math')) continue;
-    const tex = node.getAttribute('data-tex');
-    if (!tex?.trim()) throw new Error(`${location}: legacy math span has no data-tex`);
-    node.removeAttribute('data-math-node'); node.removeAttribute('data-math'); node.removeAttribute('data-tex');
-    while (node.firstChild) node.removeChild(node.firstChild);
-    node.appendChild(parsed.createTextNode(`\\(${tex}\\)`));
-  }
-  return [...parsed.documentElement.childNodes].map((node) => serializeNode(node)).join('');
-}
-function inspectText(holder, location, mutate = true) {
-  if (typeof holder.text !== 'string') return [];
-  const textWithMath = normalizeLegacy(holder.text, location);
-  if (mutate) holder.text = textWithMath;
-  if (!/\\[()]/.test(textWithMath)) return [];
-  const normalized = textWithMath.replace(/\\\(([\s\S]*?)\\\)/g, (whole, latex) => {
-    if (/<\/?(?:p|span|strong|em|u|s|sup|sub|a|ul|ol|li|br)\b[^>]*>/i.test(latex)) throw new Error(`${location}: rich-text tags are not allowed inside formulas`);
-    return `\\(${latex.replace(/&(?!(?:#\d+|#x[\da-f]+|[a-z][\w]*);)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}\\)`;
-  });
-  const richText = /<\/?(?:p|span|strong|em|u|s|sup|sub|a|ul|ol|li|br)\b[^>]*>/i.test(textWithMath.replace(/\\\([\s\S]*?\\\)/g, ''));
-  const parsed = parse(richText ? `<body>${normalized}</body>` : '<body/>', richText ? 'text/html' : 'application/xml');
-  if (!richText) parsed.documentElement.appendChild(parsed.createTextNode(textWithMath));
-  const formulas = [];
-  const visit = (node) => {
-    if (node.nodeType === 3) {
-      const text = node.textContent;
-      let position = 0;
-      while (position < text.length) {
-        const start = text.indexOf('\\(', position);
-        const closing = text.indexOf('\\)', position);
-        if (closing >= 0 && (start < 0 || closing < start)) throw new Error(`${location}: unmatched formula closing delimiter`);
-        if (start < 0) break;
-        const end = text.indexOf('\\)', start + 2);
-        if (end < 0) throw new Error(`${location}: unclosed formula or a tag splitting its delimiters`);
-        const nested = text.indexOf('\\(', start + 2);
-        if (nested >= 0 && nested < end) throw new Error(`${location}: nested formula delimiters`);
-        const latex = text.slice(start + 2, end).trim();
-        if (!latex) throw new Error(`${location}: empty formula`);
-        try { latexToOmml(latex); } catch (error) { throw new Error(`${location}: formula ${JSON.stringify(latex)}: ${error.message}`); }
-        formulas.push({ latex, location }); position = end + 2;
-      }
-    }
-    for (const child of [...node.childNodes]) visit(child);
-  };
-  visit(parsed);
-  if (mutate && richText) holder.text = normalized;
-  return formulas;
+export function latexToOmml(latex, style = {}) {
+  return officeMath(mathTree(latex), style);
 }
 
-export function validateFormulas(pages) {
-  let count = 0;
-  for (const page of pages) {
-    for (const item of page.elements) {
-      const location = `${page.pagePath}: ${item.elementId}`;
-      if (item.elementType === 'text') count += inspectText(item.content, location, false).length;
-      if (item.elementType === 'table') {
-        item.rows.forEach((row, r) => row.forEach((cell, c) => {
-          count += inspectText(cell, `${location}.rows[${r}][${c}]`, false).length;
-        }));
-      }
-    }
+export function validateFormulas(formulas) {
+  const checked = new Set();
+  for (const { latex, location } of formulas) {
+    if (checked.has(latex)) continue;
+    try { latexToOmml(latex); }
+    catch (error) { throw new Error(`${location}: formula ${JSON.stringify(latex)}: ${error.message}`, { cause: error }); }
+    checked.add(latex);
   }
-  return count;
+  return formulas.length;
 }
 
-export function createMathBridge(project) {
-  const expected = [];
-  for (const page of project.pages) {
-    for (const item of page.elements) {
-      const location = `${page.pagePath}: ${item.elementId}`;
-      if (item.elementType === 'text') expected.push(...inspectText(item.content, location));
-      if (item.elementType === 'table') {
-        item.rows.forEach((row, r) => row.forEach((cell, c) => expected.push(...inspectText(cell, `${location}.rows[${r}][${c}]`))));
-      }
-    }
-  }
+export function createMathBridge(expected) {
   const queues = new Map();
   for (const item of expected) {
-    if (!queues.has(item.latex)) queues.set(item.latex, []);
-    queues.get(item.latex).push(item);
+    if (!queues.has(item.latex)) {
+      try { queues.set(item.latex, { tree: mathTree(item.latex), entries: [], index: 0 }); }
+      catch (error) { throw new Error(`${item.location}: formula ${JSON.stringify(item.latex)}: ${error.message}`, { cause: error }); }
+    }
+    queues.get(item.latex).entries.push(item);
   }
   let calls = 0;
   const failures = [];
   const mathLoader = (latex, style) => {
-    const normalized = latex.trim();
-    const queue = queues.get(normalized);
-    const match = queue?.length ? queue.shift() : undefined;
-    calls += 1;
+    const queue = queues.get(latex.trim()), match = queue?.entries[queue.index++];
+    calls++;
     if (!match) {
       failures.push(`writer requested an unexpected formula: ${JSON.stringify(latex)}`);
       return null;
     }
-    try {
-      return latexToOmml(normalized, style);
-    } catch (error) {
-      failures.push(`${match.location}: ${error.message}`);
-      return null;
-    }
+    try { return officeMath(queue.tree, style); }
+    catch (error) { failures.push(`${match.location}: ${error.message}`); return null; }
   };
   const assertComplete = () => {
-    // The writer swallows callback errors and invokes its incomplete native fallback.
+    // The writer swallows callback errors; never publish its incomplete fallback.
     if (failures.length) throw new Error(failures.join('\n'));
     if (calls !== expected.length) throw new Error(`formula conversion count mismatch: expected ${expected.length}, got ${calls}`);
     return calls;

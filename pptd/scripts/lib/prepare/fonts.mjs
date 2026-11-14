@@ -4,12 +4,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { expandTableCells, textStyleReference } from '../deck/schema.mjs';
+import { readCatalog } from '../core/catalog.mjs';
+import { parseCss, splitCss } from '../core/css.mjs';
+import { textNodes } from '../core/markup.mjs';
+import { walkObjects } from '../core/walk.mjs';
 import {
+  EAST_ASIAN,
   embeddingAllowed,
+  extractEotSfnt,
+  fontSlot,
   extractTtcFace,
   matchFontFamily,
   normalizeFontKey as key,
+  readFontBytes,
   readFontFaces,
   readFontFacesFromFile,
   ttfToEot,
@@ -26,11 +33,8 @@ const LOCAL_ALIASES = {
   '宋体': 'SimSun',
   '黑体': 'SimHei',
 };
-export const EAST_ASIAN = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Bopomofo}\u3000-\u303f\uff00-\uffef]/u;
-const VOID_TAGS = new Set(['br', 'img', 'hr']);
 const ALLOWED_GOOGLE_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
 
-const slotOf = (bold, italic) => (bold && italic ? 'boldItalic' : bold ? 'bold' : italic ? 'italic' : 'regular');
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 
 function cacheDir() {
@@ -92,10 +96,7 @@ async function resolveGoogleFont(url, family, offline) {
   const css = (await fetchGoogle(url)).toString('utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const matches = [];
   for (const [, block] of css.matchAll(/@font-face\s*\{([^}]+)\}/g)) {
-    const props = {};
-    for (const [, prop, val] of block.matchAll(/([\w-]+)\s*:\s*([^;]+)/g)) {
-      props[prop.trim().toLowerCase()] = val.trim();
-    }
+    const props = Object.fromEntries(parseCss(block));
     const name = (props['font-family'] ?? '').replace(/^['"]+|['"]+$/g, '');
     const srcMatch = /url\(([^)]+)\)/.exec(props.src ?? '');
     const style = (props['font-style'] ?? 'normal').trim();
@@ -143,31 +144,32 @@ function systemFontDirs() {
   ];
 }
 
-export class FontStore {
-  constructor(fontDirs = []) {
-    this.catalog = JSON.parse(fs.readFileSync(path.join(ASSETS, 'catalog.json'), 'utf8'));
-    this.faces = [];
-    this.aliases = new Map();
-    for (const [alias, target] of Object.entries({ ...this.catalog.aliases, ...LOCAL_ALIASES })) {
-      this.aliases.set(key(alias), target);
-    }
-    this.extraDirs = fontDirs.map((dir) => path.resolve(String(dir).replace(/^~(?=$|[\\/])/, os.homedir())));
+class FontStore {
+  constructor(fontDirs) {
+    this.catalog = readCatalog('fonts/catalog.json');
+    this.faces = new Map();
+    this.aliases = new Map(Object.entries({ ...this.catalog.aliases, ...LOCAL_ALIASES }).map(([alias, target]) => [key(alias), target]));
     this.scannedDirs = new Set();
     this.scanned = false;
     this.warnings = [];
     this.needed = new Map();
     this.resolved = new Map();
     this.fileBytes = new Map();
-
-    for (const entry of this.catalog.faces) {
-      this.faces.push({ ...entry, path: path.join(ASSETS, entry.src), priority: 1 });
-    }
-    for (const dir of this.extraDirs) {
-      if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
-        throw new Error(`font directory does not exist: ${dir}`);
-      }
+    for (const entry of this.catalog.faces) this.index({ ...entry, path: path.join(ASSETS, entry.src), priority: 1 });
+    for (const raw of fontDirs) {
+      const dir = path.resolve(String(raw).replace(/^~(?=$|[\\/])/, os.homedir()));
+      if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) throw new Error(`font directory does not exist: ${dir}`);
       this.scan(dir, 0);
     }
+  }
+
+  index(entry) {
+    for (const name of new Set([entry.family, ...(entry.aliases ?? [])].map(key))) {
+      if (!this.faces.has(name)) this.faces.set(name, []);
+      const faces = this.faces.get(name);
+      if (!faces.includes(entry)) faces.push(entry);
+    }
+    this.resolved.clear();
   }
 
   warn(message) {
@@ -177,302 +179,122 @@ export class FontStore {
   add(filePath, priority, family = null) {
     try {
       const faces = readFontFacesFromFile(filePath);
-      if (family && !matchFontFamily(faces, family)) {
-        throw new Error(`custom font family does not match its file: ${family} / ${path.basename(filePath)}`);
-      }
-      for (const face of faces) {
-        this.faces.push({ ...face, path: filePath, priority });
-      }
+      if (family && !matchFontFamily(faces, family)) throw new Error(`custom font family does not match its file: ${family} / ${path.basename(filePath)}`);
+      for (const face of faces) this.index({ ...face, path: filePath, priority });
     } catch (error) {
       if (family) throw new Error(`cannot load custom font ${family}: ${error.message}`);
     }
   }
 
   scan(directory, priority) {
-    if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) return;
-    let realDir;
     try {
-      realDir = fs.realpathSync(directory);
+      const real = fs.realpathSync(directory);
+      if (this.scannedDirs.has(real)) return;
+      this.scannedDirs.add(real);
+      const files = fs.readdirSync(real, { withFileTypes: true, recursive: true })
+        .filter((entry) => entry.isFile() && FONT_SUFFIXES.has(path.extname(entry.name).toLowerCase()))
+        .map((entry) => path.join(entry.parentPath, entry.name)).sort();
+      for (const file of files) this.add(file, priority);
     } catch {
-      realDir = directory;
+      // Missing/inaccessible optional system font directories are not export failures.
     }
-    if (this.scannedDirs.has(realDir)) return;
-    this.scannedDirs.add(realDir);
-
-    let entries;
-    try {
-      entries = fs.readdirSync(directory, { withFileTypes: true, recursive: true });
-    } catch {
-      return;
-    }
-    const files = entries
-      .filter((entry) => entry.isFile() && FONT_SUFFIXES.has(path.extname(entry.name).toLowerCase()))
-      .map((entry) => path.join(entry.parentPath, entry.name))
-      .sort();
-    for (const file of files) this.add(file, priority);
   }
 
   readBytes(filePath) {
-    if (!this.fileBytes.has(filePath)) {
-      this.fileBytes.set(filePath, fs.readFileSync(filePath));
-    }
+    if (!this.fileBytes.has(filePath)) this.fileBytes.set(filePath, readFontBytes(filePath));
     return this.fileBytes.get(filePath);
   }
 
   resolve(rawName, requested, eastAsian = false) {
     const name = this.aliases.get(key(rawName)) ?? rawName;
-    const candidates = () => this.faces.filter(
-      (face) => key(face.family) === key(name) || (face.aliases ?? []).some((alias) => key(alias) === key(name)),
-    );
-    let available = candidates();
+    const cacheKey = `${key(name)}\0${requested}\0${eastAsian}`;
+    if (this.resolved.has(cacheKey)) return this.resolved.get(cacheKey);
+    let available = this.faces.get(key(name)) ?? [];
     if (!available.length && !this.scanned) {
       this.scanned = true;
       for (const dir of systemFontDirs()) this.scan(dir, 2);
-      available = candidates();
+      available = this.faces.get(key(name)) ?? [];
     }
     if (!available.length) {
       const fallback = this.catalog.fallbacks[eastAsian ? 'ea' : 'latin'];
+      if (key(name) === key(fallback)) throw new Error(`bundled fallback font is missing: ${fallback}`);
       this.warn(`font '${name}' is unavailable; exported text uses '${fallback}'`);
-      return this.resolve(fallback, requested, eastAsian);
+      const entry = this.resolve(fallback, requested, eastAsian);
+      this.resolved.set(cacheKey, entry);
+      return entry;
     }
-    const minPriority = Math.min(...available.map((face) => face.priority));
-    available = available.filter((face) => face.priority === minPriority);
-    available.sort((a, b) => {
-      const reqDiff = Number(a.slot !== requested) - Number(b.slot !== requested);
-      if (reqDiff !== 0) return reqDiff;
-      return Number(a.slot !== 'regular') - Number(b.slot !== 'regular');
-    });
-    const entry = available.find((face) => face.slot === requested) ?? available[0];
-    if (entry.slot !== requested) {
-      this.warn(`font '${name}' has no ${requested} face; presentation software must synthesize that style`);
-    }
+    const entry = available.toSorted((a, b) =>
+      a.priority - b.priority || Number(a.slot !== requested) - Number(b.slot !== requested) ||
+      Number(a.slot !== 'regular') - Number(b.slot !== 'regular'))[0];
+    if (entry.slot !== requested) this.warn(`font '${name}' has no ${requested} face; presentation software must synthesize that style`);
     if (entry.face === undefined) {
       const raw = this.readBytes(entry.path);
-      if (sha256(raw) !== entry.sha256) {
-        throw new Error(`bundled font does not match its catalog: ${path.basename(entry.path)}`);
-      }
+      if (sha256(raw) !== entry.sha256) throw new Error(`bundled font does not match its catalog: ${path.basename(entry.path)}`);
       Object.assign(entry, readFontFaces(raw)[0]);
+      this.index(entry);
     }
     this.needed.set(`${entry.family}\0${entry.slot}`, entry);
-    this.resolved.set(`${entry.family}\0${requested}`, entry);
-    return entry.family;
+    this.resolved.set(cacheKey, entry);
+    return entry;
   }
 
   family(value, bold = false, italic = false, text = '') {
-    const requested = slotOf(bold, italic);
+    const requested = fontSlot(bold, italic);
     if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const mapped = {};
-      for (const [k, name] of Object.entries(value)) {
-        mapped[k] = this.resolve(name, requested, k === 'ea');
-      }
-      return mapped;
+      return Object.fromEntries(Object.entries(value).map(([script, name]) => [script, this.resolve(name, requested, script === 'ea').family]));
     }
-    const name = value || 'MiSans';
-    if (String(name).includes(',')) {
-      const parts = String(name).split(',').map((part) => part.trim().replace(/^['"]+|['"]+$/g, '')).filter(Boolean);
-      return {
-        latin: this.resolve(parts[0], requested),
-        ea: this.resolve(parts.at(-1), requested, true),
-      };
+    let list = value || 'MiSans';
+    // The private rich-text format also accepts a quoted combined Latin/CJK pair.
+    const quote = list[0];
+    if ((quote === '"' || quote === "'") && list.at(-1) === quote && !list.slice(1, -1).includes(quote)) list = list.slice(1, -1);
+    const parts = splitCss(list, ',').map((part) => part.trim().replace(/^['"]+|['"]+$/g, '')).filter(Boolean);
+    if (parts.length > 1) {
+      return { latin: this.resolve(parts[0], requested).family, ea: this.resolve(parts.at(-1), requested, true).family };
     }
-    const hasEastAsian = EAST_ASIAN.test(text);
-    const family = this.resolve(name, requested, hasEastAsian);
-    if (hasEastAsian && !this.resolved.get(`${family}\0${requested}`)?.cjk) {
-      this.warn(`font '${family}' does not cover CJK; East Asian text uses 'Noto Sans SC'`);
-      return { latin: family, ea: this.resolve('Noto Sans SC', requested, true) };
+    const hasEastAsian = EAST_ASIAN.test(text), face = this.resolve(parts[0], requested, hasEastAsian);
+    if (hasEastAsian && !face.cjk) {
+      this.warn(`font '${face.family}' does not cover CJK; East Asian text uses 'Noto Sans SC'`);
+      return { latin: face.family, ea: this.resolve('Noto Sans SC', requested, true).family };
     }
-    return family;
+    return face.family;
   }
 }
 
-function escapeAttr(value) {
-  return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function decodeHtmlEntities(text) {
-  return text.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi, (full, entity) => {
-    const lower = entity.toLowerCase();
-    if (lower === 'amp') return '&';
-    if (lower === 'lt') return '<';
-    if (lower === 'gt') return '>';
-    if (lower === 'quot') return '"';
-    if (lower === 'apos') return "'";
-    if (lower === 'nbsp') return '\u00a0';
-    const code = lower.startsWith('#x') ? parseInt(lower.slice(2), 16) : parseInt(lower.slice(1), 10);
-    return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : full;
-  });
-}
-
-function parseAttributes(raw) {
-  const attrs = [];
-  const pattern = /([A-Za-z_:][\w:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
-  let match;
-  while ((match = pattern.exec(raw))) {
-    const value = match[2] ?? match[3] ?? match[4] ?? '';
-    attrs.push([match[1], decodeHtmlEntities(value)]);
-  }
-  return attrs;
-}
-
-function tokenizeHtml(html) {
-  const tokens = [];
-  const tagPattern = /<!--[\s\S]*?-->|<\/?([A-Za-z][A-Za-z0-9:-]*)((?:\s+[^<>]*?)?)\s*(\/?)>/g;
-  let last = 0;
-  let match;
-  while ((match = tagPattern.exec(html))) {
-    if (match.index > last) tokens.push({ type: 'text', raw: html.slice(last, match.index) });
-    if (match[0].startsWith('<!--')) {
-      tokens.push({ type: 'comment', raw: match[0] });
-    } else if (match[0].startsWith('</')) {
-      tokens.push({ type: 'end', tag: match[1].toLowerCase(), raw: match[0] });
-    } else {
-      tokens.push({
-        type: 'start',
-        tag: match[1].toLowerCase(),
-        attrs: parseAttributes(match[2] ?? ''),
-        selfClosing: Boolean(match[3]),
-        raw: match[0],
-      });
+function textFonts({ holder, style, markup }, store) {
+  const cssCache = new WeakMap();
+  const cssOf = (node) => {
+    if (!cssCache.has(node)) cssCache.set(node, parseCss(node.getAttribute('style') ?? ''));
+    return cssCache.get(node);
+  };
+  // Only un-overridden visible text chooses the block's base family; comments, URLs,
+  // CSS family names and descendants with their own family must not trigger CJK fallback.
+  const baseText = (node) => {
+    if (node.nodeType === 3 || node.nodeType === 4) return node.textContent;
+    if (node.nodeType !== 1 || cssOf(node).has('font-family')) return '';
+    return [...node.childNodes].map(baseText).join('');
+  };
+  const base = { bold: Boolean(style.bold), italic: Boolean(style.italic) };
+  base.family = store.family(style.fontFamily, base.bold, base.italic, baseText(markup.root));
+  holder.fontFamily = base.family;
+  const visit = (node, parent) => {
+    if (node.nodeType === 3 || node.nodeType === 4) {
+      if (node.textContent) store.family(parent.family, parent.bold, parent.italic, node.textContent);
+      return;
     }
-    last = tagPattern.lastIndex;
-  }
-  if (last < html.length) tokens.push({ type: 'text', raw: html.slice(last) });
-  return tokens;
-}
-
-// Split CSS tokens respecting quoted family names and parenthesized url(...) values.
-export function splitCss(value, delimiter) {
-  const result = [];
-  let start = 0;
-  let quote = '';
-  let depth = 0;
-  for (let i = 0; i < value.length; i++) {
-    const char = value[i];
-    if (char === '\\') { i++; continue; }
-    if (quote) { if (char === quote) quote = ''; continue; }
-    if (char === '"' || char === "'") { quote = char; continue; }
-    if (char === '(') depth++;
-    else if (char === ')') depth--;
-    else if (char === delimiter && depth === 0) {
-      result.push(value.slice(start, i));
-      start = i + 1;
+    if (node.nodeType !== 1) return;
+    const css = cssOf(node), tag = node.localName.toLowerCase();
+    const bold = parent.bold || ['strong', 'b'].includes(tag) || ['bold', '700', '800', '900'].includes(css.get('font-weight'));
+    const italic = parent.italic || ['em', 'i'].includes(tag) || css.get('font-style') === 'italic';
+    let family = parent.family;
+    if (css.has('font-family')) {
+      family = store.family(css.get('font-family'), bold, italic, [...textNodes(node)].map((text) => text.textContent).join(''));
+      css.set('font-family', typeof family === 'object' ? Object.values(family).join(', ') : family);
+      node.setAttribute('style', [...css].map(([key, value]) => `${key}:${value}`).join(';'));
     }
-    if (depth < 0) throw new Error('unbalanced inline CSS');
-  }
-  if (quote || depth) throw new Error('unbalanced inline CSS');
-  result.push(value.slice(start));
-  return result;
-}
-
-function parseCssDeclarations(styleText) {
-  const css = new Map();
-  if (!styleText) return css;
-  let parts;
-  try {
-    parts = splitCss(styleText, ';');
-  } catch {
-    parts = String(styleText).split(';');
-  }
-  for (const part of parts) {
-    if (!part.trim()) continue;
-    const colon = part.indexOf(':');
-    if (colon < 0) continue;
-    const prop = part.slice(0, colon).trim().toLowerCase();
-    const val = part.slice(colon + 1).trim();
-    if (prop && val) css.set(prop, val);
-  }
-  return css;
-}
-
-function textFonts(holder, style, store) {
-  const html = holder.text ?? '';
-  if (!html) {
-    holder.fontFamily = store.family(style.fontFamily ?? 'MiSans', Boolean(style.bold), Boolean(style.italic), '');
-    return;
-  }
-
-  const tokens = tokenizeHtml(html);
-  const parsed = tokens.map((token) => {
-    if (token.type === 'start') {
-      const attrMap = new Map(token.attrs);
-      const css = parseCssDeclarations(attrMap.get('style'));
-      return { token, attrMap, css, overridesFamily: css.has('font-family'), descendants: '' };
-    }
-    if (token.type === 'text') {
-      return { token, decoded: decodeHtmlEntities(token.raw) };
-    }
-    return { token };
-  });
-
-  // Pre-compute descendant decoded text and un-overridden base text (ignoring comments/tags/URLs).
-  const textStack = [];
-  let baseText = '';
-  let overrideDepth = 0;
-
-  for (const item of parsed) {
-    const { token } = item;
-    if (token.type === 'start') {
-      if (!VOID_TAGS.has(token.tag) && !token.selfClosing) {
-        textStack.push(item);
-        if (item.overridesFamily) overrideDepth += 1;
-      }
-    } else if (token.type === 'end') {
-      if (!VOID_TAGS.has(token.tag) && textStack.length) {
-        const popped = textStack.pop();
-        if (popped.overridesFamily) overrideDepth -= 1;
-      }
-    } else if (token.type === 'text') {
-      if (overrideDepth === 0) baseText += item.decoded;
-      for (const ancestor of textStack) ancestor.descendants += item.decoded;
-    }
-  }
-
-  const baseFamily = store.family(
-    style.fontFamily ?? 'MiSans',
-    Boolean(style.bold),
-    Boolean(style.italic),
-    baseText,
-  );
-  holder.fontFamily = baseFamily;
-
-  const stateStack = [{ family: baseFamily, bold: Boolean(style.bold), italic: Boolean(style.italic) }];
-  const output = [];
-  let rewroteInlineFont = false;
-
-  for (const item of parsed) {
-    const { token } = item;
-    if (token.type === 'start') {
-      const parent = stateStack.at(-1);
-      let family = parent.family;
-      let bold = parent.bold || token.tag === 'strong' || token.tag === 'b';
-      let italic = parent.italic || token.tag === 'em' || token.tag === 'i';
-      const css = item.css;
-      if (['bold', '700', '800', '900'].includes(css.get('font-weight') ?? '')) bold = true;
-      if ((css.get('font-style') ?? '') === 'italic') italic = true;
-      if (item.overridesFamily) {
-        const inlineName = css.get('font-family').replace(/^['"]+|['"]+$/g, '');
-        family = store.family(inlineName, bold, italic, item.descendants);
-        css.set('font-family', typeof family === 'object' ? Object.values(family).join(', ') : family);
-        item.attrMap.set('style', [...css.entries()].map(([k, v]) => `${k}:${v}`).join(';'));
-        rewroteInlineFont = true;
-        const attrsText = [...item.attrMap.entries()].map(([k, v]) => ` ${k}="${escapeAttr(v)}"`).join('');
-        output.push(`<${token.tag}${attrsText}${token.selfClosing ? '/>' : '>'}`);
-      } else {
-        output.push(token.raw);
-      }
-      if (!VOID_TAGS.has(token.tag) && !token.selfClosing) stateStack.push({ family, bold, italic });
-    } else if (token.type === 'end') {
-      if (!VOID_TAGS.has(token.tag) && stateStack.length > 1) stateStack.pop();
-      output.push(token.raw);
-    } else if (token.type === 'text') {
-      const current = stateStack.at(-1);
-      if (item.decoded) store.family(current.family, current.bold, current.italic, item.decoded);
-      output.push(token.raw);
-    } else {
-      output.push(token.raw);
-    }
-  }
-  if (rewroteInlineFont) holder.text = output.join('');
+    for (const child of [...node.childNodes]) visit(child, { family, bold, italic });
+  };
+  visit(markup.root, base);
+  if (holder.text) holder.text = markup.serialize();
 }
 
 function chartVisibleText(chart) {
@@ -501,50 +323,25 @@ function chartVisibleText(chart) {
   return parts.join(' ');
 }
 
-function visitChartFonts(value, store, chartText, skipRootFontFamily = false) {
-  if (Array.isArray(value)) {
-    for (const child of value) visitChartFonts(child, store, chartText);
-  } else if (value && typeof value === 'object') {
-    if (!skipRootFontFamily && 'fontFamily' in value) {
-      value.fontFamily = store.family(value.fontFamily, Boolean(value.bold), Boolean(value.italic), chartText);
-    }
-    for (const [k, child] of Object.entries(value)) {
-      if (k !== 'data' && !(skipRootFontFamily && k === 'fontFamily')) {
-        visitChartFonts(child, store, chartText);
-      }
-    }
-  }
-}
-
-export async function prepareFonts(project, { projectRoot = null, fontDirs = [], embed = true, offline = false } = {}) {
+export async function prepareFonts(project, content, { projectRoot, fontDirs = [], embed = true, offline = false }) {
   const store = new FontStore(fontDirs);
-  const root = projectRoot ?? path.dirname(project.manifestPath);
   for (const custom of project.customFonts ?? []) {
     const src = custom.src;
     const fontPath = /^https:\/\//i.test(src)
       ? await resolveGoogleFont(src, custom.family, offline)
-      : path.resolve(root, src);
+      : path.resolve(projectRoot, src);
     store.add(fontPath, -1, custom.family);
   }
 
-  const theme = project.theme ?? {};
+  for (const block of content.texts) textFonts(block, store);
   for (const page of project.pages) {
-    for (const item of page.elements) {
-      if (item.elementType === 'text') {
-        const content = item.content;
-        const baseStyle = textStyleReference(theme, content.style, `${item.elementId}.content.style`);
-        textFonts(content, { ...baseStyle, ...content }, store);
-      } else if (item.elementType === 'table') {
-        for (const cellInfo of expandTableCells(item, theme)) {
-          const holder = { text: cellInfo.cell.text ?? '', fontFamily: cellInfo.style.fontFamily };
-          textFonts(holder, cellInfo.style, store);
-          cellInfo.cell.fontFamily = holder.fontFamily;
-          if (holder.text !== (cellInfo.cell.text ?? '')) cellInfo.cell.text = holder.text;
+    for (const chart of page.elements.filter((element) => element.elementType === 'chart')) {
+      const chartText = chartVisibleText(chart);
+      chart.fontFamily = store.family(chart.fontFamily, false, false, chartText);
+      for (const [config] of walkObjects(chart)) {
+        if (config !== chart && 'fontFamily' in config) {
+          config.fontFamily = store.family(config.fontFamily, Boolean(config.bold), Boolean(config.italic), chartText);
         }
-      } else if (item.elementType === 'chart') {
-        const chartText = chartVisibleText(item);
-        item.fontFamily = store.family(item.fontFamily ?? 'MiSans', false, false, chartText);
-        visitChartFonts(item, store, chartText, true);
       }
     }
   }
@@ -561,7 +358,7 @@ export async function prepareFonts(project, { projectRoot = null, fontDirs = [],
       const raw = store.readBytes(entry.path);
       const faceBytes = entry.eot ? raw : extractTtcFace(raw, entry.face);
       const eotBytes = ttfToEot(faceBytes);
-      data.push({ typeface: entry.family, data: new Uint8Array(eotBytes) });
+      data.push({ typeface: entry.family, data: new Uint8Array(eotBytes.buffer, eotBytes.byteOffset, eotBytes.byteLength) });
       bindings.push({
         family: entry.family,
         slot: entry.slot,
@@ -574,11 +371,9 @@ export async function prepareFonts(project, { projectRoot = null, fontDirs = [],
   }
 
   const outlines = sortedNeeded.map(([, entry]) => ({
-    family: entry.family,
-    slot: entry.slot,
-    path: entry.path,
-    face: entry.face,
-    eot: entry.eot,
+    family: entry.family, slot: entry.slot, face: entry.face,
+    // Lazy original SFNT/TTC bytes, shared with embedding; never re-read a selected font.
+    read: () => entry.eot ? extractEotSfnt(store.readBytes(entry.path)) : store.readBytes(entry.path),
   }));
 
   const families = [...new Set([...store.needed.values()].map((entry) => entry.family))].sort();

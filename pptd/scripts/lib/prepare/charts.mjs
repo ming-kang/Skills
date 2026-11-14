@@ -1,9 +1,8 @@
 import { checkHexColor, resolveThemeColor } from '../core/color.mjs';
-import { parseXml, serializeNode } from '../core/xml.mjs';
-import { ADVANCED_CHART_TYPES, prepareAdvancedChartData } from '../deck/chart_data.mjs';
+import { NS, parseXml, serializeNode } from '../core/xml.mjs';
+import { isAdvancedChart, prepareAdvancedChartData } from '../deck/chart.mjs';
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-const PPTD_NS = 'https://pptd.local/ns/2026/pptd/schema';
+const { svg: SVG_NS, pptd: PPTD_NS } = NS;
 // Matches the WASM writer's native chart cycle, so advanced and native charts in one deck match.
 const DEFAULT_PALETTE = ['#1783FF', '#68B8A8', '#C9A86A', '#8C84C9', '#8D98A8', '#5F9CF5', '#7BB6D9', '#B28A9E'];
 const DARK_LABEL = '#111827';
@@ -129,11 +128,6 @@ function chartStyle(chart, theme, colorApi) {
   };
 
   return { color, palette, paint, text, border, label, labelColor, scaleColor };
-}
-
-function isAdvancedChart(element) {
-  return element.elementType === 'chart' && Array.isArray(element.series) &&
-    element.series.some((series) => ADVANCED_CHART_TYPES.has(series?.type));
 }
 
 function titleOption(chart, style) {

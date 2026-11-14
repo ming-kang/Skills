@@ -1,5 +1,6 @@
 // TrueType/TTC metadata and uncompressed EOT wrapping (Node stdlib only).
 import fs from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 
 const MAC_ROMAN_HIGH =
   'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü' +
@@ -8,6 +9,9 @@ const MAC_ROMAN_HIGH =
   '‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔ\uf8ffÒÚÛÙıˆ˜¯˘˙˚¸˝˛ˇ';
 
 const FULL_READ_THRESHOLD = 256 * 1024;
+
+export const EAST_ASIAN = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Bopomofo}\u3000-\u303f\uff00-\uffef]/u;
+export const fontSlot = (bold, italic) => bold && italic ? 'boldItalic' : bold ? 'bold' : italic ? 'italic' : 'regular';
 
 function decodeMacRoman(bytes) {
   let out = '';
@@ -125,7 +129,7 @@ function inferStyle(subfamily, italicFlag = false) {
   const name = subfamily.replace(/\s+/g, '').toLowerCase();
   const bold = name === 'bold' || name === 'bolditalic' || name === 'boldoblique';
   const italic = name === 'italic' || name === 'oblique' || name === 'bolditalic' || name === 'boldoblique' || (!name && italicFlag);
-  return bold && italic ? 'boldItalic' : bold ? 'bold' : italic ? 'italic' : 'regular';
+  return fontSlot(bold, italic);
 }
 
 function inferPitch(panose) {
@@ -248,8 +252,15 @@ function readExact(fd, length, position) {
   return buf;
 }
 
-/** Read font face metadata without reading full glyph tables for large SFNT/TTC files. */
+/** Bundled font storage is lossless gzip; return the original font payload. */
+export function readFontBytes(filePath) {
+  const bytes = fs.readFileSync(filePath);
+  return filePath.endsWith('.gz') ? gunzipSync(bytes, { maxOutputLength: 64 * 1024 * 1024 }) : bytes;
+}
+
+/** Read font metadata only for large installed SFNT/TTCs; bundled gzip is decoded once. */
 export function readFontFacesFromFile(filePath) {
+  if (filePath.endsWith('.gz')) return readFontFaces(readFontBytes(filePath));
   const fd = fs.openSync(filePath, 'r');
   try {
     const fileSize = fs.fstatSync(fd).size;
