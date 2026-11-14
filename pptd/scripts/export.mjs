@@ -3,8 +3,10 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { parseArgs as parseNodeArgs } from 'node:util';
 
-import { ADVANCED_CHART_TYPES, hasFormulas } from './lib/deck/contract.mjs';
+import { isAdvancedChart } from './lib/deck/chart.mjs';
+import { readContent } from './lib/deck/content.mjs';
 import { buildWasmProject, readProject } from './lib/deck/project.mjs';
 import { PptxPackage } from './lib/pptx/package.mjs';
 import {
@@ -18,10 +20,6 @@ import { prepareIcons, resolveImages } from './lib/prepare/assets.mjs';
 import { prepareAdvancedCharts } from './lib/prepare/charts.mjs';
 import { prepareFonts } from './lib/prepare/fonts.mjs';
 
-const SKILL_DIR = path.resolve(import.meta.dirname, '..');
-export const CANONICAL_WASM = path.join(SKILL_DIR, 'assets', 'wasm', 'pptd_wasm_bg.wasm');
-export const WASM_SHA256 = '589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e';
-
 function log(message) {
   process.stderr.write(`[pptd] ${message}\n`);
 }
@@ -31,31 +29,6 @@ export function checkNodeVersion(version = process.versions.node) {
   if (!Number.isFinite(major) || major < 26) {
     throw new Error(`Node.js 26+ is required; found ${version}`);
   }
-}
-
-export function resolveWasm(override = null) {
-  const target = override ? path.resolve(override) : CANONICAL_WASM;
-  if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
-    throw new Error(`PPTD WASM writer not found: ${target}`);
-  }
-  const bytes = fs.readFileSync(target);
-  if (!override) {
-    const digest = crypto.createHash('sha256').update(bytes).digest('hex');
-    if (digest !== WASM_SHA256) {
-      throw new Error('bundled WASM does not match the version-locked writer; repair the skill installation');
-    }
-  }
-  return { path: target, bytes };
-}
-
-function projectHasAdvancedCharts(project) {
-  return project.pages.some((page) => page.elements.some(
-    (el) => el.elementType === 'chart' && Array.isArray(el.series) && el.series.some((s) => ADVANCED_CHART_TYPES.has(s?.type)),
-  ));
-}
-
-function offlineSignature(value) {
-  return `offline-bypass-${crypto.createHash('sha256').update(value, 'utf8').digest('hex').slice(0, 32)}`;
 }
 
 export async function exportPptx(source, options = {}) {
@@ -74,7 +47,6 @@ export async function exportPptx(source, options = {}) {
   if (transition !== 'fade' && transition !== 'none') {
     throw new Error('transition must be fade or none');
   }
-  const wasmInfo = resolveWasm(wasm);
   const sourceProject = readProject(source);
 
   const output = outputOption
@@ -94,18 +66,19 @@ export async function exportPptx(source, options = {}) {
   // Build one isolated, normalized working project used across all prepare and patch passes.
   const projectRoot = path.dirname(sourceProject.manifestPath);
   const wasmProject = buildWasmProject(sourceProject);
-  const fonts = await prepareFonts(wasmProject, { projectRoot, fontDirs, embed: embedFonts, offline });
+  const { exportPPTDToPPTXBytes } = await loadWasmExporter(wasm);
+  const content = readContent(wasmProject);
+  const fonts = await prepareFonts(wasmProject, content, { projectRoot, fontDirs, embed: embedFonts, offline });
   for (const warning of fonts.warnings) {
     if (!quiet) log(`warning: ${warning}`);
   }
 
-  const { exportPPTDToPPTXBytes } = await loadWasmExporter(wasmInfo.path, wasmInfo.bytes);
   const icons = prepareIcons(wasmProject);
   const mediaByKey = new Map();
   const images = await resolveImages(wasmProject, projectRoot, mediaByKey, offline);
 
   let outlineText = null;
-  if (projectHasAdvancedCharts(wasmProject)) {
+  if (wasmProject.pages.some((page) => page.elements.some(isAdvancedChart))) {
     const { createSvgFontOutliner } = await import('./lib/prepare/svg_text.mjs');
     outlineText = createSvgFontOutliner(fonts.outlines);
   }
@@ -120,31 +93,31 @@ export async function exportPptx(source, options = {}) {
     chartImages: [],
   };
 
-  const math = hasFormulas(wasmProject.pages)
-    ? (await import('./lib/prepare/formulas.mjs')).createMathBridge(wasmProject)
+  const math = content.formulas.length
+    ? (await import('./lib/prepare/formulas.mjs')).createMathBridge(content.formulas)
     : null;
+  const unexpectedMath = [];
   const bytes = exportPPTDToPPTXBytes(
     wasmProject,
     {
       ...writerOptions,
       mathLoader: math ? math.mathLoader : (latex) => {
-        throw new Error(`writer requested an unexpected formula: ${JSON.stringify(latex)}`);
+        unexpectedMath.push(latex);
+        return null;
       },
     },
-    offlineSignature(JSON.stringify(wasmProject)),
   );
+  if (unexpectedMath.length) throw new Error(`writer requested an unexpected formula: ${JSON.stringify(unexpectedMath[0])}`);
   const formulas = math ? math.assertComplete() : 0;
 
-  let pptxBuffer = Buffer.from(bytes);
+  let pptxBuffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
   // Single-pass archive postprocessing (fonts + table image fills + slide transitions).
   const pkg = PptxPackage.open(pptxBuffer);
   patchFontBindings(pkg, fonts.bindings);
-  const tableImageFills = patchTableImages(pkg, wasmProject, mediaByKey);
+  const tableImageFills = patchTableImages(pkg, content.tables, mediaByKey);
   const transitionPatchedSlides = patchTransitions(pkg, transition);
-  if (pkg.dirty) {
-    pptxBuffer = pkg.toBuffer();
-  }
+  pptxBuffer = pkg.toBuffer();
 
   const summary = verifyOutput(pptxBuffer, transition, wasmProject.pages.length);
 
@@ -185,37 +158,25 @@ export async function exportPptx(source, options = {}) {
 }
 
 export function parseArgs(argv) {
-  const args = {
-    input: null,
-    output: null,
-    transition: 'fade',
-    wasm: null,
-    force: false,
-    fontDirs: [],
-    embedFonts: true,
-    offline: false,
-    help: false,
+  const { values, positionals } = parseNodeArgs({
+    args: argv, allowPositionals: true,
+    options: {
+      output: { type: 'string', short: 'o' },
+      transition: { type: 'string', default: 'fade' },
+      wasm: { type: 'string' },
+      force: { type: 'boolean', default: false },
+      'font-dir': { type: 'string', multiple: true },
+      'no-embed-fonts': { type: 'boolean', default: false },
+      offline: { type: 'boolean', default: false },
+      help: { type: 'boolean', short: 'h', default: false },
+    },
+  });
+  if (positionals.length > 1) throw new Error(`unexpected positional argument: ${positionals[1]}`);
+  return {
+    input: positionals[0] ?? null, output: values.output, transition: values.transition,
+    wasm: values.wasm, force: values.force, fontDirs: values['font-dir'] ?? [],
+    embedFonts: !values['no-embed-fonts'], offline: values.offline, help: values.help,
   };
-  const values = [...argv];
-  while (values.length) {
-    const arg = values.shift();
-    if (arg === '--help' || arg === '-h') args.help = true;
-    else if (arg === '--output' || arg === '-o') args.output = values.shift() ?? throwMissing(arg);
-    else if (arg === '--transition') args.transition = values.shift() ?? throwMissing(arg);
-    else if (arg === '--wasm') args.wasm = values.shift() ?? throwMissing(arg);
-    else if (arg === '--force') args.force = true;
-    else if (arg === '--font-dir') args.fontDirs.push(values.shift() ?? throwMissing(arg));
-    else if (arg === '--no-embed-fonts') args.embedFonts = false;
-    else if (arg === '--offline') args.offline = true;
-    else if (arg.startsWith('-')) throw new Error(`unknown option: ${arg}`);
-    else if (!args.input) args.input = arg;
-    else throw new Error(`unexpected positional argument: ${arg}`);
-  }
-  return args;
-}
-
-function throwMissing(flag) {
-  throw new Error(`${flag} requires a value`);
 }
 
 function usage() {

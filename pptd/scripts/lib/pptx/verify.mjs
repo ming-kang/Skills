@@ -1,22 +1,15 @@
 // Read-only OOXML slide transition checks and full PPTX package integrity verification.
 import path from 'node:path';
 import { imageInfo, MIME_TYPES } from '../core/media.mjs';
-import { childElements, firstChild, parseXml } from '../core/xml.mjs';
+import { NS, childElements, firstChild, parseXml } from '../core/xml.mjs';
+import { SLIDE_PART } from './package.mjs';
 import { readZip } from './zip.mjs';
 
 export const PPTX_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml';
-const SLIDE_NAME_PATTERN = /^ppt\/slides\/slide\d+\.xml$/;
-const P_NS = 'http://schemas.openxmlformats.org/presentationml/2006/main';
-const R_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const { presentation: P_NS, relationships: R_NS } = NS;
 
-export function slideTransitionFacts(slideXml) {
-  let doc;
-  try {
-    doc = parseXml(slideXml, 'slide XML');
-  } catch (error) {
-    throw new Error(`invalid slide XML: ${error.message}`);
-  }
+export function slideTransitionFacts(doc) {
   const children = childElements(doc.documentElement);
   const names = children.map((node) => node.localName);
   const transitionIndexes = [];
@@ -151,13 +144,13 @@ function verifyParts(archive) {
     for (const sldId of childElements(sldIdLst, P_NS, 'sldId')) {
       const rId = sldId.getAttributeNS(R_NS, 'id');
       const target = presTargets.get(rId);
-      if (!target || !SLIDE_NAME_PATTERN.test(target)) {
+      if (!target || !SLIDE_PART.test(target)) {
         throw new Error(`ppt/presentation.xml: sldId ${rId} does not resolve to a slide part`);
       }
       linkedSlides.add(target);
     }
     for (const name of names) {
-      if (SLIDE_NAME_PATTERN.test(name) && !linkedSlides.has(name)) {
+      if (SLIDE_PART.test(name) && !linkedSlides.has(name)) {
         throw new Error(`PPTX contains an unlinked slide part: ${name}`);
       }
     }
@@ -172,7 +165,7 @@ function verifyParts(archive) {
       throw new Error(`${name}: media bytes do not match declared content type ${declared}`);
     }
   }
-  return xml.size;
+  return xml;
 }
 
 export function verifyOutput(pptxBuffer, transition, expectedSlides = null) {
@@ -183,15 +176,15 @@ export function verifyOutput(pptxBuffer, transition, expectedSlides = null) {
   if (!archive.has('[Content_Types].xml') || !archive.read('[Content_Types].xml').includes(PPTX_CONTENT_TYPE)) {
     throw new Error('output is not a valid PPTX ZIP: missing main content type');
   }
+  const xml = verifyParts(archive);
   archive.verifyAll();
-  const xmlParts = verifyParts(archive);
-  const slideNames = archive.names().filter((name) => SLIDE_NAME_PATTERN.test(name));
+  const slideNames = archive.names().filter((name) => SLIDE_PART.test(name));
   if (expectedSlides !== null && slideNames.length !== expectedSlides) {
     throw new Error(`PPTX slide count mismatch: expected ${expectedSlides}, got ${slideNames.length}`);
   }
   let fadeCount = 0;
   for (const name of slideNames) {
-    const facts = slideTransitionFacts(archive.read(name));
+    const facts = slideTransitionFacts(xml.get(name));
     validateTransitionOrder(facts, transition);
     if (facts.hasDirectFade) fadeCount += 1;
   }
@@ -203,7 +196,7 @@ export function verifyOutput(pptxBuffer, transition, expectedSlides = null) {
     slides: slideNames.length,
     fadeTransitions: fadeCount,
     fontParts: fontParts.length,
-    xmlParts,
+    xmlParts: xml.size,
     bytes: pptxBuffer.length,
   };
 }

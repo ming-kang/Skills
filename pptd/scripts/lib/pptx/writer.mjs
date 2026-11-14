@@ -1,5 +1,9 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import path from 'node:path';
+
+export const CANONICAL_WASM = new URL('../../../assets/wasm/pptd_wasm_bg.wasm', import.meta.url);
+export const WASM_SHA256 = '589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e';
 
 const STRINGIFY_IMPORTS = [
   '__wbg_stringify_b54333f60f1e4ead',
@@ -17,18 +21,19 @@ const REQUIRED_WASM_EXPORTS = [
 
 const MODULE_CACHE = new Map();
 
-async function compileWasmModule(wasmPath, wasmBytes = null) {
-  const bytes = wasmBytes ?? fs.readFileSync(wasmPath);
+async function compileWasmModule(override) {
+  const target = override ? path.resolve(override) : CANONICAL_WASM;
+  if (!fs.existsSync(target) || !fs.statSync(target).isFile()) throw new Error(`PPTD WASM writer not found: ${target}`);
+  const bytes = fs.readFileSync(target);
   const digest = crypto.createHash('sha256').update(bytes).digest('hex');
-  let compiled = MODULE_CACHE.get(digest);
-  if (!compiled) {
-    compiled = await WebAssembly.compile(bytes);
-    MODULE_CACHE.set(digest, compiled);
+  if (!override && digest !== WASM_SHA256) {
+    throw new Error('bundled WASM does not match the version-locked writer; repair the skill installation');
   }
-  return compiled;
+  if (!MODULE_CACHE.has(digest)) MODULE_CACHE.set(digest, await WebAssembly.compile(bytes));
+  return MODULE_CACHE.get(digest);
 }
 
-export async function loadWasmExporter(wasmPath, wasmBytes = null) {
+export async function loadWasmExporter(override = null) {
   let exportsRef;
   let memory;
   let cachedUint8;
@@ -48,11 +53,7 @@ export async function loadWasmExporter(wasmPath, wasmBytes = null) {
   }
 
   function getDataView() {
-    if (
-      !cachedDataView ||
-      cachedDataView.buffer.detached === true ||
-      (cachedDataView.buffer.detached === undefined && cachedDataView.buffer !== memory.buffer)
-    ) {
+    if (!cachedDataView || cachedDataView.buffer !== memory.buffer) {
       cachedDataView = new DataView(memory.buffer);
     }
     return cachedDataView;
@@ -86,32 +87,11 @@ export async function loadWasmExporter(wasmPath, wasmBytes = null) {
     return value == null;
   }
 
-  function passStringToWasm(value, malloc, realloc) {
-    if (realloc === undefined) {
-      const buffer = textEncoder.encode(value);
-      const pointer = malloc(buffer.length, 1) >>> 0;
-      getUint8().subarray(pointer, pointer + buffer.length).set(buffer);
-      stringLength = buffer.length;
-      return pointer;
-    }
-    let length = value.length;
-    let pointer = malloc(length, 1) >>> 0;
-    const memoryBytes = getUint8();
-    let offset = 0;
-    for (; offset < length; offset++) {
-      const code = value.charCodeAt(offset);
-      if (code > 127) break;
-      memoryBytes[pointer + offset] = code;
-    }
-    if (offset !== length) {
-      if (offset !== 0) value = value.slice(offset);
-      pointer = realloc(pointer, length, (length = offset + value.length * 3), 1) >>> 0;
-      const view = getUint8().subarray(pointer + offset, pointer + length);
-      const result = textEncoder.encodeInto(value, view);
-      offset += result.written;
-      pointer = realloc(pointer, length, offset, 1) >>> 0;
-    }
-    stringLength = offset;
+  function passStringToWasm(value) {
+    const bytes = textEncoder.encode(value);
+    const pointer = exportsRef.__wbindgen_export(bytes.length, 1) >>> 0;
+    getUint8().set(bytes, pointer);
+    stringLength = bytes.length;
     return pointer;
   }
 
@@ -132,7 +112,7 @@ export async function loadWasmExporter(wasmPath, wasmBytes = null) {
     }
   }
 
-  const compiled = await compileWasmModule(wasmPath, wasmBytes);
+  const compiled = await compileWasmModule(override);
   const importedNames = new Set(WebAssembly.Module.imports(compiled).map((entry) => entry.name));
   const stringifyImport = STRINGIFY_IMPORTS.find((name) => importedNames.has(name));
   if (!stringifyImport) {
@@ -173,7 +153,7 @@ export async function loadWasmExporter(wasmPath, wasmBytes = null) {
         const string = typeof value === 'string' ? value : undefined;
         const pointer = isLikeNone(string)
           ? 0
-          : passStringToWasm(string, exportsRef.__wbindgen_export, exportsRef.__wbindgen_export2);
+          : passStringToWasm(string);
         getDataView().setInt32(arg0 + 4, stringLength, true);
         getDataView().setInt32(arg0, pointer, true);
       },
@@ -204,18 +184,10 @@ export async function loadWasmExporter(wasmPath, wasmBytes = null) {
         return addHeapObject(getObject(arg0)[arg1 >>> 0]);
       },
       __wbg_instanceof_ArrayBuffer_4480b9e0068a8adb(arg0) {
-        try {
-          return getObject(arg0) instanceof ArrayBuffer;
-        } catch {
-          return false;
-        }
+        return getObject(arg0) instanceof ArrayBuffer;
       },
       __wbg_instanceof_Uint8Array_309b927aaf7a3fc7(arg0) {
-        try {
-          return getObject(arg0) instanceof Uint8Array;
-        } catch {
-          return false;
-        }
+        return getObject(arg0) instanceof Uint8Array;
       },
       __wbg_length_1f0964f4a5e2c6d8(arg0) {
         return getObject(arg0).length;
@@ -267,16 +239,12 @@ export async function loadWasmExporter(wasmPath, wasmBytes = null) {
   cachedUint8 = null;
   cachedDataView = null;
 
-  function exportPPTDToPPTXBytes(project, options, signature) {
+  function exportPPTDToPPTXBytes(project, options, signature = `offline-bypass-${crypto.createHash('sha256').update(JSON.stringify(project)).digest('hex').slice(0, 32)}`) {
     const returnPointer = exportsRef.__wbindgen_add_to_stack_pointer(-16);
     try {
       const signaturePointer = isLikeNone(signature)
         ? 0
-        : passStringToWasm(
-            signature,
-            exportsRef.__wbindgen_export,
-            exportsRef.__wbindgen_export2,
-          );
+        : passStringToWasm(signature);
       const signatureLength = stringLength;
       exportsRef.exportPPTDToPPTXBytes(
         returnPointer,

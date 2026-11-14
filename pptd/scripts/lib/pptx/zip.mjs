@@ -82,9 +82,16 @@ export function readZip(buffer) {
     throw new Error(`unsupported ZIP compression method ${entry.method} for ${entry.name}`);
   }
 
+  const cache = new Map();
+  function read(name) {
+    if (!byName.has(name)) throw new Error(`missing ZIP entry: ${name}`);
+    if (!cache.has(name)) cache.set(name, extract(byName.get(name)));
+    return cache.get(name);
+  }
+
   return {
+    buffer,
     entries,
-    byName,
     comment,
     has(name) {
       return byName.has(name);
@@ -92,15 +99,11 @@ export function readZip(buffer) {
     names() {
       return [...byName.keys()];
     },
-    read(name) {
-      const entry = byName.get(name);
-      if (!entry) throw new Error(`missing ZIP entry: ${name}`);
-      return extract(entry);
-    },
+    read,
     verifyAll() {
       for (const entry of entries) {
         if (entry.name.endsWith('/')) continue;
-        const data = extract(entry);
+        const data = cache.get(entry.name) ?? extract(entry);
         if (data.length !== entry.uncompressedSize || crc32(data) !== entry.crc) {
           throw new Error(`PPTX CRC check failed at: ${entry.name}`);
         }

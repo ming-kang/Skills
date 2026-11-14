@@ -1,6 +1,8 @@
-// Single-pass OOXML ZIP package editing session with lazy XML DOM caching.
+// OOXML editing session: cached reads are not edits; written bytes and XML stay coherent.
 import { createXmlDocument, parseXml, serializeXml } from '../core/xml.mjs';
 import { readZip, updateArchive } from './zip.mjs';
+
+export const SLIDE_PART = /^ppt\/slides\/slide\d+\.xml$/;
 
 export class PptxPackage {
   constructor(archive) {
@@ -14,37 +16,32 @@ export class PptxPackage {
   }
 
   has(name) {
-    return this.updates.has(name) || this.xmlDocs.has(name) || this.archive.has(name);
+    return this.updates.has(name) || this.archive.has(name);
   }
 
   names() {
-    const names = new Set(this.archive.names());
-    for (const name of this.updates.keys()) names.add(name);
-    for (const name of this.xmlDocs.keys()) names.add(name);
-    return [...names];
+    return [...new Set([...this.archive.names(), ...this.updates.keys()])];
   }
 
   readBytes(name) {
-    if (this.updates.has(name)) return this.updates.get(name);
-    return this.archive.read(name);
+    if (!this.updates.has(name)) return this.archive.read(name);
+    const part = this.updates.get(name);
+    return part.documentElement ? serializeXml(part) : part;
   }
 
   readXml(name) {
-    if (this.xmlDocs.has(name)) return this.xmlDocs.get(name);
-    const doc = parseXml(this.readBytes(name), name);
-    this.xmlDocs.set(name, doc);
-    return doc;
+    if (!this.xmlDocs.has(name)) this.xmlDocs.set(name, parseXml(this.readBytes(name), name));
+    return this.xmlDocs.get(name);
   }
 
   readOrCreateXml(name, ns, qualifiedName) {
-    if (this.has(name)) return this.readXml(name);
-    const doc = createXmlDocument(ns, qualifiedName);
-    this.xmlDocs.set(name, doc);
-    return doc;
+    if (!this.has(name)) this.writeXml(name, createXmlDocument(ns, qualifiedName));
+    return this.readXml(name);
   }
 
   writeXml(name, doc) {
     this.xmlDocs.set(name, doc);
+    this.updates.set(name, doc);
   }
 
   writeBytes(name, data) {
@@ -53,14 +50,11 @@ export class PptxPackage {
   }
 
   get dirty() {
-    return this.updates.size > 0 || this.xmlDocs.size > 0;
+    return this.updates.size > 0;
   }
 
   toBuffer() {
-    const updates = new Map(this.updates);
-    for (const [name, doc] of this.xmlDocs.entries()) {
-      updates.set(name, serializeXml(doc));
-    }
-    return updateArchive(this.archive, updates);
+    if (!this.dirty) return this.archive.buffer;
+    return updateArchive(this.archive, new Map([...this.updates.keys()].map((name) => [name, this.readBytes(name)])));
   }
 }

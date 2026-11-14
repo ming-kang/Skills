@@ -2,19 +2,14 @@
 // grouped RIBBI font bindings, native table/cell image fills and slide transitions.
 import crypto from 'node:crypto';
 import { MIME_TYPES } from '../core/media.mjs';
-import { childElements, firstChild, parseXml, serializeXml } from '../core/xml.mjs';
-import { expandTableCells } from '../deck/schema.mjs';
+import { NS, childElements, firstChild, parseXml, serializeXml } from '../core/xml.mjs';
+import { SLIDE_PART } from './package.mjs';
 
-const P = 'http://schemas.openxmlformats.org/presentationml/2006/main';
-const A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
-const R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-const REL = 'http://schemas.openxmlformats.org/package/2006/relationships';
-const CT = 'http://schemas.openxmlformats.org/package/2006/content-types';
+const { presentation: P, drawing: A, relationships: R, packageRelationships: REL, contentTypes: CT } = NS;
 
 const FILL_NAMES = new Set(['noFill', 'solidFill', 'gradFill', 'blipFill', 'pattFill', 'grpFill']);
 const AFTER_FILL = new Set(['effectLst', 'effectDag', 'tableStyle', 'tableStyleId', 'extLst']);
 const SLOTS = ['regular', 'bold', 'italic', 'boldItalic'];
-const SLIDE_NAME_PATTERN = /^ppt\/slides\/slide\d+\.xml$/;
 
 export function patchFontBindings(pkg, bindings) {
   if (!bindings?.length) return;
@@ -138,31 +133,14 @@ function buildImageFill(doc, fill, relationship, info, width, height) {
   return result;
 }
 
-export function patchTableImages(pkg, project, mediaByKey) {
-  const theme = project.theme ?? {};
-  const pageJobs = [];
-  for (let i = 0; i < project.pages.length; i++) {
-    const page = project.pages[i];
-    const tableTasks = [];
-    for (const table of page.elements) {
-      if (table.elementType !== 'table') continue;
-      const tableFill = table.fill && typeof table.fill === 'object' && table.fill.type === 'image' ? table.fill : null;
-      const cellFills = [];
-      for (const cell of expandTableCells(table, theme)) {
-        const fill = cell.style.fill;
-        if (fill && typeof fill === 'object' && fill.type === 'image') {
-          cellFills.push({ cell, fill });
-        }
-      }
-      if (tableFill || cellFills.length) {
-        tableTasks.push({ table, tableFill, cellFills });
-      }
-    }
-    if (tableTasks.length) {
-      pageJobs.push({ pageIndex: i + 1, pagePath: page.pagePath, tableTasks });
-    }
-  }
-  if (!pageJobs.length) return 0;
+export function patchTableImages(pkg, tables, mediaByKey) {
+  const jobs = tables.map(({ table, cells, pageIndex, pagePath }) => ({
+    table, pageIndex, pagePath,
+    tableFill: table.fill?.type === 'image' ? table.fill : null,
+    cellFills: cells.filter((cell) => cell.style.fill?.type === 'image')
+      .map((cell) => ({ cell, fill: cell.style.fill })),
+  })).filter((job) => job.tableFill || job.cellFills.length);
+  if (!jobs.length) return 0;
 
   const typesDoc = pkg.readXml('[Content_Types].xml');
   const extensions = new Set(
@@ -178,7 +156,8 @@ export function patchTableImages(pkg, project, mediaByKey) {
 
   let count = 0;
   let updatedTypes = false;
-  for (const { pageIndex, pagePath, tableTasks } of pageJobs) {
+  for (const [index, tableTasks] of Map.groupBy(jobs, (job) => job.pageIndex)) {
+    const pageIndex = index + 1, pagePath = tableTasks[0].pagePath;
     const slideName = `ppt/slides/slide${pageIndex}.xml`;
     const slideDoc = pkg.readXml(slideName);
     const relsName = `ppt/slides/_rels/slide${pageIndex}.xml.rels`;
@@ -189,9 +168,7 @@ export function patchTableImages(pkg, project, mediaByKey) {
     const apply = (properties, fill, width, height) => {
       const record = mediaByKey.get(fill.src);
       if (!record) throw new Error(`${pagePath}: table image was not resolved: ${fill.src}`);
-      const data = Buffer.isBuffer(record.bytes) ? record.bytes : Buffer.from(record.bytes);
-      const info = record.info;
-      const digest = crypto.createHash('sha256').update(data).digest('hex');
+      const { bytes: data, info, digest } = record;
       let target = known.get(digest);
       if (!target) {
         target = `ppt/media/pptd-table-${digest.slice(0, 24)}.${info.ext}`;
@@ -296,7 +273,7 @@ export function replaceTransition(slideXml, transition) {
 export function patchTransitions(pkg, transition) {
   let slideCount = 0;
   for (const name of pkg.names()) {
-    if (!SLIDE_NAME_PATTERN.test(name)) continue;
+    if (!SLIDE_PART.test(name)) continue;
     const doc = pkg.readXml(name);
     replaceTransitionInDoc(doc, transition);
     pkg.writeXml(name, doc);
