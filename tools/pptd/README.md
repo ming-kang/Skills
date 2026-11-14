@@ -1,60 +1,47 @@
-# pptd — repository development notes
+# PPTD development
 
-The distributable unit is `pptd/`. This directory holds only repository build tooling, focused regressions, fixtures and review helpers. Generated evidence belongs under `.artifacts/pptd/`.
+The distributable unit is `pptd/`: runtime instructions, helpers and reusable assets only. Build tooling/tests live here, dev dependencies at the root, and generated review evidence under `.artifacts/pptd/`.
 
-## Architecture
-
-Everything in `pptd/scripts/` runs inside a single Node.js process with zero external runtime dependencies.
+## Ownership
 
 ```text
 pptd/scripts/
-  export.mjs          public CLI: read, prepare, WASM export, patch, verify
-  validate.mjs        structural and semantic/asset check without exporting
-  render_slides.py    optional installed Office QA renderer (PDF + PyMuPDF PNG)
-  render_powerpoint.ps1
-  lib/core/           color.mjs, media.mjs, net.mjs, xml.mjs
-  lib/deck/           yaml.mjs, contract.mjs, chart_data.mjs, schema.mjs, project.mjs
-  lib/prepare/        assets.mjs, font_data.mjs, fonts.mjs, formulas.mjs, charts.mjs, svg_text.mjs
-  lib/pptx/           writer.mjs, zip.mjs, package.mjs, patch.mjs, verify.mjs
+  export.mjs            CLI and pipeline: read → prepare → write → patch → verify
+  validate.mjs          standalone structural/semantic/local-asset validation
+  render_slides.py      optional Office → PDF → PyMuPDF PNG review
+  render_powerpoint.ps1 scoped Windows COM bridge
+  lib/core/            XML/namespaces, CSS/rich text, media, HTTP, catalogs, config traversal
+  lib/deck/            YAML/paths/project, page+animation schema, shared styles, tables, charts, text holders
+  lib/prepare/         fonts/metadata, icons/images, formulas, chart SVGs/glyph outlines
+  lib/pptx/            version-locked writer, ZIP, package editing, OOXML patching/verification
 pptd/assets/
-  vendor/             echarts, fontkit, katex, xmldom, yaml (+ licenses/)
-  fonts/ icons/       generated catalogs (see build_vendor.mjs / build_fonts.mjs)
-  shapes.json         generated preset shape catalog (see build_shapes.mjs)
-  wasm/               the single bundled writer
+  vendor/              tailored ECharts/fontkit + KaTeX/xmldom/YAML (+ licenses/)
+  fonts/ icons/        licensed offline data
+  shapes.json          generated preset geometry metadata
+  wasm/                one immutable writer
 ```
 
-- `lib/deck/schema.mjs` is the only schema implementation: shared types, every element
-  type, sparse merged table grids with style inheritance, chart channel/mapping rules and
-  animations.
-- `lib/core/media.mjs` is the single image byte-identity and intrinsic dimension
-  parser shared by media preparation, native table image fills, and package verification.
-- `lib/pptx/zip.mjs` implements ZIP reading, updating and IEEE CRC-32 verification on
-  `node:zlib`; `lib/core/xml.mjs` wraps the vendored `@xmldom/xmldom` for OOXML,
-  formula, media, and SVG chart adapters.
-- `render_slides.py` and `render_powerpoint.ps1` ship inside `pptd/scripts/` as optional
-  runtime QA helpers (never invoked automatically during export).
+- `deck/schema.mjs` owns page/element geometry and animations; `style.mjs`, `table.mjs`, `chart.mjs` own their domain contracts. Do not create a second validation path.
+- `tableCells` is the single sparse-grid/style expansion for validation, fonts and OOXML image fills. Cells retain logical positions, source holders and diagnostic labels.
+- `readContent` builds one per-deck plan of effective text styles, sparse table cells, text DOMs and formula tokens. Fonts, formulas and table image patching consume that plan without re-parsing text or re-expanding tables. The canonical deck is one plain-data object; the plan never reaches WASM.
+- `core/markup.mjs` owns the text grammar, including entities, literal comparisons, loose inline text and multiline formulas. All text is serialized into well-formed blocks before export; no separate HTML lexer or font-dependent rewriting path remains. CSS splitting honors quoted values and URL parentheses.
+- `core/media.mjs` owns byte identity/dimensions; `core/catalog.mjs` shares icon data; `walkObjects` traverses config, never chart rows/filter data. HTTP payloads are bounded while streaming, not after allocation.
+- `PptxPackage` distinguishes cached reads from edits and keeps binary/XML replacements coherent. ZIP reads are cached, XML is parsed once during verification, and CRC checks also cover unparsed binary parts without retaining decoded font payloads.
+- Font descriptors expose lazy original SFNT/TTC bytes, shared with embedding. `svg_text.mjs` is a chart-label adapter, not a general SVG/CSS layout engine: explicit px/family, standalone text, known anchor/baseline and monochrome glyphs only. Unexpected renderer structure/CSS, missing glyphs and complex/bidi shaping fail closed.
 
-## Rebuild runtime assets
-
-Development dependencies live at the repository root.
+## Rebuild assets
 
 ```bash
 npm ci
 npm run pptd:build-assets
 ```
 
-- `build_vendor.mjs` vendors every runtime JavaScript file into `pptd/assets/vendor/`:
-  the published ECharts standalone ESM build (unmodified), esbuild bundles of katex,
-  xmldom, yaml and fontkit, and their verified upstream notices. Each bundle is checked
-  for external imports before it is written; a missing supplemental license is restored
-  from its pinned authoritative URL and hash-checked, never guessed.
-- `build_fonts.mjs` vendors licensed original static TTFs with OFL attribution. Runtime
-  EOT conversion needs only Node stdlib. Do not restore uncleared historical font files or
-  redistribute loose Windows fonts.
+- `build_vendor.mjs` bundles only heatmap/treemap/sunburst/sankey, SVG, grid, title and colorbar from ECharts. fontkit registers SFNT/TTC containers, omitting unused WOFF/WOFF2/DFont and Brotli. Its pinned source build preserves legacy three-argument `@cache` decorators and inlines Parcel's three Unicode trie reads. Do not switch to TC39 decorator semantics or strip shaping/subsetting imports by patching upstream code.
+- Every bundle is checked for external imports; notices are derived from actual inputs. Missing licenses are restored only from pinned authoritative sources and verified hashes. Preserve source attributions and Unicode/base64 notices.
+- `build_fonts.mjs` rebuilds `.ttf.gz` storage from the catalog’s pinned original hashes/sources, reusing intact local payloads offline rather than re-downloading or silently blessing changed fonts. Complete TTF bytes and OFL attribution are preserved. `build_shapes.mjs` derives 177 shapes/adjustment arities; the Font Awesome catalog is pre-vendored, not rebuilt by this command.
+- The WASM source is unavailable: binary and `writer.mjs` are one version-locked unit. SHA-256: `589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e`.
 
-After any renderer/formula/font update, inspect actual local Office output when available. Build tools and dependencies are never copied into the skill.
-
-## Necessary regression checks
+## Checks
 
 ```bash
 npm run test:pptd
@@ -62,30 +49,23 @@ python -B tools/quick_validate.py
 git diff --check
 ```
 
-`test:pptd` runs the unified Node suite (`deck`, `exporter`, `advanced-charts`, `pptx`).
-No regression needs Python, PyYAML, a browser, network or Office installation.
-Add tests only for a demonstrated regression or a critical new path that otherwise permits
-silent damage.
+The Node suite covers deck/exporter/advanced-chart/PPTX paths plus shared-contract regressions: sparse styles, rich text/duplicate formulas, Unicode safety, bounded downloads, coherent package caches, legacy fontkit decorators and the writer hash gate. It needs no network, browser, Office or Python. Add tests for demonstrated regressions or critical paths that could otherwise silently damage output.
 
-## Conditional PowerPoint/LibreOffice review
+After renderer/font/formula changes, review actual Office output when available:
 
 ```bash
 node pptd/scripts/export.mjs tools/pptd/tests/fixtures/advanced-charts -o .artifacts/pptd/charts.pptx --force --offline
-python -B pptd/scripts/render_slides.py .artifacts/pptd/charts.pptx -o .artifacts/pptd/charts-powerpoint --if-available --force
+python -B pptd/scripts/render_slides.py .artifacts/pptd/charts.pptx -o .artifacts/pptd/charts-review --if-available --force
 ```
 
-Review every page PNG for font identity/styles, text fit, chart labels, image crop, tables, formulas and layering. After fixing source or adapter problems, export/render again. Compare against frozen reference outputs or inspect the underlying SVG/XML; no browser is required. PowerPoint fixed-format PDF preserves embedded-font playback; direct PNG export does not and must not be used as a font-fidelity oracle. Repository QA dependencies are recorded in `requirements-review.txt` at the root; they are not mandatory PPTX-export dependencies. If dependencies are absent, report `skipped`; do not claim a visual review. Render failures must be diagnosed rather than called passes.
+Inspect every page's fonts, fit, labels, crop, tables, formulas and layering; compare SVG/XML and frozen outputs where appropriate. ECharts source bundles can differ slightly from published monolithic builds in SSR text-width estimates, so do not assert pixel identity from package tests. Direct PowerPoint PNG export is not a font-fidelity oracle. `skipped` is an environment limit, not a review; render failures are not passes.
 
-The ECharts SVG adapters merge dashed/dotted treemap edges from `ecmeta_data_index` geometry and replace central text baselines with explicit offsets because PowerPoint ignores `dominant-baseline`. A chart picture stays bare; native `<id>-background`/`<id>-frame` rectangles own fill/border/shadow and mirror animations. The writer's `chartImages` input is PNG-only: never put SVG bytes there.
+## Keep these contracts
 
-## Invariants
-
-- **Byte-stable writer:** exactly one distributed WASM, SHA-256 `589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e`. An explicit alternate build still needs real export verification.
-- **One format contract:** `lib/deck/` owns the private v2 schema and the YAML 1.2 reading. Maintain project path containment and preserve unrelated source during edits/export.
-- **No silent degradation:** unknown chart/icon data, malformed formulas, broken media/XML and missing animation targets are errors, not placeholder success.
-- **Fonts are data, not just names:** preserve Windows style-linked family identity; respect fsType; group true RIBBI variants; disclose substitutions/unavailable styles/external fonts. An embedded ZIP part is not proof of rendering fidelity.
-- **Editable source:** keep native text, vectors, tables, ordinary charts and OMML. Advanced charts remain SVG pictures with editable source data and original definitions in metadata; no native Edit Data or PNG fallback is claimed.
-- **Single transition owner:** export postprocessing writes exactly one root fade after cSld/optional clrMapOvr and before timing/extLst.
-- **Honest conditional QA:** neither Office nor PyMuPDF is mandatory for export. Never start/install a browser. Structural checks and successful rendering are not automatic visual acceptance or cross-application compatibility guarantees.
-- **Design coverage:** preserve seven scenario guides and all 44 indexed presets.
-- **Clean distribution:** runtime helpers/assets only in `pptd/`; tests/build tools only here; no `__pycache__`, generated decks or review PNGs in the distributed unit.
+- Preserve project containment, source files and unrelated output; export failure must not replace a good PPTX.
+- Unknown charts/icons, malformed formulas/media/XML and broken animation targets are errors, never placeholder success.
+- Font names are insufficient: preserve actual Windows family identity, fsType and RIBBI style bindings; disclose external/synthetic/substituted faces.
+- Native text, vectors, tables, ordinary charts and OMML stay editable. Advanced charts retain editable source/metadata; SVG labels freeze as paths, while native frame rectangles own fill/border/shadow and mirrored animations. `chartImages` is PNG-only in this writer.
+- Write exactly one root fade after cSld/optional clrMapOvr and before timing/extLst, or remove transitions explicitly.
+- Keep all 44 preset IDs and seven scenario guides. Baselines/shared signatures are linked, not copied into every preset. `references/pptd.md` is the short core/index; element contracts contain the full fields/examples.
+- No generated decks, browser tooling, development deps or `__pycache__` in the distributed skill. Never commit/push unless asked.
