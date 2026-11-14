@@ -30,10 +30,18 @@ function noticeWriter(bundle) {
   return (name, bytes) => fs.writeFileSync(path.join(directory, name), bytes);
 }
 
-// ---- Apache ECharts: the published standalone SVG-capable ESM build, unmodified. ----
-function vendorEcharts() {
+// ---- Only the four non-native charts, their SVG renderer, axes, title and colorbar. ----
+async function vendorEcharts() {
   const write = noticeWriter('echarts');
-  fs.copyFileSync(path.join(packageRoot('echarts'), 'dist/echarts.esm.min.mjs'), path.join(output, 'echarts.mjs'));
+  const result = await bundle('echarts.mjs', `
+    import { use } from 'echarts/core';
+    import { HeatmapChart, TreemapChart, SunburstChart, SankeyChart } from 'echarts/charts';
+    import { GridComponent, TitleComponent, VisualMapContinuousComponent } from 'echarts/components';
+    import { SVGRenderer } from 'echarts/renderers';
+    use([HeatmapChart, TreemapChart, SunburstChart, SankeyChart, GridComponent, TitleComponent, VisualMapContinuousComponent, SVGRenderer]);
+    export { init, color } from 'echarts/core';
+  `);
+  fs.writeFileSync(path.join(output, result.file), result.contents);
   for (const [pkg, source, name] of [
     ['echarts', 'LICENSE', 'LICENSE'],
     ['echarts', 'NOTICE', 'NOTICE'],
@@ -41,16 +49,19 @@ function vendorEcharts() {
     ['zrender', 'LICENSE', 'LICENSE-zrender'],
     ['tslib', 'LICENSE.txt', 'LICENSE-tslib'],
     ['tslib', 'CopyrightNotice.txt', 'CopyrightNotice-tslib.txt'],
-  ]) write(name, fs.readFileSync(path.join(packageRoot(pkg), source)));
+  ]) write(name, fs.readFileSync(path.join(packageRoot(pkg), source), 'utf8').replaceAll('\r\n', '\n'));
+  return result;
 }
 
 // ---- esbuild bundles: Node 26+ ESM with no external imports. ----
-async function bundle(file, source) {
+async function bundle(file, source, options = {}) {
   const result = await build({
     stdin: { contents: source, resolveDir: repository, sourcefile: `${file}-entry.mjs` },
     absWorkingDir: repository,
     bundle: true, minify: true, metafile: true, write: false,
     legalComments: 'inline', platform: 'node', format: 'esm', target: 'node26',
+    define: { 'process.env.NODE_ENV': '"production"' },
+    ...options,
   });
   for (const generated of Object.values(result.metafile.outputs)) {
     if (generated.imports.length) throw new Error(`${file} must have no external imports`);
@@ -80,7 +91,7 @@ function copyPackageNotices({ packages }, write) {
     const names = fs.readdirSync(pkg.root)
       .filter((name) => /^(license|copying|notice)/i.test(name) && fs.statSync(path.join(pkg.root, name)).isFile()).sort();
     copied.set(pkg, names.map((name) => {
-      write(`${id}-${name}`, fs.readFileSync(path.join(pkg.root, name)));
+      write(`${id}-${name}`, fs.readFileSync(path.join(pkg.root, name), 'utf8').replaceAll('\r\n', '\n'));
       return `${id}-${name}`;
     }));
   }
@@ -113,7 +124,6 @@ const FONTKIT_UPSTREAM = [
 // These releases have no LICENSE even at their release commits. Their package.json and
 // README declare MIT; reproduce those declarations instead of fabricating an MIT grant.
 const FONTKIT_DECLARED = new Map([
-  ['brotli@1.3.3', { readme: 'readme.md', repo: 'devongovett/brotli.js', commit: 'e36051345f6d27a56e5f39ea70d2f789b8574046' }],
   ['dfa@1.2.0', { readme: 'README.md', repo: 'devongovett/dfa', commit: '3f5e603e5082caedabefefdf53e8a6ca3111e966' }],
 ]);
 
@@ -121,8 +131,32 @@ async function vendorFontkit() {
   if (require(path.join(packageRoot('fontkit'), 'package.json')).version !== '2.0.4') {
     throw new Error('Review the fontkit bundle/licensing before changing the pinned 2.0.4 parser');
   }
-  // The browser entry uses typed arrays/TextDecoder only, and embeds Brotli's pure JS dictionary.
-  const result = await bundle('fontkit.mjs', `export { create } from ${entry('fontkit', 'dist/browser-module.mjs')};`);
+  // The runtime accepts SFNT/TTC/EOT, never WOFF/WOFF2/DFont. Register just those
+  // containers, keeping the complete glyph/layout engine instead of forking it.
+  const result = await bundle('fontkit.mjs', `
+    import { registerFormat, create } from ${entry('fontkit', 'src/base.js')};
+    import TTFFont from ${entry('fontkit', 'src/TTFFont.js')};
+    import TrueTypeCollection from ${entry('fontkit', 'src/TrueTypeCollection.js')};
+    registerFormat(TTFFont);
+    registerFormat(TrueTypeCollection);
+    export { create };
+  `, {
+    tsconfigRaw: { compilerOptions: { experimentalDecorators: true } },
+    plugins: [{
+      name: 'fontkit-source-assets',
+      setup(build) {
+        build.onLoad({ filter: /[\\/]node_modules[\\/]fontkit[\\/]src[\\/].*\.js$/ }, ({ path: file }) => ({
+          // Parcel inlined these three Unicode tries in the published browser build.
+          contents: fs.readFileSync(file, 'utf8').replace(
+            /require\(['"]fs['"]\)\.readFileSync\(__dirname\s*\+\s*(['"][^'"]+['"]),\s*['"]base64['"]\)/g,
+            (_, relative) => JSON.stringify(fs.readFileSync(path.join(path.dirname(file), relative.slice(1, -1)), 'base64')),
+          ),
+          // fontkit's @cache uses legacy three-argument decorators, not TC39 Stage 3.
+          loader: 'ts',
+        }));
+      },
+    }],
+  });
   const directory = path.join(output, 'licenses/fontkit');
   const kept = new Map(FONTKIT_UPSTREAM.map(([name]) => [name, path.join(directory, name)])
     .filter(([, file]) => fs.existsSync(file)).map(([name, file]) => [name, fs.readFileSync(file)]));
@@ -160,9 +194,7 @@ async function vendorFontkit() {
     packageNotices.push(`${pkg.name} ${pkg.version} (${pkg.license})\n${repo}\nNotices: ${files.join(', ')}`);
   }
 
-  // Brotli's decoder is Google-derived Apache-2.0 source despite its npm package's MIT
-  // declaration. Preserve every original legal header; the full Apache-2.0 text is the
-  // copied swc-helpers-LICENSE.
+  // Preserve original source attributions in addition to the full package licenses.
   const sourceHeaders = [];
   for (const input of result.inputs) {
     const headers = [...fs.readFileSync(path.resolve(repository, input), 'utf8').matchAll(/\/\*[\s\S]*?\*\/|^\s*\/\/[^\r\n]*/gm)]
@@ -172,9 +204,11 @@ async function vendorFontkit() {
   write('NOTICE-source-headers', sourceHeaders.join('\n\n--------------------\n\n') + '\n');
   write('NOTICE', `Browser-free SVG glyph outline parser/shaper
 
-fontkit 2.0.4 dist/browser-module.mjs, bundled with esbuild ${esbuildVersion} for Node 26+.
-The complete parser, shaper, Unicode tries and pure-JS Brotli decoder/dictionary
-are included. No external imports, browser engine, adjacent node_modules or WASM.
+fontkit 2.0.4 SFNT and TrueTypeCollection source entries, bundled with esbuild ${esbuildVersion} for Node 26+.
+The complete glyph parser, shaper and Unicode tries are included. Legacy @cache
+decorators are compiled and Parcel's static trie reads are inlined at build time.
+WOFF/WOFF2/DFont, Brotli and SWC helpers are not included. There are no external
+imports, browser engine, adjacent node_modules or additional WASM.
 
 BUNDLED NPM INPUTS
 
@@ -184,16 +218,11 @@ ADDITIONAL UPSTREAM LICENSE SOURCES
 
 ${supplemental.join('\n\n')}
 
-fontkit 2.0.4's npm package omits LICENSE; the original upstream MIT license
-is copied at the pinned source above. Brotli and dfa omit LICENSE even at their
-release commits: NOTICE-brotli and NOTICE-dfa copy their MIT declarations from
-the shipped package metadata/README without invented copyright text.
-
-Brotli dec/*.js include Google copyright/Apache-2.0 headers, reproduced in
-NOTICE-source-headers. The full Apache-2.0 text is in the copied
-swc-helpers-LICENSE. fontkit's base64 decoder attributes base64-arraybuffer
-(MIT); its original license is also copied. Unicode-generated data in fontkit
-and unicode-properties is accompanied by the authoritative Unicode license.
+fontkit's omitted MIT license is copied from the pinned upstream source above.
+NOTICE-dfa reproduces its shipped metadata/README MIT declaration, without an
+invented copyright grant. NOTICE-source-headers retains the original legal
+headers; the base64-arraybuffer attribution and authoritative Unicode license
+accompany the derived decoder and Unicode-generated data.
 
 Selected fonts are supplied separately by the caller and retain their own licenses.
 `);
@@ -203,15 +232,18 @@ Selected fonts are supplied separately by the caller and retain their own licens
 }
 
 fs.mkdirSync(output, { recursive: true });
-vendorEcharts();
 const bundles = [
+  await vendorEcharts(),
   await vendorBundle('katex.mjs', "export { default as katex } from 'katex';"),
-  await vendorBundle('xmldom.mjs', "export { DOMImplementation, DOMParser, XMLSerializer } from '@xmldom/xmldom';"),
+  // The parser's own HTML entity table lets rich text keep an unknown `&name;` literal.
+  await vendorBundle('xmldom.mjs', `
+    export { DOMImplementation, DOMParser, XMLSerializer } from '@xmldom/xmldom';
+    export { HTML_ENTITIES } from ${entry('@xmldom/xmldom', 'lib/entities.js')};
+  `),
   // The browser build is plain ESM without Node built-ins.
   await vendorBundle('yaml.mjs', `export { parseDocument, visit } from ${entry('yaml', 'browser/index.js')};`),
   await vendorFontkit(),
 ];
-console.log('Vendored echarts.mjs (published standalone build)');
 for (const { file, contents, packages } of bundles) {
   console.log(`Vendored ${file}: ${contents.length} bytes from ${packages.map((pkg) => `${pkg.name}@${pkg.version}`).join(', ')}`);
 }

@@ -1,22 +1,16 @@
 Browser-free SVG glyph outline parser/shaper
 
-fontkit 2.0.4 dist/browser-module.mjs, bundled with esbuild 0.28.2 for Node 26+.
-The complete parser, shaper, Unicode tries and pure-JS Brotli decoder/dictionary
-are included. No external imports, browser engine, adjacent node_modules or WASM.
+fontkit 2.0.4 SFNT and TrueTypeCollection source entries, bundled with esbuild 0.28.2 for Node 26+.
+The complete glyph parser, shaper and Unicode tries are included. Legacy @cache
+decorators are compiled and Parcel's static trie reads are inlined at build time.
+WOFF/WOFF2/DFont, Brotli and SWC helpers are not included. There are no external
+imports, browser engine, adjacent node_modules or additional WASM.
 
 BUNDLED NPM INPUTS
-
-@swc/helpers 0.5.24 (Apache-2.0)
-git+https://github.com/swc-project/swc.git
-Notices: swc-helpers-LICENSE
 
 base64-js 1.5.1 (MIT)
 git://github.com/beatgammit/base64-js.git
 Notices: base64-js-LICENSE
-
-brotli 1.3.3 (MIT)
-https://github.com/devongovett/brotli.js.git
-Notices: NOTICE-brotli
 
 clone 2.1.2 (MIT)
 git://github.com/pvorb/node-clone.git
@@ -61,15 +55,10 @@ SHA-256: f3eca6ff762533fa5a77caf954a143e48afa204668cf97dce758c45a9e006be3
 LICENSE-Unicode: https://www.unicode.org/license.txt
 SHA-256: e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96
 
-fontkit 2.0.4's npm package omits LICENSE; the original upstream MIT license
-is copied at the pinned source above. Brotli and dfa omit LICENSE even at their
-release commits: NOTICE-brotli and NOTICE-dfa copy their MIT declarations from
-the shipped package metadata/README without invented copyright text.
-
-Brotli dec/*.js include Google copyright/Apache-2.0 headers, reproduced in
-NOTICE-source-headers. The full Apache-2.0 text is in the copied
-swc-helpers-LICENSE. fontkit's base64 decoder attributes base64-arraybuffer
-(MIT); its original license is also copied. Unicode-generated data in fontkit
-and unicode-properties is accompanied by the authoritative Unicode license.
+fontkit's omitted MIT license is copied from the pinned upstream source above.
+NOTICE-dfa reproduces its shipped metadata/README MIT declaration, without an
+invented copyright grant. NOTICE-source-headers retains the original legal
+headers; the base64-arraybuffer attribution and authoritative Unicode license
+accompany the derived decoder and Unicode-generated data.
 
 Selected fonts are supplied separately by the caller and retain their own licenses.
