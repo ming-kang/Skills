@@ -1,8 +1,8 @@
 # Font system
 
-The Latin recommendation set and Noto Sans SC are bundled as licensed original TrueType fonts (see `assets/fonts/catalog.json`). Other families below require an installed or authorized project-local font. The CLI resolves effective used families, handles local TTF/TTC/EOT and Google Fonts CSS, and embeds eligible static TrueType faces with correct style bindings. Variable, CFF and restricted faces remain external and are reported; font parts alone do not prove playback fidelity.
+The Latin recommendation set and Noto Sans SC are bundled as complete licensed original TrueType fonts (see `assets/fonts/catalog.json`), stored losslessly as `.ttf.gz` and decoded only when selected. Other families below require an installed or authorized project-local font. The CLI resolves effective used families, handles local TTF/TTC/EOT and Google Fonts CSS, and embeds eligible static TrueType faces with correct style bindings. Variable, CFF and restricted faces remain external and are reported; font parts alone do not prove playback fidelity.
 
-MiSans is not redistributed by this skill. Use a licensed installed/project-local copy for an exact match; otherwise the exporter discloses its Noto Sans SC substitution. Source files are not rewritten during export.
+MiSans is not redistributed by this skill. Use a licensed installed/project-local copy for an exact match; otherwise the exporter discloses the substitution (Noto Sans SC for East Asian text, Liter for Latin-only text). Font selection uses decoded visible text, not comments, URLs or literal entity spellings. Source files are not rewritten during export.
 
 ## Selection principles
 
@@ -52,6 +52,8 @@ MiSans is not redistributed by this skill. Use a licensed installed/project-loca
 | ZCOOL KuaiLe | Handwriting (rounded) | ZCOOL KuaiLe; lively, cute, playful and cartoonish; youthful energy | Anime, children, entertainment | No |
 
 ## Custom fonts and offline use
+
+Labels of `heatmap` / `treemap` / `sunburst` / `sankey` charts are frozen as glyph outlines, so their font needs scalable monochrome outlines and regular-weight faces. Families that carry embedded bitmap strikes or color glyphs (for example SimSun, MS Gothic, Cambria) fail the export explicitly rather than being substituted; choose another family for those charts. Chart text styles take `color`, `fontSize` and `fontFamily` only.
 
 Use custom fonts to fill missing categories (e.g. JetBrains Mono, Archivo Black or EB Garamond). `customFonts.src` accepts a project-relative TTF/TTC/OTF/EOT file or a Google Fonts CSS URL; the declared family must match the file's metadata. Local files stay inside the manifest directory. `--font-dir PATH` also searches explicitly supplied local font directories without declaring external project paths.
 

@@ -12,6 +12,9 @@ Use these general rules for every deck. For self-directed work, choose one prima
 6. **Use containers only for semantics**: do not use rounded rectangles or card walls merely to create hierarchy or alignment. Prefer lines, whitespace, and type contrast; cards are appropriate when grouping, state, or an operable region genuinely needs a boundary.
 7. **Let content justify the composition**: do not default to thirds, quarters, or 2×2 layouts when the information has no corresponding structure. Natural comparisons and frameworks may use equal splits.
 8. **Derive the palette and components from the subject**: avoid ungrounded rainbow colors, blue-purple gradients, cyan-purple neon, glassmorphism, and glowing borders. Keep icons, lines, corners, and effects within one coherent visual language.
+9. **Keep chart backgrounds transparent**: match the page background or use transparency, except for reversed charts on dark backgrounds.
+10. **Verify the title read-through**: reading only the slide titles in order should convey a coherent narrative; if the sequence does not flow, fix the structure.
+11. **Use whitespace deliberately; never leave planned regions empty or pad thin content**: whitespace for breathing room, grouping, and rhythm is allowed, but never leave an allocated container empty or stretch sparse content merely to fill space.
 
 **Evidence boundaries**: never fabricate data, citations, customer cases, experimental results, or sources. Mark missing material as a placeholder, assumption, or to-be-supplied information.
 
