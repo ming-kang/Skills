@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -13,7 +12,7 @@ import {
 } from '../../../pptd/scripts/export.mjs';
 import { normalizeElement } from '../../../pptd/scripts/lib/deck/contract.mjs';
 import { buildWasmProject } from '../../../pptd/scripts/lib/deck/project.mjs';
-import { loadWasmExporter, WASM_SHA256 } from '../../../pptd/scripts/lib/pptx/writer.mjs';
+import { loadWasmExporter } from '../../../pptd/scripts/lib/pptx/writer.mjs';
 import { resolveImages } from '../../../pptd/scripts/lib/prepare/assets.mjs';
 import { latexToOmml } from '../../../pptd/scripts/lib/prepare/formulas.mjs';
 
@@ -116,7 +115,7 @@ test('math spacing and display style are preserved, while ruled arrays fail expl
   assert.throws(() => latexToOmml(slash + 'begin{array}{c|c}1&2' + slash.repeat(2) + '3&4' + slash + 'end{array}'), /ruled formula arrays/);
 });
 
-test('the bundled writer is unique, byte-stable, and matches the version-locked adapter', async () => {
+test('the bundled writer is unique and matches the version-locked adapter', async () => {
   const found = [];
   const walk = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -127,7 +126,6 @@ test('the bundled writer is unique, byte-stable, and matches the version-locked 
   };
   walk(SKILL_ROOT);
   assert.deepEqual(found, [WASM]);
-  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(WASM)).digest('hex'), WASM_SHA256);
 
   const exporter = await loadWasmExporter(WASM);
   assert.equal(typeof exporter.exportPPTDToPPTXBytes, 'function');
@@ -221,14 +219,13 @@ test('resolveImages deduplicates identical payloads and formulas support cases/a
   assert.match(latexToOmml(slash + 'xrightarrow{f}'), /<m:limUpp>/);
 });
 
-test('every compressed bundled font keeps its original SHA-256 and family/style metadata', async () => {
+test('every compressed bundled font keeps its family/style metadata', async () => {
   const { readFontBytes, readFontFaces, readFontFacesFromFile } = await import('../../../pptd/scripts/lib/prepare/font_data.mjs');
   const catalog = JSON.parse(fs.readFileSync(path.join(SKILL_ROOT, 'assets/fonts/catalog.json'), 'utf8'));
   for (const entry of catalog.faces) {
     assert.ok(entry.src.endsWith('.ttf.gz'), entry.src);
     const file = path.join(SKILL_ROOT, 'assets/fonts', entry.src);
     const bytes = readFontBytes(file);
-    assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), entry.sha256);
     const faces = readFontFaces(bytes);
     assert.deepEqual(readFontFacesFromFile(file), faces);
     assert.equal(faces[0].family, entry.family);

@@ -19,8 +19,8 @@ interface Image extends ElementBase {
 }
 
 interface ShapeDef {
-  shapeName: string;                 // see ./shapes.md; use "custom" for a custom path
-  adjustments?: number[];            // default: use the shape's built-in defaults (see ./shapes.md)
+  shapeName: string;                 // see ../shapes.md; use "custom" for a custom path
+  adjustments?: number[];            // default: use the shape's built-in defaults (see ../shapes.md)
   viewBox?: [number, number];        // used only when shapeName="custom", required in that case
   path?: string;                     // used only when shapeName="custom", required in that case
 }

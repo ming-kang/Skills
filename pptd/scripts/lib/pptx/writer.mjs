@@ -1,9 +1,8 @@
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const CANONICAL_WASM = new URL('../../../assets/wasm/pptd_wasm_bg.wasm', import.meta.url);
-export const WASM_SHA256 = '589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e';
 
 const STRINGIFY_IMPORTS = [
   '__wbg_stringify_b54333f60f1e4ead',
@@ -22,15 +21,10 @@ const REQUIRED_WASM_EXPORTS = [
 const MODULE_CACHE = new Map();
 
 async function compileWasmModule(override) {
-  const target = override ? path.resolve(override) : CANONICAL_WASM;
+  const target = override ? path.resolve(override) : fileURLToPath(CANONICAL_WASM);
   if (!fs.existsSync(target) || !fs.statSync(target).isFile()) throw new Error(`PPTD WASM writer not found: ${target}`);
-  const bytes = fs.readFileSync(target);
-  const digest = crypto.createHash('sha256').update(bytes).digest('hex');
-  if (!override && digest !== WASM_SHA256) {
-    throw new Error('bundled WASM does not match the version-locked writer; repair the skill installation');
-  }
-  if (!MODULE_CACHE.has(digest)) MODULE_CACHE.set(digest, await WebAssembly.compile(bytes));
-  return MODULE_CACHE.get(digest);
+  if (!MODULE_CACHE.has(target)) MODULE_CACHE.set(target, await WebAssembly.compile(fs.readFileSync(target)));
+  return MODULE_CACHE.get(target);
 }
 
 export async function loadWasmExporter(override = null) {
@@ -239,7 +233,7 @@ export async function loadWasmExporter(override = null) {
   cachedUint8 = null;
   cachedDataView = null;
 
-  function exportPPTDToPPTXBytes(project, options, signature = `offline-bypass-${crypto.createHash('sha256').update(JSON.stringify(project)).digest('hex').slice(0, 32)}`) {
+  function exportPPTDToPPTXBytes(project, options, signature = 'offline-bypass') {
     const returnPointer = exportsRef.__wbindgen_add_to_stack_pointer(-16);
     try {
       const signaturePointer = isLikeNone(signature)

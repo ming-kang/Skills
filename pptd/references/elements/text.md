@@ -180,7 +180,7 @@ Styles apply only to the text inside that `<span>`.
 | --- | --- | --- | --- |
 | `color` | Text color | [Color](../types.md#color) (HEX6 / HEX8 / theme reference) | `<span style="color:$primary">…</span>` |
 | `font-size` | Font size | px string (e.g. `24px`) | `<span style="font-size:24px">…</span>` |
-| `font-family` | Font family | Font name (e.g. `Arial`, `"Arial, 微软雅黑"`) | `<span style="font-family:Arial">…</span>` |
+| `font-family` | Font family | Font name (e.g. `Arial`, `'Arial, 微软雅黑'`) | `<span style="font-family:Arial">…</span>` |
 | `background-color` | Text background color | [Color](../types.md#color) (HEX6 / HEX8 / theme reference) | `<span style="background-color:$accent">…</span>` |
 
 
@@ -213,7 +213,7 @@ Rich text supports embedding LaTeX formulas with the `\(...\)` delimiters:
 - Rich text tags are **not allowed** inside a formula.
 - A formula **only inherits** the `color` and `font-size` styles from its context; other text styles are not passed through.
 - A `<p>` tag can wrap a LaTeX formula to control the alignment
-- Local export uses strict KaTeX → MathML → editable OMML, for both text boxes and table cells. Plain text and rich text are normalized separately; legacy `data-math-node`/`data-tex` spans are restored to literal delimiters in memory. Unknown/unmapped constructs and callback failures are errors, never silently flattened or handed to the writer's incomplete fallback.
+- Local export uses strict KaTeX → MathML → editable OMML for both text boxes and table cells; legacy `data-math-node`/`data-tex` spans are restored to literal delimiters in memory. Unknown/unmapped constructs and callback failures are errors, never silently flattened or handed to the writer's incomplete fallback.
 - Ordinary fractions/scripts/radicals/matrices/delimiters/accents/limits are supported. Ruled arrays, unmapped explicit script levels and negative spacing currently require an equivalent supported expression; do not imply an unsupported construct was preserved.
 
 ```yaml

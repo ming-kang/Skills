@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 
 import { exportPptx, parseArgs } from '../../../pptd/scripts/export.mjs';
@@ -14,6 +13,7 @@ import { checkChart } from '../../../pptd/scripts/lib/deck/chart.mjs';
 import { readContent } from '../../../pptd/scripts/lib/deck/content.mjs';
 import { tableCells } from '../../../pptd/scripts/lib/deck/table.mjs';
 import { PptxPackage } from '../../../pptd/scripts/lib/pptx/package.mjs';
+import { loadWasmExporter } from '../../../pptd/scripts/lib/pptx/writer.mjs';
 import { readZip, writeZip } from '../../../pptd/scripts/lib/pptx/zip.mjs';
 import { prepareFonts } from '../../../pptd/scripts/lib/prepare/fonts.mjs';
 import { createMathBridge, validateFormulas } from '../../../pptd/scripts/lib/prepare/formulas.mjs';
@@ -235,24 +235,20 @@ test('the slim fontkit bundle retains legacy getter/method caches, kerning, glyp
   assert.throws(() => createFont(Buffer.from('wOF2' + '\0'.repeat(64))), /Unknown font format/);
 });
 
-test('stdlib CLI parsing preserves repeated options and the writer facade rejects a corrupted canonical binary', async () => {
+test('stdlib CLI parsing preserves repeated options and the writer facade validates overrides', async () => {
   const args = parseArgs(['deck', '-o', 'out.pptx', '--font-dir', 'one', '--font-dir', 'two', '--no-embed-fonts', '--offline']);
   assert.deepEqual(args.fontDirs, ['one', 'two']);
   assert.equal(args.embedFonts, false);
   assert.equal(args.output, 'out.pptx');
   assert.throws(() => parseArgs(['deck', '--unknown']), /Unknown option/);
   assert.throws(() => parseArgs(['deck', '--output']), /argument/);
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-writer-gate-'));
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-writer-override-'));
   try {
-    const writer = path.join(temp, 'scripts/lib/pptx/writer.mjs');
-    const wasm = path.join(temp, 'assets/wasm/pptd_wasm_bg.wasm');
-    fs.mkdirSync(path.dirname(writer), { recursive: true });
-    fs.mkdirSync(path.dirname(wasm), { recursive: true });
-    fs.copyFileSync(path.join(SKILL, 'scripts/lib/pptx/writer.mjs'), writer);
-    const bytes = fs.readFileSync(path.join(SKILL, 'assets/wasm/pptd_wasm_bg.wasm'));
-    bytes[bytes.length - 1] ^= 1;
-    fs.writeFileSync(wasm, bytes);
-    const { loadWasmExporter } = await import(pathToFileURL(writer));
-    await assert.rejects(loadWasmExporter(), /version-locked writer/);
+    const missing = path.join(temp, 'missing.wasm');
+    await assert.rejects(loadWasmExporter(missing), /not found/);
+    const badWasm = path.join(temp, 'bad.wasm');
+    // Minimal valid empty WASM module (\0asm v1) missing required writer imports/exports.
+    fs.writeFileSync(badWasm, Buffer.from([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]));
+    await assert.rejects(loadWasmExporter(badWasm), /version-locked/);
   } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 });

@@ -1,9 +1,9 @@
 # Licensed offline font assets
 
-`catalog.json` records 18 original static TrueType faces, exact source URLs and
-**SHA-256 of the original uncompressed bytes**. Files are stored as lossless
-`.ttf.gz` to reduce the installed skill's size; only selected fonts are decoded,
-hash-checked and used. This is not a web subset or a modified font.
+`catalog.json` records 18 original static TrueType faces and their exact source
+URLs. Files are stored as lossless `.ttf.gz` to reduce the installed skill's
+size; only selected fonts are decoded and used. This is not a web subset or a
+modified font.
 
 The Latin set (Liter, Hedvig Letters Sans, Oranienbaum, Quattrocento Sans, Sorts
 Mill Goudy, Unna, Coda, Jersey 15 and Jersey 20 Charted) and Noto Sans SC remain
@@ -11,10 +11,10 @@ complete. Non-RIBBI faces keep their Windows family identity: Coda ExtraBold is
 not falsely registered as Coda Bold. Each family directory retains its original
 OFL license and copyright.
 
-`tools/pptd/build_fonts.mjs` rebuilds storage from the catalog's pinned hashes
-and sources. Intact installed payloads make normal rebuilds offline; missing or
-corrupt files are restored only when the download matches the original hash.
-Build tooling remains outside the distributed skill.
+`tools/pptd/build_fonts.mjs` rebuilds storage from the catalog's pinned sources.
+Intact installed payloads make normal rebuilds offline; missing or corrupt files
+are restored from the recorded sources. Build tooling remains outside the
+distributed skill.
 
 The runtime converts eligible TTF/TTC faces to uncompressed EOT for the writer.
 Embedding and SVG labels share the same selected original bytes. It does not

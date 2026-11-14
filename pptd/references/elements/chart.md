@@ -47,15 +47,6 @@ Charts involve multiple kinds of styles (series body colors, fonts, data labels,
 - `type` and `encode` are not allowed inside seriesDefaults
 - Only multi-series types support seriesDefaults: `bar / line / area / scatter / bubble / candlestick / radar`
 
-Counterintuitive example:
-```yaml
-seriesDefaults:
-  bar: {marker: {shape: circle, size: 8}}
-series:
-  - type: bar
-    marker: {size: 12}     # after merge: {shape: circle, size: 12}, not {size: 12}
-```
-
 **3.5 `boolean | Config` field convention:**
 
 Fields of the form `boolean | XxxConfig` (`marker` / `legend` / `AxisConfig.label / axisLine / gridLine` / `SpokeAxisConfig.label / axisLine / gridLine` / `colorbar`) uniformly follow:
@@ -128,15 +119,14 @@ interface ChartData {
 }
 ```
 
-> **Data integrity constraints** (validated by the checker):
-> - Duplicate column names in `cols` → `DuplicateColumnError`
-> - `cols` contains an empty string → `EmptyColumnError`
-> - `rows[i].length !== cols.length` → `RowLengthError`
-> - A column name referenced by encode is not in `cols` → `UnknownColumnError`
-> - It is legal for the same column to be referenced by multiple series (e.g., the same y column drawn once by bar and once by line)
-> - When a column value of a numeric channel (`y` / `value` / `open` / `high` / `low` / `close` / `size` / `flow`) is a string, it is parsed as a number; on failure, `NonNumericValueError` is raised
+> **Data integrity constraints**:
+> - `cols` entries must be non-empty and unique
+> - Every row length must equal `cols.length`
+> - Every column referenced by `encode` must exist in `cols`
+> - The same column may be referenced by multiple series (e.g., the same y column drawn once by bar and once by line)
+> - Numeric-channel values (`y` / `value` / `open` / `high` / `low` / `close` / `size` / `flow`) as strings must parse as finite numbers
 >
-> **How to write missing cells**: fill with `null`, e.g. `[null, null, 2, 3]`. Consecutive commas `[, , 2, 3]` are **not recommended** — strict YAML parsers will error.
+> **Missing cells**: fill with `null`, e.g. `[null, null, 2, 3]`.
 
 #### General Rules
 
@@ -353,7 +343,7 @@ interface AreaSeries extends LinearSeriesBase {
 }
 ```
 
-> **Stacking group rules**: within the same chart, **all series of the same type that set `stack` are automatically grouped into one stack**, with no explicit group identifier needed. At most one stack group of the same type is supported within the same chart — all series that set `stack` must use the same value (all `"value"` / all `"percent"` / all `"stream"`); mixing raises `StackModeMismatchError`; series without `stack` display independently. If multiple independent stack groups are needed, split them into multiple chart elements.
+> **Stacking group rules**: within the same chart, **all series of the same type that set `stack` are automatically grouped into one stack**, with no explicit group identifier needed. At most one stack group of the same type is supported within the same chart — all series that set `stack` must use the same value (`"value"` / `"percent"` / `"stream"`); series without `stack` display independently. If multiple independent stack groups are needed, split them into multiple chart elements.
 >
 > **`stream` applies only to area**: `value` normalization + central baseline offset; the stacked region is symmetric above and below y=0, taking a "streamgraph" shape.
 
@@ -476,7 +466,7 @@ interface WaterfallSeries {
 
 > **Colors**: waterfall does not use `fill`; colors are mapped through the three categories `totalBars` / `increaseBars` / `decreaseBars` by isTotal and the sign of y; all total columns (opening/subtotal/closing) share `totalBars`.
 >
-> **isTotal semantics**: it may appear at any position (first row / middle subtotal / last row are all legal); every `isTotal=true` is an independent total column whose y value should equal "previous total column's y + the sum of all intermediate floating bars' y" — on mismatch, the checker outputs `WaterfallTotalMismatchWarning` (the first-row total column's y is defined directly). The `isTotal` column only accepts bool or null; the string `"true"` or the number `1` both raise `InvalidValueError`.
+> **isTotal semantics**: it may appear at any position (first row / middle subtotal / last row are all legal); every `isTotal=true` is an independent total column whose y value should equal "previous total column's y + the sum of all intermediate floating bars' y" (mismatches trigger a warning; the first-row total column's y is defined directly). The `isTotal` column only accepts bool or null.
 
 #### heatmap
 
@@ -583,7 +573,7 @@ interface SankeySeries {
 | bar / line / area | `x` + `y` |
 | scatter | `x` + `y` (multi-series use a wide table + null padding) |
 | bubble | `x` + `y` + `size` (multi-series use a wide table + null padding) |
-| candlestick | Candlestick: `x` + `open` + `close` + `low` + `high`; overlay: `x` + `y` |
+| candlestick | Candlestick: `x` + `high` + `low` + `close` + optional `open`; overlay: `x` + `y` |
 | pie | `category` + `value` |
 | radar | `category` + `y` |
 | waterfall | `x` + `y` + optional `isTotal` (bool column) |
@@ -644,7 +634,7 @@ bar / line / area / scatter / bubble may coexist with each other freely; candles
 | treemap / sunburst | `value` / `category` | `category` |
 | sankey | `value` / `category` | `value` |
 
-> Writing a value outside this table → the checker raises `InvalidValueError`. The candlestick body itself does not support dataLabels.
+> Writing a value outside this table fails validation. The candlestick body itself does not support dataLabels.
 
 ---
 

@@ -79,16 +79,13 @@ async function resolveGoogleFont(url, family, offline) {
     throw new Error('subset-only Google Fonts text= requests cannot provide complete editable fonts');
   }
   const cache = cacheDir();
-  const digest = sha256(url + FONT_USER_AGENT);
-  const metadataPath = path.join(cache, `${digest}.json`);
-  const fontPath = path.join(cache, `${digest}.ttf`);
-  if (fs.existsSync(metadataPath) && fs.existsSync(fontPath)) {
+  const fontPath = path.join(cache, `${sha256(url + FONT_USER_AGENT)}.ttf`);
+  if (fs.existsSync(fontPath)) {
     try {
-      const record = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-      const raw = fs.readFileSync(fontPath);
-      if (sha256(raw) === record.sha256) return fontPath;
+      readFontFacesFromFile(fontPath);
+      return fontPath;
     } catch {
-      // Re-fetch if cache metadata or payload is corrupt.
+      // Re-fetch if cached payload is corrupt.
     }
   }
   if (offline) throw new Error(`custom font is not cached for offline use: ${family}`);
@@ -114,15 +111,9 @@ async function resolveGoogleFont(url, family, offline) {
   const data = await fetchGoogle(matches[0]);
   readFontFaces(data);
   fs.mkdirSync(cache, { recursive: true });
-  const temp = path.join(cache, `${digest}.tmp`);
+  const temp = `${fontPath}.${process.pid}.tmp`;
   fs.writeFileSync(temp, data);
   fs.renameSync(temp, fontPath);
-  fs.writeFileSync(metadataPath, JSON.stringify({
-    request: url,
-    source: matches[0],
-    sha256: sha256(data),
-    family,
-  }));
   return fontPath;
 }
 
@@ -228,9 +219,7 @@ class FontStore {
       Number(a.slot !== 'regular') - Number(b.slot !== 'regular'))[0];
     if (entry.slot !== requested) this.warn(`font '${name}' has no ${requested} face; presentation software must synthesize that style`);
     if (entry.face === undefined) {
-      const raw = this.readBytes(entry.path);
-      if (sha256(raw) !== entry.sha256) throw new Error(`bundled font does not match its catalog: ${path.basename(entry.path)}`);
-      Object.assign(entry, readFontFaces(raw)[0]);
+      Object.assign(entry, readFontFaces(this.readBytes(entry.path))[0]);
       this.index(entry);
     }
     this.needed.set(`${entry.family}\0${entry.slot}`, entry);

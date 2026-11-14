@@ -1,6 +1,6 @@
 ---
 name: pptd
-description: "Create, design, replicate from PDF/images, validate, and export presentations, PowerPoint decks (.pptx), infographics, and posters in the PPTD format. Use when building slides, posters, or infographics from a brief or document, rebuilding decks from visuals, applying its design presets, or working with .pptd projects. Delivers BOTH a self-contained PPTD project and a local .pptx by default (one-way PPTD → PPTX; not for in-place .pptx patching)."
+description: "Create, design and export presentations in the PPTD format. Use when building slides from a brief or document or working with .pptd projects."
 ---
 
 # PPTD
@@ -58,6 +58,6 @@ node scripts/validate.mjs /absolute/path/deck/deck.pptd
 
 Always review layout, text length, hierarchy, contrast, alignment, cropping, layering, sources and export warnings.
 
-When your environment can inspect or render `.pptx` files—via local tools or the bundled `scripts/render_slides.py` helper (`--if-available`; `--force` replaces its own prior renders)—review every page visually for font fidelity, overflow, occlusion, image fit, chart labels, tables and formulas, keeping in mind how faithfully the preview backend handles embedded fonts and math. Always fix issues in the **PPTD source** and re-export so `.pptd` and `.pptx` stay in sync.
+When your environment can inspect or render `.pptx` files—via local tools or the bundled `scripts/render_slides.py` helper (`--if-available`; `--force` replaces its own prior renders), review every page visually for font fidelity, overflow, occlusion, image fit, chart labels, tables and formulas, keeping in mind how faithfully the preview backend handles embedded fonts and math. Always fix issues in the **PPTD source** and re-export so `.pptd` and `.pptx` stay in sync.
 
 Never treat a failed render or structural-only check (XML, ZIP, PNG existence) as visual acceptance. If visual rendering isn't possible locally, continue source/package checks and disclose that rendered visual review was skipped. Link the project and `.pptx` with absolute local paths, and state any unresolved warnings or font limitations.

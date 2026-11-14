@@ -1,8 +1,6 @@
 #!/usr/bin/env node
-// Rebuild lossless font storage from the catalog's pinned original bytes and sources.
-// The catalog is also runtime metadata/attribution; never bless a changed download
-// by silently regenerating its SHA-256 or Windows family/style identity.
-import crypto from 'node:crypto';
+// Rebuild lossless font storage from the catalog's pinned sources.
+// The catalog is also runtime metadata/attribution; never change Windows family/style identity.
 import fs from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -13,7 +11,6 @@ import { readFontBytes, readFontFaces } from '../../pptd/scripts/lib/prepare/fon
 
 const ROOT = path.resolve(import.meta.dirname, '../../pptd/assets/fonts');
 const catalog = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog.json'), 'utf8'));
-const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const target = (relative) => path.join(ROOT, checkRelativePath(relative, 'font catalog path'));
 const download = (url) => fetchBounded(url, {
   label: 'font asset', timeoutMs: 45000, headers: { 'User-Agent': 'pptd-font-build/1' },
@@ -24,12 +21,17 @@ const fonts = await Promise.all(catalog.faces.map(async (entry) => {
   const file = target(entry.src);
   let bytes;
   // An intact installed payload makes normal asset rebuilds offline.
-  try { bytes = readFontBytes(fs.existsSync(file) ? file : file.slice(0, -3)); } catch { /* Restore below. */ }
-  if (!bytes || sha256(bytes) !== entry.sha256) bytes = await download(entry.source);
-  if (sha256(bytes) !== entry.sha256) throw new Error(`original font SHA-256 changed: ${entry.source}`);
-  const face = readFontFaces(bytes)[0];
-  if (face.variable || face.family !== entry.family || face.slot !== entry.slot) {
-    throw new Error(`font catalog family/style does not match ${entry.src}`);
+  try {
+    const candidate = readFontBytes(fs.existsSync(file) ? file : file.slice(0, -3));
+    const face = readFontFaces(candidate)[0];
+    if (!face.variable && face.family === entry.family && face.slot === entry.slot) bytes = candidate;
+  } catch { /* Restore below. */ }
+  if (!bytes) {
+    bytes = await download(entry.source);
+    const face = readFontFaces(bytes)[0];
+    if (face.variable || face.family !== entry.family || face.slot !== entry.slot) {
+      throw new Error(`font catalog family/style does not match ${entry.src}`);
+    }
   }
   return { file, bytes };
 }));

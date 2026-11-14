@@ -10,8 +10,8 @@ interface Shape extends ElementBase {
   rotation?: number;                  // default: 0; degrees, clockwise rotation
   opacity?: number;                   // default: 1; constraint: [0, 1]
   flip?: [boolean, boolean];          // default: [false, false]; [horizontal flip, vertical flip]
-  shapeName: string;                  // see ./shapes.md
-  adjustments?: number[];             // see ./shapes.md; geometry parameters; default: the default parameter values
+  shapeName: string;                  // see ../shapes.md
+  adjustments?: number[];             // see ../shapes.md; geometry parameters; default: the default parameter values
   viewBox?: [number, number];         // view box; used only when shapeName="custom", required in that case
   path?: string;                      // SVG shape path; used only when shapeName="custom", required in that case
   fill?: Fill;                        // default: not applied
@@ -22,7 +22,7 @@ interface Shape extends ElementBase {
 
 > Custom shapes: you may specify `shapeName: "custom"` and use `viewBox` and `path` to define a custom shape; these two parameters have no effect when `shapeName` is not `custom`
 
-> The `adjustments` parameters: reuse the parameter order and quantity defined by OOXML; see ./shapes.md for value constraints.
+> The `adjustments` parameters: reuse the parameter order and quantity defined by OOXML; see ../shapes.md for value constraints.
 
 > **Note**: `shape` does not support embedded text! Add an extra text box to achieve that.
 

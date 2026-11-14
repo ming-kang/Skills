@@ -60,7 +60,7 @@ Bundled/local/cached fonts and local media work offline. Localize remote images 
 ## Editable capabilities and limits
 
 - **Icons:** offline Font Awesome Free `fas`/`far`/`fab` outlines become native vectors; unknown names fail.
-- **Fonts:** complete licensed Latin families and Noto Sans SC are bundled in lossless gzip storage; original font bytes and hashes are unchanged. Installed/project fonts and Google Fonts CSS are supported; eligible static TTF/TTC/EOT faces retain family identity and regular/bold/italic/bold-italic bindings. Variable/CFF/restricted faces remain external with warnings. Embedding permission does not authorize distributing loose system fonts. See [fonts.md](../pptd/references/fonts.md).
+- **Fonts:** complete licensed Latin families and Noto Sans SC are bundled in lossless gzip storage; original font bytes are unchanged. Installed/project fonts and Google Fonts CSS are supported; eligible static TTF/TTC/EOT faces retain family identity and regular/bold/italic/bold-italic bindings. Variable/CFF/restricted faces remain external with warnings. Embedding permission does not authorize distributing loose system fonts. See [fonts.md](../pptd/references/fonts.md).
 - **Text and formulas:** one text grammar preserves entities, literal comparisons such as `p<0.05`, inline styles outside paragraphs, and text beside blocks. Literal `\(...\)` in text/table cells becomes editable OMML through local KaTeX → MathML conversion, including multiline expressions. Fractions, scripts, radicals, ordinary matrices, delimiters, accents and limits are supported; malformed markup/unmapped constructs fail instead of invoking an incomplete fallback. Source files stay unchanged.
 - **Tables:** editable native cells, merged grids, style inheritance and image fills.
 - **Charts:** ordinary charts remain native. `heatmap`, `treemap`, `sunburst`, `sankey` become SVG pictures with source data retained in PPTD and SVG metadata—not native “Edit Data” worksheets. Selected glyph paths preserve labels; unsupported complex/bidi shaping fails. Frames remain native shapes and share animations. SVG-capable playback is required; no PNG fallback is bundled.
@@ -82,6 +82,6 @@ Package checks and PNG existence do not prove visual quality or identical render
 
 ## Development and attribution
 
-The [development notes](../tools/pptd/README.md) describe module ownership, asset builds and regression checks. The writer and adapter are version-locked; [assets/wasm/README.md](../pptd/assets/wasm/README.md) records its SHA-256. JavaScript is self-contained under [assets/vendor/](../pptd/assets/vendor/README.md), with only required chart/font containers bundled.
+The [development notes](../tools/pptd/README.md) describe module ownership, asset builds and regression checks. The writer and adapter are version-locked; see [assets/wasm/README.md](../pptd/assets/wasm/README.md). JavaScript is self-contained under [assets/vendor/](../pptd/assets/vendor/README.md), with only required chart/font containers bundled.
 
 This is an independent, unofficial project. Repository-authored code is [MIT](../LICENSE); third-party [renderer/parser licenses](../pptd/assets/vendor/licenses/), [Font Awesome attribution](../pptd/assets/icons/README.md) and [font licenses](../pptd/assets/fonts/README.md) remain intact. Product names and trademarks belong to their owners.

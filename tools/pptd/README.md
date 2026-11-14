@@ -38,8 +38,8 @@ npm run pptd:build-assets
 
 - `build_vendor.mjs` bundles only heatmap/treemap/sunburst/sankey, SVG, grid, title and colorbar from ECharts. fontkit registers SFNT/TTC containers, omitting unused WOFF/WOFF2/DFont and Brotli. Its pinned source build preserves legacy three-argument `@cache` decorators and inlines Parcel's three Unicode trie reads. Do not switch to TC39 decorator semantics or strip shaping/subsetting imports by patching upstream code.
 - Every bundle is checked for external imports; notices are derived from actual inputs. Missing licenses are restored only from pinned authoritative sources and verified hashes. Preserve source attributions and Unicode/base64 notices.
-- `build_fonts.mjs` rebuilds `.ttf.gz` storage from the catalog’s pinned original hashes/sources, reusing intact local payloads offline rather than re-downloading or silently blessing changed fonts. Complete TTF bytes and OFL attribution are preserved. `build_shapes.mjs` derives 177 shapes/adjustment arities; the Font Awesome catalog is pre-vendored, not rebuilt by this command.
-- The WASM source is unavailable: binary and `writer.mjs` are one version-locked unit. SHA-256: `589b362a444824c948f21ae99cdc32958c83b28e47a296d4f5905c76b04e0e6e`.
+- `build_fonts.mjs` rebuilds `.ttf.gz` storage from the catalog's pinned sources, reusing intact local payloads offline. Complete TTF bytes and OFL attribution are preserved. `build_shapes.mjs` derives 177 shapes/adjustment arities; the Font Awesome catalog is pre-vendored, not rebuilt by this command.
+- Binary and `writer.mjs` are one version-locked unit verified by wasm-bindgen imports/exports.
 
 ## Checks
 
@@ -49,7 +49,7 @@ python -B tools/quick_validate.py
 git diff --check
 ```
 
-The Node suite covers deck/exporter/advanced-chart/PPTX paths plus shared-contract regressions: sparse styles, rich text/duplicate formulas, Unicode safety, bounded downloads, coherent package caches, legacy fontkit decorators and the writer hash gate. It needs no network, browser, Office or Python. Add tests for demonstrated regressions or critical paths that could otherwise silently damage output.
+The Node suite covers deck/exporter/advanced-chart/PPTX paths plus shared-contract regressions: sparse styles, rich text/duplicate formulas, Unicode safety, bounded downloads, coherent package caches, legacy fontkit decorators and writer override validation. It needs no network, browser, Office or Python. Add tests for demonstrated regressions or critical paths that could otherwise silently damage output.
 
 After renderer/font/formula changes, review actual Office output when available:
 
