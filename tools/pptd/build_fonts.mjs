@@ -1,86 +1,57 @@
 #!/usr/bin/env node
-// Vendor licensed original fonts, not undocumented legacy EOT files.
+// Rebuild lossless font storage from the catalog's pinned original bytes and sources.
+// The catalog is also runtime metadata/attribution; never bless a changed download
+// by silently regenerating its SHA-256 or Windows family/style identity.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { gzipSync } from 'node:zlib';
 
-import { readFontFaces } from '../../pptd/scripts/lib/prepare/font_data.mjs';
+import { fetchBounded } from '../../pptd/scripts/lib/core/net.mjs';
+import { checkRelativePath } from '../../pptd/scripts/lib/deck/contract.mjs';
+import { readFontBytes, readFontFaces } from '../../pptd/scripts/lib/prepare/font_data.mjs';
 
-const ROOT = path.resolve(import.meta.dirname, '..', '..');
-const REF = '86aced91de05cd4f96a06838124cca45be337b2b';
-const BASE = `https://raw.githubusercontent.com/google/fonts/${REF}/ofl/`;
-const OUTPUT = path.join(ROOT, 'pptd', 'assets', 'fonts');
-const FAMILIES = [
-  ['Liter', 'liter', 'Liter', ['Regular'], []],
-  ['Hedvig Letters Sans', 'hedvigletterssans', 'HedvigLettersSans', ['Regular'], ['HedvigLettersSans']],
-  ['Oranienbaum', 'oranienbaum', 'Oranienbaum', ['Regular'], []],
-  ['Quattrocento Sans', 'quattrocentosans', 'QuattrocentoSans', ['Regular', 'Bold', 'Italic', 'BoldItalic'], ['QuattrocentoSans']],
-  ['Sorts Mill Goudy', 'sortsmillgoudy', 'SortsMillGoudy', ['Regular', 'Italic'], ['SortsMillGoudy']],
-  ['Unna', 'unna', 'Unna', ['Regular', 'Bold', 'Italic', 'BoldItalic'], []],
-  ['Coda', 'coda', 'Coda', ['Regular', 'ExtraBold'], []],
-  ['Jersey 15', 'jersey15', 'Jersey15', ['Regular'], ['Jersey15']],
-  ['Jersey 20 Charted', 'jersey20charted', 'Jersey20Charted', ['Regular'], ['Jersey20Charted']],
-];
-const NOTO = 'https://fonts.gstatic.com/s/notosanssc/v41/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYw.ttf';
-const MAX_FONT_BYTES = 64 * 1024 * 1024;
-
-async function download(url) {
-  const response = await fetch(url, {
-    headers: { 'User-Agent': 'pptd-font-build/1' },
-    signal: AbortSignal.timeout(45000),
-  });
-  if (!response.ok) throw new Error(`font download failed (${response.status}): ${url}`);
-  const data = Buffer.from(await response.arrayBuffer());
-  if (data.length > MAX_FONT_BYTES) throw new Error(`font source exceeds build limit: ${url}`);
-  return data;
-}
-
-async function main() {
-  const jobs = [];
-  const aliases = {};
-  for (const [family, folder, stem, styles, names] of FAMILIES) {
-    for (const name of names) aliases[name] = family;
-    jobs.push([family, folder, 'OFL.txt', `${BASE}${folder}/OFL.txt`]);
-    for (const style of styles) {
-      const filename = `${stem}-${style}.ttf`;
-      jobs.push([family, folder, filename, `${BASE}${folder}/${encodeURIComponent(filename)}`]);
-    }
-  }
-  jobs.push(['Noto Sans SC', 'notosanssc', 'OFL.txt', `${BASE}notosanssc/OFL.txt`]);
-  jobs.push(['Noto Sans SC', 'notosanssc', 'NotoSansSC-Regular.ttf', NOTO]);
-
-  const payloads = await Promise.all(jobs.map((job) => download(job[3])));
-  const catalog = {
-    sourceRevision: REF,
-    aliases,
-    fallbacks: { latin: 'Liter', ea: 'Noto Sans SC' },
-    faces: [],
-  };
-
-  for (let i = 0; i < jobs.length; i++) {
-    const [, folder, filename, source] = jobs[i];
-    const data = payloads[i];
-    const target = path.join(OUTPUT, folder, filename);
-    if (filename.endsWith('.ttf')) {
-      const face = readFontFaces(data)[0];
-      if (face.variable) throw new Error(`expected a static font, got variable source: ${source}`);
-      catalog.faces.push({
-        family: face.family,
-        slot: face.slot,
-        src: `${folder}/${filename}`,
-        license: `${folder}/OFL.txt`,
-        source,
-        sha256: crypto.createHash('sha256').update(data).digest('hex'),
-      });
-    }
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, data);
-  }
-  fs.writeFileSync(path.join(OUTPUT, 'catalog.json'), JSON.stringify(catalog, null, 2) + '\n', 'utf8');
-  console.log(`Vendored ${catalog.faces.length} static font faces with OFL licenses`);
-}
-
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+const ROOT = path.resolve(import.meta.dirname, '../../pptd/assets/fonts');
+const catalog = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog.json'), 'utf8'));
+const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
+const target = (relative) => path.join(ROOT, checkRelativePath(relative, 'font catalog path'));
+const download = (url) => fetchBounded(url, {
+  label: 'font asset', timeoutMs: 45000, headers: { 'User-Agent': 'pptd-font-build/1' },
 });
+
+const fonts = await Promise.all(catalog.faces.map(async (entry) => {
+  if (!entry.src.endsWith('.ttf.gz')) throw new Error(`bundled font storage must be .ttf.gz: ${entry.src}`);
+  const file = target(entry.src);
+  let bytes;
+  // An intact installed payload makes normal asset rebuilds offline.
+  try { bytes = readFontBytes(fs.existsSync(file) ? file : file.slice(0, -3)); } catch { /* Restore below. */ }
+  if (!bytes || sha256(bytes) !== entry.sha256) bytes = await download(entry.source);
+  if (sha256(bytes) !== entry.sha256) throw new Error(`original font SHA-256 changed: ${entry.source}`);
+  const face = readFontFaces(bytes)[0];
+  if (face.variable || face.family !== entry.family || face.slot !== entry.slot) {
+    throw new Error(`font catalog family/style does not match ${entry.src}`);
+  }
+  return { file, bytes };
+}));
+
+const licenses = await Promise.all([...new Set(catalog.faces.map((entry) => entry.license))].map(async (license) => {
+  const file = target(license);
+  if (fs.existsSync(file)) return null;
+  const url = `https://raw.githubusercontent.com/google/fonts/${catalog.sourceRevision}/ofl/${license}`;
+  return { file, bytes: await download(url) };
+}));
+
+let original = 0, packed = 0;
+for (const { file, bytes } of fonts) {
+  const compressed = gzipSync(bytes, { level: 9 });
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, compressed);
+  fs.rmSync(file.slice(0, -3), { force: true }); // Only the managed legacy raw copy.
+  original += bytes.length;
+  packed += compressed.length;
+}
+for (const item of licenses.filter(Boolean)) {
+  fs.mkdirSync(path.dirname(item.file), { recursive: true });
+  fs.writeFileSync(item.file, item.bytes);
+}
+console.log(`Vendored ${fonts.length} original font faces: ${original} → ${packed} bytes (lossless gzip); OFL licenses retained`);

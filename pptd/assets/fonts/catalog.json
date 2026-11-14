@@ -15,7 +15,7 @@
     {
       "family": "Liter",
       "slot": "regular",
-      "src": "liter/Liter-Regular.ttf",
+      "src": "liter/Liter-Regular.ttf.gz",
       "license": "liter/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/liter/Liter-Regular.ttf",
       "sha256": "379fe197584f098a0318278c5e1b453a1ef8f017925041e3e51e18efb025822d"
@@ -23,7 +23,7 @@
     {
       "family": "Hedvig Letters Sans",
       "slot": "regular",
-      "src": "hedvigletterssans/HedvigLettersSans-Regular.ttf",
+      "src": "hedvigletterssans/HedvigLettersSans-Regular.ttf.gz",
       "license": "hedvigletterssans/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/hedvigletterssans/HedvigLettersSans-Regular.ttf",
       "sha256": "d4f20dfa9c65f2ed46af3ec66e055aaa56c30abf1d587ed2dd23f38146647df1"
@@ -31,7 +31,7 @@
     {
       "family": "Oranienbaum",
       "slot": "regular",
-      "src": "oranienbaum/Oranienbaum-Regular.ttf",
+      "src": "oranienbaum/Oranienbaum-Regular.ttf.gz",
       "license": "oranienbaum/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/oranienbaum/Oranienbaum-Regular.ttf",
       "sha256": "d0c2527f106ddaf53bebce08e903b585d1fd1d830eddd23ed723c313b4fe2c6c"
@@ -39,7 +39,7 @@
     {
       "family": "Quattrocento Sans",
       "slot": "regular",
-      "src": "quattrocentosans/QuattrocentoSans-Regular.ttf",
+      "src": "quattrocentosans/QuattrocentoSans-Regular.ttf.gz",
       "license": "quattrocentosans/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/quattrocentosans/QuattrocentoSans-Regular.ttf",
       "sha256": "8ee55c4a998c079efce0db96a30520a121d2bb90fe568f6a9e5cef54cc82ad59"
@@ -47,7 +47,7 @@
     {
       "family": "Quattrocento Sans",
       "slot": "bold",
-      "src": "quattrocentosans/QuattrocentoSans-Bold.ttf",
+      "src": "quattrocentosans/QuattrocentoSans-Bold.ttf.gz",
       "license": "quattrocentosans/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/quattrocentosans/QuattrocentoSans-Bold.ttf",
       "sha256": "3c5fcbfa0108c6b8d5f182fbba798d838f6be42c0ca6b4b3462e88a275682eb5"
@@ -55,7 +55,7 @@
     {
       "family": "Quattrocento Sans",
       "slot": "italic",
-      "src": "quattrocentosans/QuattrocentoSans-Italic.ttf",
+      "src": "quattrocentosans/QuattrocentoSans-Italic.ttf.gz",
       "license": "quattrocentosans/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/quattrocentosans/QuattrocentoSans-Italic.ttf",
       "sha256": "4107f2ad5d4993e764df336df9d6919ce5cf3600c5fc44488e1d724116f99114"
@@ -63,7 +63,7 @@
     {
       "family": "Quattrocento Sans",
       "slot": "boldItalic",
-      "src": "quattrocentosans/QuattrocentoSans-BoldItalic.ttf",
+      "src": "quattrocentosans/QuattrocentoSans-BoldItalic.ttf.gz",
       "license": "quattrocentosans/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/quattrocentosans/QuattrocentoSans-BoldItalic.ttf",
       "sha256": "f96418eff31cc33e1c68e68103c10310007280dc06b734cbf936584d532ec29e"
@@ -71,7 +71,7 @@
     {
       "family": "Sorts Mill Goudy",
       "slot": "regular",
-      "src": "sortsmillgoudy/SortsMillGoudy-Regular.ttf",
+      "src": "sortsmillgoudy/SortsMillGoudy-Regular.ttf.gz",
       "license": "sortsmillgoudy/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/sortsmillgoudy/SortsMillGoudy-Regular.ttf",
       "sha256": "3a1fdc0d151b29c562ad3f3b7d7cabf007783ba4dc69444d3a98666bb614352d"
@@ -79,7 +79,7 @@
     {
       "family": "Sorts Mill Goudy",
       "slot": "italic",
-      "src": "sortsmillgoudy/SortsMillGoudy-Italic.ttf",
+      "src": "sortsmillgoudy/SortsMillGoudy-Italic.ttf.gz",
       "license": "sortsmillgoudy/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/sortsmillgoudy/SortsMillGoudy-Italic.ttf",
       "sha256": "7a7720703749c74b657f5340eda5374d0b87a9653855d5cd2f23cc1083d9b0f9"
@@ -87,7 +87,7 @@
     {
       "family": "Unna",
       "slot": "regular",
-      "src": "unna/Unna-Regular.ttf",
+      "src": "unna/Unna-Regular.ttf.gz",
       "license": "unna/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/unna/Unna-Regular.ttf",
       "sha256": "94269efa448520c135ae1f994e0a711b214f5df4ce6b37f2d3ef10a7ccdb1700"
@@ -95,7 +95,7 @@
     {
       "family": "Unna",
       "slot": "bold",
-      "src": "unna/Unna-Bold.ttf",
+      "src": "unna/Unna-Bold.ttf.gz",
       "license": "unna/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/unna/Unna-Bold.ttf",
       "sha256": "d20dcc29cd2b5db18f6c782918f26ee9a6a8240a3850d7aa56fd9977024fc5b1"
@@ -103,7 +103,7 @@
     {
       "family": "Unna",
       "slot": "italic",
-      "src": "unna/Unna-Italic.ttf",
+      "src": "unna/Unna-Italic.ttf.gz",
       "license": "unna/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/unna/Unna-Italic.ttf",
       "sha256": "fd94aa77c2ab4572688ac8ad48c51629c8d651c32b23013b9c33cd72fc9c77b1"
@@ -111,7 +111,7 @@
     {
       "family": "Unna",
       "slot": "boldItalic",
-      "src": "unna/Unna-BoldItalic.ttf",
+      "src": "unna/Unna-BoldItalic.ttf.gz",
       "license": "unna/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/unna/Unna-BoldItalic.ttf",
       "sha256": "3cf90fb9a8d12eb1cb909842633bf1468819deaf993d39988229d38200a7793e"
@@ -119,7 +119,7 @@
     {
       "family": "Coda",
       "slot": "regular",
-      "src": "coda/Coda-Regular.ttf",
+      "src": "coda/Coda-Regular.ttf.gz",
       "license": "coda/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/coda/Coda-Regular.ttf",
       "sha256": "f5d32ae9d5c78cdab7e75a52bd1da07ae22644597232d085a5ce7cd1af341e17"
@@ -127,7 +127,7 @@
     {
       "family": "Coda ExtraBold",
       "slot": "regular",
-      "src": "coda/Coda-ExtraBold.ttf",
+      "src": "coda/Coda-ExtraBold.ttf.gz",
       "license": "coda/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/coda/Coda-ExtraBold.ttf",
       "sha256": "35909e4c6907e1391d09baa934c5e7a4abb232dedea58e47acaa4aecd165c65c"
@@ -135,7 +135,7 @@
     {
       "family": "Jersey 15",
       "slot": "regular",
-      "src": "jersey15/Jersey15-Regular.ttf",
+      "src": "jersey15/Jersey15-Regular.ttf.gz",
       "license": "jersey15/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/jersey15/Jersey15-Regular.ttf",
       "sha256": "dbe00479d62bb3b9fcf0d28f88a021ffc4bd7b01d6ad5c6f74b5fa371bb210ed"
@@ -143,7 +143,7 @@
     {
       "family": "Jersey 20 Charted",
       "slot": "regular",
-      "src": "jersey20charted/Jersey20Charted-Regular.ttf",
+      "src": "jersey20charted/Jersey20Charted-Regular.ttf.gz",
       "license": "jersey20charted/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/jersey20charted/Jersey20Charted-Regular.ttf",
       "sha256": "4e76e87dcb7b42858089347e59950b965c10ae690fa4172c16fe12d7c606bbea"
@@ -151,7 +151,7 @@
     {
       "family": "Noto Sans SC",
       "slot": "regular",
-      "src": "notosanssc/NotoSansSC-Regular.ttf",
+      "src": "notosanssc/NotoSansSC-Regular.ttf.gz",
       "license": "notosanssc/OFL.txt",
       "source": "https://fonts.gstatic.com/s/notosanssc/v41/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYw.ttf",
       "sha256": "450625c8d46ab3df97b7904ded955ec2746d17ec76740cb1e91d1ba63a0f89af"
