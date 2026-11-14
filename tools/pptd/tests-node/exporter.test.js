@@ -11,9 +11,12 @@ import {
   exportPptx,
 } from '../../../pptd/scripts/export.mjs';
 import { normalizeElement } from '../../../pptd/scripts/lib/deck/contract.mjs';
-import { buildWasmProject } from '../../../pptd/scripts/lib/deck/project.mjs';
+import { readContent } from '../../../pptd/scripts/lib/deck/content.mjs';
+import { buildWasmProject, readProject } from '../../../pptd/scripts/lib/deck/project.mjs';
+import { readZip } from '../../../pptd/scripts/lib/pptx/zip.mjs';
 import { loadWasmExporter } from '../../../pptd/scripts/lib/pptx/writer.mjs';
 import { resolveImages } from '../../../pptd/scripts/lib/prepare/assets.mjs';
+import { prepareFonts } from '../../../pptd/scripts/lib/prepare/fonts.mjs';
 import { latexToOmml } from '../../../pptd/scripts/lib/prepare/formulas.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -231,4 +234,82 @@ test('every compressed bundled font keeps its family/style metadata', async () =
     assert.equal(faces[0].family, entry.family);
     assert.equal(faces[0].slot, entry.slot);
   }
+});
+
+test('manifest metadata and Cell.textStyle reach the writer instead of being dropped', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-metadata-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'pages'));
+    fs.writeFileSync(path.join(dir, 'deck.pptd'), [
+      'version: v2',
+      'title: Annual Review',
+      'metadata: {author: "Strategy Team", company: Acme, subject: Q3, copyright: "© 2026"}',
+      'size: [960, 540]',
+      'theme:',
+      '  textStyles:',
+      '    body: {fontSize: 22, color: "#FF0000"}',
+      'pages: [pages/01.page]',
+      '',
+    ].join('\n'));
+    fs.writeFileSync(path.join(dir, 'pages/01.page'), [
+      'elements:',
+      '  - elementId: tb',
+      '    elementType: table',
+      '    bounds: [40, 40, 400, 200]',
+      '    columnWidths: [1]',
+      '    rowHeights: [1]',
+      '    rows:',
+      '      - - {text: A, textStyle: "$body"}',
+      '',
+    ].join('\n'));
+    const output = path.join(dir, 'meta.pptx');
+    await exportPptx(dir, { output, offline: true, quiet: true });
+    const core = readZip(fs.readFileSync(output)).read('docProps/core.xml').toString('utf8');
+    assert.match(core, /<dc:title>Annual Review<\/dc:title>/);
+    assert.match(core, /<dc:creator>Strategy Team<\/dc:creator>/);
+    assert.match(core, /<dc:subject>Q3<\/dc:subject>/);
+    const slide = readZip(fs.readFileSync(output)).read('ppt/slides/slide1.xml').toString('utf8');
+    // Cell.textStyle is ignored by the writer, so the content pass must materialize it.
+    assert.match(slide, /sz="2200"/);
+    assert.match(slide, /<a:srgbClr val="FF0000"\/>/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('unsupported manifest metadata keys and non-string values are rejected', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-metadata-bad-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'pages'));
+    fs.writeFileSync(path.join(dir, 'pages/01.page'), 'elements: []\n');
+    for (const [line, pattern] of [
+      ['metadata: {keywords: seo}', /manifest.metadata.keywords is not a supported document property/],
+      ['metadata: {title: 2026}', /manifest.metadata.title must be a non-empty string/],
+      ['metadata: nope', /manifest.metadata must be a mapping/],
+    ]) {
+      fs.writeFileSync(path.join(dir, 'deck.pptd'), `version: v2\ntitle: T\n${line}\nsize: [960, 540]\npages: [pages/01.page]\n`);
+      assert.throws(() => readProject(dir), pattern, line);
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('rich-text emphasis selects the same font slot the writer marks bold or italic', async () => {
+  // The writer treats >= 600 and `bolder` as bold and `oblique` as italic; the font
+  // pass must agree, or a bold run would carry a regular embedded face.
+  const slots = async (style) => {
+    const project = { pages: [{ pagePath: 'pages/01.page', elements: [{
+      elementId: 'text', elementType: 'text', bounds: [0, 0, 800, 80],
+      content: { text: `<p><span style="${style}">AV</span></p>`, fontFamily: 'Quattrocento Sans' },
+    }] }] };
+    const fonts = await prepareFonts(project, readContent(project), { projectRoot: os.tmpdir(), offline: true, embed: true });
+    assert.deepEqual(fonts.warnings, []);
+    return fonts.bindings.map((face) => face.slot).sort();
+  };
+  assert.deepEqual(await slots('font-weight:600'), ['bold', 'regular']);
+  assert.deepEqual(await slots('font-weight:500'), ['regular']);
+  assert.deepEqual(await slots('font-weight:bolder'), ['bold', 'regular']);
+  assert.deepEqual(await slots('font-style:oblique'), ['italic', 'regular']);
+  assert.deepEqual(await slots('font-style:normal'), ['regular']);
 });

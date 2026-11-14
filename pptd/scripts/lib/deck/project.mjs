@@ -78,6 +78,20 @@ function checkCustomFonts(manifest, root, realRoot) {
   }
 }
 
+/** Document properties written to docProps; unknown keys are silently dropped by the writer. */
+const METADATA_KEYS = ['title', 'author', 'company', 'subject', 'copyright'];
+function checkMetadata(manifest) {
+  const metadata = manifest.metadata;
+  if (metadata === undefined) return;
+  if (!isPlainObject(metadata)) fail('manifest.metadata must be a mapping');
+  for (const [key, value] of Object.entries(metadata)) {
+    if (!METADATA_KEYS.includes(key)) {
+      fail(`manifest.metadata.${key} is not a supported document property; supported: ${METADATA_KEYS.join(', ')}`);
+    }
+    requireString(value, `manifest.metadata.${key}`);
+  }
+}
+
 /**
  * Read, validate and return the canonical DeckIR project.
  * `pages[i].pagePath` stays relative to the manifest (POSIX slashes) and elements are normalized.
@@ -91,6 +105,7 @@ export function readProject(source) {
     fail('manifest.size must contain two positive finite numbers');
   }
   if ('title' in manifest && typeof manifest.title !== 'string') fail('manifest.title must be a string');
+  checkMetadata(manifest);
 
   const root = path.dirname(manifestPath);
   const realRoot = fs.realpathSync(root);

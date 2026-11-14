@@ -10,8 +10,8 @@ MiSans is not redistributed by this skill. Use a licensed installed/project-loca
 2. Selection approach: it is recommended to prioritize highly readable fonts for body text, and to use stylized fonts plus special treatments (all caps, widened letter spacing, bold, italics, etc.) in titles or special pages to strengthen the style
 3. The font combination must support the overall visual style positioning
 4. Name consistency: use a real family name, including its spaces. Historical aliases such as `HedvigLettersSans` and `QuattrocentoSans` are accepted and normalized. Non-RIBBI faces retain their own Windows family name: use `Coda ExtraBold` when that exact face is wanted rather than assuming it is `Coda` + `bold`.
-5. Prefer bundled/local fonts for reproducibility. Review substitutions and unavailable styles against the brief; do not describe them as identical to a requested brand font.
-
+5. Emphasis matches PowerPoint's own rules: `bold` / `bolder` / a numeric weight of 600 or more selects the bold face, `oblique` selects the italic face, and anything lighter stays regular. The embedded face always matches the bold/italic flags written into the slide.
+6. Prefer bundled/local fonts for reproducibility. Review substitutions and unavailable styles against the brief; do not describe them as identical to a requested brand font.
 ## Font list
 
 ### English fonts

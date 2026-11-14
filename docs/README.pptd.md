@@ -53,6 +53,8 @@ A directory with exactly one manifest is also accepted.
 | `--offline` | Forbid remote media and uncached Google Fonts requests |
 | `--wasm PATH` | Explicitly test a compatible alternative writer |
 
+`manifest.metadata` (`title` / `author` / `company` / `subject` / `copyright`) is written to the file's document properties; `title` alone falls back to `manifest.title`.
+
 Export validates YAML/schema/paths, IDs, geometry, table grids, charts, animations, formulas and image bytes; prepares assets; runs WASM; patches font styles/table image fills/transitions; then checks XML, relationships, content types, slide count and ZIP CRC. Stdout is a JSON summary; warnings go to stderr. Fix errors and review substitutions/unavailable styles rather than calling them exact matches.
 
 Bundled/local/cached fonts and local media work offline. Localize remote images and authorized font sources before calling the **editable project** portable: a cache or PPTX embedding does not localize source references.
@@ -61,7 +63,7 @@ Bundled/local/cached fonts and local media work offline. Localize remote images 
 
 - **Icons:** offline Font Awesome Free `fas`/`far`/`fab` outlines become native vectors; unknown names fail.
 - **Fonts:** complete licensed Latin families and Noto Sans SC are bundled in lossless gzip storage; original font bytes are unchanged. Installed/project fonts and Google Fonts CSS are supported; eligible static TTF/TTC/EOT faces retain family identity and regular/bold/italic/bold-italic bindings. Variable/CFF/restricted faces remain external with warnings. Embedding permission does not authorize distributing loose system fonts. See [fonts.md](../pptd/references/fonts.md).
-- **Text and formulas:** one text grammar preserves entities, literal comparisons such as `p<0.05`, inline styles outside paragraphs, and text beside blocks. Literal `\(...\)` in text/table cells becomes editable OMML through local KaTeX → MathML conversion, including multiline expressions. Fractions, scripts, radicals, ordinary matrices, delimiters, accents and limits are supported; malformed markup/unmapped constructs fail instead of invoking an incomplete fallback. Source files stay unchanged.
+- **Text and formulas:** one text grammar preserves entities, literal comparisons such as `p<0.05`, inline styles outside paragraphs, and text beside blocks. Inline CSS is a closed contract: unsupported declarations (`letter-spacing`, `text-decoration`, …) fail with the supported property list instead of being dropped, `$theme` colors are resolved before export, and `<br>` becomes a paragraph split because the writer has no soft line break. Literal `\(...\)` in text/table cells becomes editable OMML through local KaTeX → MathML conversion, including multiline expressions. Fractions, scripts, radicals, ordinary matrices, delimiters, accents and limits are supported; malformed markup/unmapped constructs fail instead of invoking an incomplete fallback. Source files stay unchanged.
 - **Tables:** editable native cells, merged grids, style inheritance and image fills.
 - **Charts:** ordinary charts remain native. `heatmap`, `treemap`, `sunburst`, `sankey` become SVG pictures with source data retained in PPTD and SVG metadata—not native “Edit Data” worksheets. Selected glyph paths preserve labels; unsupported complex/bidi shaping fails. Frames remain native shapes and share animations. SVG-capable playback is required; no PNG fallback is bundled.
 

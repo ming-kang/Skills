@@ -33,6 +33,13 @@ export function checkStyle(style, label, themeColors = null) {
       fail(`${label}.fontFamily must be a font name or a {latin, ea} font mapping`);
     }
   }
+  // The writer silently ignores a wrong-typed wrap/textDirection and falls back to its own default.
+  if ('wrap' in style && style.wrap !== undefined && typeof style.wrap !== 'boolean') {
+    fail(`${label}.wrap must be a boolean`);
+  }
+  if ('textDirection' in style && style.textDirection !== undefined && !['horizontal', 'vertical'].includes(style.textDirection)) {
+    fail(`${label}.textDirection must be horizontal or vertical`);
+  }
   if ('align' in style && style.align !== undefined) {
     const align = style.align;
     if (!Array.isArray(align) || align.length !== 2 || !ALIGN_HORIZONTAL.has(align[0]) || !ALIGN_VERTICAL.has(align[1])) {

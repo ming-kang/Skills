@@ -56,16 +56,28 @@ Page paths, image paths and custom-font paths are **relative to the manifest dir
 interface Presentation {
   version: "v2";              // required
   title?: string;
+  metadata?: PresentationMetadata; // document properties written into the .pptx
   size: [number, number];      // required: positive finite width and height
   theme?: Theme;
   customFonts?: CustomFont[];
   pages: string[];             // required: non-empty ordered list, no duplicate paths
+}
+
+interface PresentationMetadata {
+  title?: string;              // defaults to Presentation.title
+  author?: string;
+  company?: string;
+  subject?: string;
+  copyright?: string;
 }
 ```
 
 ```yaml
 version: v2
 title: Annual Review
+metadata:
+  author: "Strategy Team"
+  company: "Acme"
 size: [960, 540]
 theme:
   colors:

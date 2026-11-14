@@ -11,6 +11,7 @@ import { fetchBounded } from '../../../pptd/scripts/lib/core/net.mjs';
 import { checkXmlString, parseXml } from '../../../pptd/scripts/lib/core/xml.mjs';
 import { checkChart } from '../../../pptd/scripts/lib/deck/chart.mjs';
 import { readContent } from '../../../pptd/scripts/lib/deck/content.mjs';
+import { readProject } from '../../../pptd/scripts/lib/deck/project.mjs';
 import { tableCells } from '../../../pptd/scripts/lib/deck/table.mjs';
 import { PptxPackage } from '../../../pptd/scripts/lib/pptx/package.mjs';
 import { loadWasmExporter } from '../../../pptd/scripts/lib/pptx/writer.mjs';
@@ -93,7 +94,17 @@ test('one text grammar: documented tags are markup, entities decode, everything 
   // The writer alone deletes `<0.05 … >`, `&nbsp;`, text beside a block and inline tags outside one.
   assert.equal(await canonical('p<0.05, R&D; AT&T > 1 &copy; &nbsp;| List<String>'), '<p>p&lt;0.05, R&amp;D; AT&amp;T &gt; 1 © \u00a0| List&lt;String&gt;</p>');
   assert.equal(await canonical('first\r\n\nthird\n\n'), '<p>first</p><p></p><p>third</p>');
-  assert.equal(await canonical('lead <strong>bold</strong>\na<br>b'), '<p>lead <strong>bold</strong></p><p>a<br/>b</p>');
+  // `<br>` has no `<a:br/>` in the writer, so it becomes a paragraph split instead of joining both sides.
+  assert.equal(await canonical('lead <strong>bold</strong>\na<br>b'), '<p>lead <strong>bold</strong></p><p>a</p><p>b</p>');
+  assert.equal(await canonical('<p>a<br/>b</p>'), '<p>a</p><p>b</p>');
+  assert.equal(await canonical('<p>a<span>b<br/>c</span>d</p>'), '<p>a<span>b</span></p><p><span>c</span>d</p>');
+  assert.equal(await canonical('<p>x</p><br/>y'), '<p>x</p><p></p><p>y</p>');
+  // HTML parsing keeps the author's letter case; the writer does not, so fold it like a browser.
+  assert.equal(await canonical('<p>a<BR/>b</p>'), '<p>a</p><p>b</p>');
+  assert.equal(await canonical('<UL><LI style="list-style-type:disc">A</LI></UL>'), '<ul><li style="list-style-type:\u2022">A</li></ul>');
+  assert.equal(await canonical('<P><SPAN STYLE="COLOR:#ff0000">A</SPAN></P>'), '<p><span style="COLOR:#ff0000">A</span></p>');
+  await assert.rejects(canonical('<ul><li>a<br/>b</li></ul>'), /<br> inside a list item cannot be exported/);
+  assert.throws(() => readContent(textProject('<p><A HREF="ftp://x">x</A></p>')), /<a href> must be an https:\/\/, http:\/\/ or mailto: URL/);
   assert.equal(await canonical('<!-- note -->\n<p>one</p>\n tail\n<ul><li>item</li></ul>\n'), '<p>one</p><p> tail</p><ul><li>item</li></ul>');
   assert.equal(await canonical('<p><span style=color:#FF0000;bogus>x</span></p>'), '<p><span style="color:#FF0000;bogus">x</span></p>');
   for (const text of ['Hello', 'a\nb', '<P>Upper</P>', '<p>\\(a < b & c\\)</p>']) {
@@ -105,6 +116,59 @@ test('one text grammar: documented tags are markup, entities decode, everything 
   }
   assert.throws(() => readContent(textProject('<p>\\(x + &#0;\\)</p>')), /XML-forbidden/);
   assert.throws(() => readContent(textProject('\\(a <strong>b</strong>\\)')), /tags are not allowed inside formulas/);
+});
+
+test('inline CSS is a closed contract: unsupported declarations fail instead of vanishing', async () => {
+  const themed = (text) => ({ theme: { colors: { primary: '#2563EB', accent: '#F59E0B' } },
+    pages: [{ pagePath: 'pages/01.page', elements: [{ elementId: 'text', elementType: 'text', bounds: [0, 0, 800, 80], content: { text } }] }] });
+  const canonical = async (text) => {
+    const project = themed(text);
+    await prepareFonts(project, readContent(project), { projectRoot: os.tmpdir(), offline: true, embed: false });
+    return project.pages[0].elements[0].content.text;
+  };
+  // `$theme` colors only exist in element fields, so the content pass resolves them to HEX.
+  assert.equal(await canonical('<p style="color:$primary">A</p>'), '<p style="color:#2563EB">A</p>');
+  assert.equal(await canonical('<p><span style="color:$accent;background-color:$primary">B</span></p>'),
+    '<p><span style="color:#F59E0B;background-color:#2563EB">B</span></p>');
+  assert.throws(() => readContent(themed('<p><span style="color:$missing">x</span></p>')), /references an unknown theme color/);
+  // The writer writes `list-style-type` straight into the bullet glyph.
+  assert.equal(await canonical('<ul><li style="list-style-type:disc">A</li></ul>'), '<ul><li style="list-style-type:\u2022">A</li></ul>');
+  assert.equal(await canonical('<ul><li style="list-style-type:square">A</li></ul>'), '<ul><li style="list-style-type:\u25aa">A</li></ul>');
+  assert.equal(await canonical('<ul><li style="list-style-type:\u25b8">A</li></ul>'), '<ul><li style="list-style-type:\u25b8">A</li></ul>');
+  for (const [text, pattern] of [
+    ['<ul><li style="list-style-type:none">A</li></ul>', /list-style-type must be disc, circle, square or a single marker glyph/],
+    ['<ol><li style="list-style-type:lower-alpha">A</li></ol>', /<ol> always exports arabicPeriod numbering/],
+    ['<p style="letter-spacing:2px">x</p>', /does not support "letter-spacing"/],
+    ['<p style="text-decoration:underline">x</p>', /does not support "text-decoration"/],
+    ['<p style="vertical-align:super">x</p>', /does not support "vertical-align"/],
+    ['<p style="text-indent:20px">x</p>', /does not support "text-indent"/],
+    ['<p style="margin-bottom:8px">x</p>', /does not support "margin-bottom"/],
+    ['<p style="line-height:150%">x</p>', /CSS line-height must be a unitless multiple or a px length/],
+    ['<p style="font-size:18pt">x</p>', /CSS font-size must be a px length/],
+    ['<p><span style="color:red">x</span></p>', /CSS color must be a HEX6\/HEX8 color or a \$theme token/],
+    ['<p><span style="color:#f00">x</span></p>', /CSS color must be a HEX6\/HEX8 color or a \$theme token/],
+    ['<p style="text-align:middle">x</p>', /CSS text-align must be left, center, right, justify or distributed/],
+    ['<p><a href="ftp://x">x</a></p>', /<a href> must be an https:\/\/, http:\/\/ or mailto: URL/],
+    ['<p><a href="javascript:alert(1)">x</a></p>', /<a href> must be an https:\/\/, http:\/\/ or mailto: URL/],
+  ]) {
+    assert.throws(() => readContent(themed(text)), pattern, text);
+  }
+  for (const href of ['https://example.test/a?b=1', 'http://example.test', 'mailto:a@b.c']) {
+    assert.doesNotThrow(() => readContent(themed(`<p><a href="${href}">x</a></p>`)), href);
+  }
+});
+
+test('wrap and textDirection are type-checked instead of silently falling back', () => {
+  const element = (content) => `  - elementId: t\n    elementType: text\n    bounds: [0, 0, 800, 80]\n    content:\n${content}`;
+  const read = (content) => readProject(makeDeck(fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-wrap-')),
+    { page: `elements:\n${element(content)}\n` }));
+  assert.doesNotThrow(() => read('      text: x\n      wrap: false\n      textDirection: vertical\n'));
+  for (const [content, pattern] of [
+    ['      text: x\n      wrap: "no"\n', /content.wrap must be a boolean/],
+    ['      text: x\n      textDirection: sideways\n', /content.textDirection must be horizontal or vertical/],
+  ]) {
+    assert.throws(() => read(content), pattern);
+  }
 });
 
 test('encoded CJK text and legacy quoted Latin/CJK font pairs select covering fonts', async () => {

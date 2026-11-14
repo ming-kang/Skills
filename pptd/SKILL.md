@@ -33,7 +33,7 @@ deck/
 
 Keep page, media and custom-font paths relative to the manifest and inside its directory. Localize remote images and authorized font files before calling the source self-contained; a cache or `.pptx` copy does not make the `.pptd` source portable. Prefer bundled or licensed project-local fonts (embedding permission does not authorize redistributing system fonts).
 
-Give each page a clear reader task and visual hierarchy. Keep text, vectors, tables and ordinary charts editable where practical; crop images instead of distorting them. Write literal `\(...\)` inside text block scalars for editable Office Math, and use only documented rich-text tags (closed tags, quoted attributes) and HTML entities. Add notes or element animations only when requested or clearly helpful for live delivery.
+Give each page a clear reader task and visual hierarchy. Keep text, vectors, tables and ordinary charts editable where practical; crop images instead of distorting them. Write literal `\(...\)` inside text block scalars for editable Office Math, and use only documented rich-text tags (closed tags, quoted attributes) and HTML entities. Inline CSS is a closed contract: unsupported declarations and non-`https`/`http`/`mailto` links are errors that name the supported forms, and `$theme` colors resolve automatically. Add notes or element animations only when requested or clearly helpful for live delivery.
 
 ## 3. Validate and export
 

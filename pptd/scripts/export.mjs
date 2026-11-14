@@ -24,6 +24,32 @@ function log(message) {
   process.stderr.write(`[pptd] ${message}\n`);
 }
 
+/**
+ * The writer ignores `Cell.textStyle`, so the referenced theme text style has to be
+ * materialized onto the cell. Only keys the cell does not set are copied, which keeps
+ * the documented precedence (cell fields > textStyle) intact.
+ */
+const CELL_TEXT_KEYS = ['color', 'fontSize', 'fontFamily', 'bold', 'italic', 'backgroundColor', 'lineHeight', 'lineHeightPx', 'letterSpacing', 'marginTop'];
+function materializeCellTextStyles(content) {
+  for (const { cells } of content.tables) {
+    for (const { cell, style } of cells) {
+      if (typeof cell.textStyle !== 'string') continue;
+      for (const key of CELL_TEXT_KEYS) {
+        if (!(key in cell) && style[key] !== undefined) cell[key] = style[key];
+      }
+    }
+  }
+}
+
+/** Manifest document properties; the writer only understands these five keys. */
+function writerMetadata(project) {
+  const metadata = { ...(project.metadata ?? {}) };
+  if (metadata.title === undefined && typeof project.title === 'string' && project.title) {
+    metadata.title = project.title;
+  }
+  return Object.keys(metadata).length ? metadata : undefined;
+}
+
 export function checkNodeVersion(version = process.versions.node) {
   const major = Number.parseInt(String(version).replace(/^v/i, '').split('.')[0], 10);
   if (!Number.isFinite(major) || major < 26) {
@@ -68,6 +94,7 @@ export async function exportPptx(source, options = {}) {
   const wasmProject = buildWasmProject(sourceProject);
   const { exportPPTDToPPTXBytes } = await loadWasmExporter(wasm);
   const content = readContent(wasmProject);
+  materializeCellTextStyles(content);
   const fonts = await prepareFonts(wasmProject, content, { projectRoot, fontDirs, embed: embedFonts, offline });
   for (const warning of fonts.warnings) {
     if (!quiet) log(`warning: ${warning}`);
@@ -91,6 +118,7 @@ export async function exportPptx(source, options = {}) {
     fileName: path.basename(output),
     slideTransition: { effect: 'fade', speed: 'fast' },
     chartImages: [],
+    metadata: writerMetadata(sourceProject),
   };
 
   const math = content.formulas.length

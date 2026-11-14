@@ -9,7 +9,7 @@ export function readContent(project) {
   const theme = project.theme ?? {};
   const texts = [], tables = [], formulas = [];
   const addText = (holder, style, location) => {
-    const markup = readRichText(holder.text ?? '', location);
+    const markup = readRichText(holder.text ?? '', location, { theme });
     texts.push({ holder, style, location, markup });
     for (const latex of markup.formulas) formulas.push({ latex, location });
   };

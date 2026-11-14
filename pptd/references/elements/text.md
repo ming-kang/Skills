@@ -117,7 +117,7 @@ interface TextContent {
 
 The exporter applies one text grammar to both shorthand and tagged text:
 
-- The tags listed below are markup; other tag-like strings (for example `List<T>`) stay literal.
+- The tags listed below are markup; other tag-like strings (for example `List<T>`) stay literal. Tag and attribute names are case-insensitive and are folded to lowercase, exactly as a browser would.
 - Known HTML entities, including numeric references and `&nbsp;`, are decoded consistently. Unknown `&name;` and bare ampersands stay literal; use `&amp;amp;` to display the text `&amp;` itself.
 - Loose top-level text is wrapped as one paragraph per line. Inline styles work without an explicit `<p>`; text before/after a paragraph or list is preserved. Formatting whitespace between blocks is ignored.
 - Close markup tags and quote attribute values. Mismatched/unclosed tags and duplicate attributes fail with the page/element location instead of being guessed. Escape a literal tag-shaped comparison such as `<b and c>` with `&lt;`.
@@ -130,23 +130,23 @@ The exporter applies one text grammar to both shorthand and tagged text:
 | Tag | Description | Example |
 |------|------|------|
 | `<p>` | Paragraph; may carry paragraph styles | `<p>paragraph</p>` |
-| `<span>` | Inline style; use this tag to set inline styles | `<span style="color:#f00">red</span>` |
+| `<span>` | Inline style; use this tag to set inline styles | `<span style="color:#ff0000">red</span>` |
 | `<strong>` | Bold | `<strong>important</strong>` |
 | `<em>` | Italic | `<em>emphasis</em>` |
 | `<u>` | Underline | `<u>underline</u>` |
 | `<s>` | Strikethrough | `<s>deleted</s>` |
 | `<sup>` | Superscript | `E=mc<sup>2</sup>` |
 | `<sub>` | Subscript | `H<sub>2</sub>O` |
-| `<a>` | Hyperlink; supports `https://`, `http://`, `mailto:`; once set, the hyperlink text style (blue with underline) is applied automatically | `<a href="https://x.com">link</a>` |
+| `<a>` | Hyperlink; supports `https://`, `http://`, `mailto:` (other schemes are rejected); once set, the hyperlink text style (blue with underline) is applied automatically | `<a href="https://x.com">link</a>` |
 | `<ul>` | Unordered list | `<ul><li>item</li></ul>` |
 | `<ol>` | Ordered list | `<ol><li>first item</li></ol>` |
 | `<li>` | List item; must be used together with `<ul>` or `<ol>` | — |
 
 **style attribute mapping**
 
-`<p>`, `<li>`, and `<span>` may use `style="..."`. Color-type values may all use theme references (e.g. `$primary`), resolved per the [Color](../types.md#color) rules.
+`<p>`, `<li>`, and `<span>` may use `style="..."`. This is a **closed contract**, not a browser dialect: a declaration the exporter cannot express is an error that names the supported properties, instead of being dropped. Color-type values may all use theme references (e.g. `$primary`), resolved per the [Color](../types.md#color) rules.
 
-1. **Paragraph styles (only `<p>` supports them)**
+1. **Paragraph styles (only `<p>` and `<li>` support them)**
 
 | Property | Description | Values | Example |
 | --- | --- | --- | --- |
@@ -156,21 +156,15 @@ The exporter applies one text grammar to both shorthand and tagged text:
 | `margin-left` | Left margin | px string (e.g. `12px`) | `<p style="margin-left:12px">…</p>` |
 | `margin-right` | Right margin | px string (e.g. `12px`) | `<p style="margin-right:12px">…</p>` |
 
-> Do not set `letter-spacing` on `<p>`; to set letter spacing uniformly, use `content.letterSpacing` or `Cell.letterSpacing`.
+> Rich text has no `letter-spacing`; to set letter spacing uniformly, use `content.letterSpacing` or `Cell.letterSpacing`.
 
-2. **List-item styles (only `<li>` supports them)**
+2. **List-item styles (only `<li>` supports them, in addition to the paragraph styles above)**
 
-| Property | Description |
-| --- | --- |
-| `text-align` | List-item horizontal alignment |
-| `line-height` | Line height; value rules same as `<p>` |
-| `letter-spacing` | Letter spacing |
-| `margin-top` | Spacing before the paragraph |
-| `margin-left` | Left margin |
-| `list-style` | List style shorthand |
-| `list-style-type` | List marker type |
-| `list-style-position` | List marker position |
-| `list-style-image` | List marker image |
+| Property | Description | Values |
+| --- | --- | --- |
+| `list-style-type` | List marker | `disc` (`•`), `circle` (`◦`), `square` (`▪`), or a single marker glyph such as `▸` / `✓` |
+
+> `<ol>` always exports `1.` `2.` `3.` numbering, so `list-style-type` on an ordered list is rejected. `list-style`, `list-style-position` and `list-style-image` are not expressible and are rejected too.
 
 3. **Inline styles (only `<span>` supports them)**
 
@@ -181,7 +175,12 @@ Styles apply only to the text inside that `<span>`.
 | `color` | Text color | [Color](../types.md#color) (HEX6 / HEX8 / theme reference) | `<span style="color:$primary">…</span>` |
 | `font-size` | Font size | px string (e.g. `24px`) | `<span style="font-size:24px">…</span>` |
 | `font-family` | Font family | Font name (e.g. `Arial`, `'Arial, 微软雅黑'`) | `<span style="font-family:Arial">…</span>` |
+| `font-weight` | Weight | `normal` / `bold` / `bolder` / `lighter`, or a number (≥ 600 is bold) | `<span style="font-weight:700">…</span>` |
+| `font-style` | Slant | `normal` / `italic` / `oblique` | `<span style="font-style:italic">…</span>` |
+| `font-variant` | Small capitals | `normal` / `small-caps` | `<span style="font-variant:small-caps">…</span>` |
 | `background-color` | Text background color | [Color](../types.md#color) (HEX6 / HEX8 / theme reference) | `<span style="background-color:$accent">…</span>` |
+
+> `text-decoration`, `vertical-align`, `text-transform` and `opacity` have no rich-text equivalent: use the `<u>` / `<s>` / `<sup>` / `<sub>` tags or the element's own fields.
 
 
 ```yaml
@@ -204,7 +203,7 @@ content:
     Second line
   ```
   ≡ `<p>First line</p><p>Second line</p>`
-- `<br/>` may be used for a line break within a paragraph, but it is not guaranteed to be preserved on re-conversion after editing. When stable line breaks are needed, use multiple `<p>`.
+- `<br/>` / `<br>` splits the paragraph into consecutive lines (the PPTX writer has no soft line break, so both sides become sibling paragraphs that keep the same paragraph properties). Inside a `<li>` it is rejected — use separate `<li>` items instead.
 
 **LaTeX formulas**
 

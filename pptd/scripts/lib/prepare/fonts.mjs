@@ -34,6 +34,11 @@ const LOCAL_ALIASES = {
   '黑体': 'SimHei',
 };
 const ALLOWED_GOOGLE_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
+/** Mirror the writer's own emphasis rules: `bold`/`bolder`/≥600 is bold, `oblique` is italic. */
+const NUMBER = /^[+-]?\d+(?:\.\d+)?$/;
+const FONT_STYLE_ITALIC = new Set(['italic', 'oblique']);
+const BOLD_FONT_WEIGHTS = new Set(['bold', 'bolder']);
+const isBoldWeight = (value) => BOLD_FONT_WEIGHTS.has(value) || (NUMBER.test(value) && Number(value) >= 600);
 
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
 
@@ -272,8 +277,8 @@ function textFonts({ holder, style, markup }, store) {
     }
     if (node.nodeType !== 1) return;
     const css = cssOf(node), tag = node.localName.toLowerCase();
-    const bold = parent.bold || ['strong', 'b'].includes(tag) || ['bold', '700', '800', '900'].includes(css.get('font-weight'));
-    const italic = parent.italic || ['em', 'i'].includes(tag) || css.get('font-style') === 'italic';
+    const bold = parent.bold || ['strong', 'b'].includes(tag) || css.has('font-weight') && isBoldWeight(css.get('font-weight'));
+    const italic = parent.italic || ['em', 'i'].includes(tag) || FONT_STYLE_ITALIC.has(css.get('font-style'));
     let family = parent.family;
     if (css.has('font-family')) {
       family = store.family(css.get('font-family'), bold, italic, [...textNodes(node)].map((text) => text.textContent).join(''));
