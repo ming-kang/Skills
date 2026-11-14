@@ -2,7 +2,7 @@
 
 Create, edit, replicate, validate and export presentations through a private YAML DSL and its bundled WASM writer. Default delivery is a **self-contained editable PPTD project + matching .pptx**, with fade transitions.
 
-The workflow needs **Node.js 26+** only: no browser, runtime npm install, cloud account or background service. Optional installed PowerPoint/LibreOffice supplies rendered visual review. Export is one-way; there is no PPTX importer, browser editor or independent slide-layout engine. Rebuild existing PPTX from PDF/page images.
+The workflow needs **Node.js 26+**; optional local rendering or inspection tools supply visual and structural review. Export is one-way (`PPTD → PPTX`)—rebuild existing `.pptx` files from PDF, page images, or structural inspection.
 
 ## Install and use
 
@@ -65,14 +65,16 @@ Bundled/local/cached fonts and local media work offline. Localize remote images 
 - **Tables:** editable native cells, merged grids, style inheritance and image fills.
 - **Charts:** ordinary charts remain native. `heatmap`, `treemap`, `sunburst`, `sankey` become SVG pictures with source data retained in PPTD and SVG metadata—not native “Edit Data” worksheets. Selected glyph paths preserve labels; unsupported complex/bidi shaping fails. Frames remain native shapes and share animations. SVG-capable playback is required; no PNG fallback is bundled.
 
-## Conditional visual review
+## Conditional inspection and visual review
+
+Use available local inspection and rendering tools:
 
 ```bash
 python scripts/render_slides.py /absolute/path/deck/deck.pptx \
   -o /absolute/path/deck/.qa-images --if-available
 ```
 
-Auto prefers Windows PowerPoint, otherwise LibreOffice. Both export PDF before optional PyMuPDF rasterization, because direct PowerPoint PNG export may substitute embedded fonts. Office, Python and PyMuPDF are not export dependencies and are never auto-installed. Install PyMuPDF explicitly only when wanted; no browser is used.
+Auto prefers Windows PowerPoint, otherwise LibreOffice. Both export PDF before optional PyMuPDF rasterization, because direct PowerPoint PNG export may substitute embedded fonts. Office, Python and PyMuPDF are not export dependencies; use any available local inspection/rendering tool as appropriate, and fix issues in the PPTD source and re-export so `.pptd` and `.pptx` stay synchronized.
 
 `rendered` supplies page PNGs to inspect, not an acceptance verdict. Fix source, export and render again. `skipped` means dependencies are unavailable and must be disclosed; an available renderer's failure is not a pass. `--force` replaces only the helper's managed prior output. Source files, unrelated output and other Office presentations are protected.
 

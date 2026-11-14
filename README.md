@@ -26,7 +26,7 @@ An extremely strict maintainability review — over a diff, a commit, uncommitte
 
 ### PPT Design
 
-Create, edit, replicate, validate, and export PPTD presentations through a browser-free WASM core, with offline icons, fonts, formulas, charts and conditional local Office visual review. Default delivery includes both the editable PPTD project and matching .pptx with fade transitions. Format references load by element; all 44 presets and seven scenario guides remain available without duplicated category baselines.
+Create, edit, replicate, validate, and export PPTD presentations locally, with offline icons, fonts, formulas, charts and optional local visual review. Default delivery includes both the editable PPTD project and matching .pptx with fade transitions. Format references load by element; all 44 presets and seven scenario guides remain available without duplicated category baselines.
 
 → [docs/README.pptd.md](docs/README.pptd.md)
 

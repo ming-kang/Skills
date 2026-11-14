@@ -1,24 +1,24 @@
 ---
 name: pptd
-description: "Create, edit, replicate, validate, and export presentations with the private PPTD YAML format and its bundled WASM writer. Use whenever a slide deck, PowerPoint, PPT/PPTX, infographic, or poster is involved. Produces BOTH a self-contained editable PPTD project and a local .pptx by default; supports PPTD → PPTX only."
+description: "Create, design, replicate from PDF/images, validate, and export presentations, PowerPoint decks (.pptx), infographics, and posters in the PPTD format. Use when building slides, posters, or infographics from a brief or document, rebuilding decks from visuals, applying its design presets, or working with .pptd projects. Delivers BOTH a self-contained PPTD project and a local .pptx by default (one-way PPTD → PPTX; not for in-place .pptx patching)."
 ---
 
 # PPTD
 
-Author presentations in the private PPTD v2 YAML format and export locally with the bundled WASM writer. Resolve all paths below relative to this skill folder. **Node.js 26+** is required; no browser, runtime npm install or cloud service is needed.
+Author presentations in the PPTD v2 YAML format and export locally to `.pptx` (requires **Node.js 26+**). Resolve `scripts/` and `references/` below relative to this skill folder.
 
-Deliver **both** a self-contained editable project (`.pptd`, `pages/`, referenced assets) and the matching `.pptx`, with fade slide transitions, unless the user requests PPTD-only output.
+Deliver **both** a self-contained editable project (`.pptd`, `pages/`, referenced assets) and the matching `.pptx` with fade transitions, unless the user asks for PPTD-only output.
 
-This is **PPTD → PPTX only**: no PPTX importer, browser editor or independent full-slide layout engine. To edit/replicate an existing `.pptx`, obtain PDF/page images and rebuild it as PPTD. Preserve unrelated source during edits.
+Export is one-way (**PPTD → PPTX**). When given a standalone `.pptx` without PPTD source, match the workflow to the request and environment—gather visual or structural references to rebuild it in PPTD when redesigning or producing `.pptd` source, or handle small in-place edits directly when supported. Preserve unrelated source during PPTD edits.
 
-## 1. Establish the brief and read selectively
+## 1. Plan and read selectively
 
-Infer the audience, language, page count, aspect ratio and design direction; ask only when missing choices materially affect the result. User content, brand rules and references take priority. Never fabricate facts, data, citations or missing source material.
+Infer audience, language, page count, aspect ratio and design direction; ask only when missing choices materially affect the output. User content, brand rules and references take priority. Never fabricate facts, data, citations or missing source material.
 
-- Read **`references/pptd.md`** for every project, then only the linked shared types and element contracts you use. Charts have their own reading index. Do not invent fields or substitute another schema.
+- Read **`references/pptd.md`** for every project, then only the linked shared types and element contracts you use (charts have their own reading index). Do not invent fields.
 - Read **`references/slides_categories.md`** for the design baseline. For self-directed design, add one matching scenario guide from its router.
-- Use a preset **only when explicitly named**: read `references/design_system/README.md`, the named signature, and its linked category baseline or shared file. Do not mix or auto-select presets. Signatures override visual defaults, not evidence boundaries.
-- For posters/infographics, read `references/general-poster.md`; for font selection/custom fonts/warnings, `references/fonts.md`; for shape names/adjustments, `references/shapes.md`.
+- Use a preset **only when explicitly named**: read `references/design_system/README.md`, that preset, and its linked baseline/shared file. Never mix or auto-select presets.
+- Load on demand: `references/general-poster.md` (posters/infographics), `references/fonts.md` (fonts/warnings), `references/shapes.md` (shapes beyond `elements/shape.md`).
 
 ## 2. Build a portable project
 
@@ -31,9 +31,9 @@ deck/
   media/                 # when used
 ```
 
-Keep page/media/custom-font paths relative to the manifest and inside its directory. Localize remote images and authorized font sources before claiming self-contained delivery; a cache or embedded PPTX asset does not make the editable source portable. Prefer bundled or licensed project-local fonts. Embedding permission alone does not authorize distributing loose system fonts.
+Keep page, media and custom-font paths relative to the manifest and inside its directory. Localize remote images and authorized font files before calling the source self-contained; a cache or `.pptx` copy does not make the `.pptd` source portable. Prefer bundled or licensed project-local fonts (embedding permission does not authorize redistributing system fonts).
 
-Give each page a reader task, then choose composition, hierarchy and imagery that explain its content. Keep text, vectors, tables and ordinary charts editable where practical; crop images rather than distort them. Use literal `\(...\)` formulas in text block scalars for editable Office Math. Text uses the documented rich-text tags and decoded HTML entities; close tags and quote attribute values. Add notes only when requested, and element animations only when requested or useful for live delivery.
+Give each page a clear reader task and visual hierarchy. Keep text, vectors, tables and ordinary charts editable where practical; crop images instead of distorting them. Write literal `\(...\)` inside text block scalars for editable Office Math, and use only documented rich-text tags (closed tags, quoted attributes) and HTML entities. Add notes or element animations only when requested or clearly helpful for live delivery.
 
 ## 3. Validate and export
 
@@ -42,30 +42,22 @@ node scripts/export.mjs /absolute/path/deck/deck.pptd \
   --output /absolute/path/deck/deck.pptx
 ```
 
-A project directory is accepted when it contains exactly one manifest. Options: `--force` replaces an output; `--transition none` disables fade; repeat `--font-dir PATH` to search local font directories; `--no-embed-fonts` deliberately leaves fonts external; `--offline` forbids remote media and uncached Google Fonts requests.
+A project directory works when it contains one manifest. Options: `--force` (replace existing output), `--transition none` (disable fade), `--font-dir PATH` (repeatable local font directory), `--no-embed-fonts`, `--offline`.
 
-Export validates the schema/assets, prepares fonts/icons/formulas/charts, runs WASM, patches font bindings/table image fills/transitions, and verifies XML, relationships, media and ZIP integrity. Fix errors; never bypass an invalid formula or unknown chart/icon with a placeholder. Review warnings: intentional bleed may be acceptable, but substitutions, unavailable styles and non-embeddable fonts need correction or disclosure, not an “exact match” claim.
+Export validates schema and assets, prepares icons/fonts/formulas/charts, builds `.pptx`, and verifies XML, relationships, media and ZIP integrity. Fix errors—never substitute placeholders for broken formulas, charts or icons. Review warnings carefully: intentional bleed may be fine, but font substitutions, missing styles or non-embeddable fonts need fixing or honest disclosure.
 
-For PPTD-only delivery or a standalone check:
+For PPTD-only output or a standalone check:
 
 ```bash
 node scripts/validate.mjs /absolute/path/deck/deck.pptd
 ```
 
-`heatmap`, `treemap`, `sunburst` and `sankey` become **SVG pictures**, with editable data retained in PPTD and SVG metadata—not native PowerPoint “Edit Data” charts. Selected font outlines freeze their labels without flattening the slide; unsupported complex/bidi shaping fails explicitly. SVG-capable playback is required; there is no raster fallback. Other chart types keep native export.
+`heatmap`, `treemap`, `sunburst` and `sankey` export as **SVG pictures** (retaining source data in PPTD and SVG metadata, with labels frozen as glyph paths; requires SVG-capable playback, no raster fallback). Other chart types stay native.
 
 ## 4. Review and deliver honestly
 
-Always review source layout, text length, hierarchy, contrast, alignment, cropping, layering, sources and deck rhythm. When local PowerPoint/LibreOffice and optional Python 3 + PyMuPDF are available:
+Always review layout, text length, hierarchy, contrast, alignment, cropping, layering, sources and export warnings.
 
-```bash
-python scripts/render_slides.py /absolute/path/deck/deck.pptx \
-  --output /absolute/path/deck/.qa-images --if-available
-```
+When your environment can inspect or render `.pptx` files—via local tools or the bundled `scripts/render_slides.py` helper (`--if-available`; `--force` replaces its own prior renders)—review every page visually for font fidelity, overflow, occlusion, image fit, chart labels, tables and formulas, keeping in mind how faithfully the preview backend handles embedded fonts and math. Always fix issues in the **PPTD source** and re-export so `.pptd` and `.pptx` stay in sync.
 
-The helper prefers Windows PowerPoint, otherwise LibreOffice; both render through PDF to preserve embedded fonts. Use `--force` only to replace this helper's prior renders. Do not install/start a browser for QA.
-
-- **`rendered`**: inspect every page image for fonts, overflow, occlusion, image fit, chart labels, tables and formulas. Repair the PPTD source, re-export and re-render before delivery.
-- **`skipped`**: continue source/package checks and disclose that rendered visual review was not performed. An available renderer's failure is not a pass.
-
-Link the project and `.pptx` with absolute local paths, and disclose unresolved warnings/limitations. Valid XML, a ZIP or PNG existence is not visual acceptance or proof of identical rendering/playback in PowerPoint, WPS or Keynote.
+Never treat a failed render or structural-only check (XML, ZIP, PNG existence) as visual acceptance. If visual rendering isn't possible locally, continue source/package checks and disclose that rendered visual review was skipped. Link the project and `.pptx` with absolute local paths, and state any unresolved warnings or font limitations.
