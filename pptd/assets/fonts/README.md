@@ -1,11 +1,11 @@
 # Licensed offline font assets
 
-`catalog.json` records 18 original static TrueType faces and their exact source
+`catalog.json` records 22 original static TrueType faces and their exact source
 URLs. Files are stored as lossless `.ttf.gz` to reduce the installed skill's
 size; only selected fonts are decoded and used. This is not a web subset or a
 modified font.
 
-The Latin set (Liter, Hedvig Letters Sans, Oranienbaum, Quattrocento Sans, Sorts
+The Latin set (Inter, Liter, Hedvig Letters Sans, Oranienbaum, Quattrocento Sans, Sorts
 Mill Goudy, Unna, Coda, Jersey 15 and Jersey 20 Charted) and Noto Sans SC remain
 complete. Non-RIBBI faces keep their Windows family identity: Coda ExtraBold is
 not falsely registered as Coda Bold. Each family directory retains its original

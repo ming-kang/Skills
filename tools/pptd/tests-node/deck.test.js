@@ -5,7 +5,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-import { readProject } from '../../../pptd/scripts/lib/deck/project.mjs';
+import { readProject, validateProject } from '../../../pptd/scripts/lib/deck/project.mjs';
+import { parseArgs as parseValidateArgs } from '../../../pptd/scripts/validate.mjs';
 import { makeDeck } from './helpers.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -249,6 +250,61 @@ test('schema catches shape header leak, bad adjustments, invalid lines, missing 
     const badSankeyRes = spawnSync(process.execPath, [VALIDATE_CLI, dir], { encoding: 'utf8' });
     assert.equal(badSankeyRes.status, 1);
     assert.match(badSankeyRes.stderr, /cycle/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('validate --check-fonts keeps stderr and JSON warnings aligned, stays read-only, and enforces CLI options', async () => {
+  assert.throws(() => parseValidateArgs(['deck', '--font-dir', 'fonts']), /--font-dir requires --check-fonts/);
+  const parsed = parseValidateArgs(['deck', '--check-fonts', '--font-dir', 'a', '--font-dir=b', '--offline']);
+  assert.deepEqual(parsed.fontDirs, ['a', 'b']);
+  assert.equal(parsed.checkFonts, true);
+  assert.equal(parsed.offline, true);
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-check-fonts-'));
+  try {
+    makeDeck(dir, {
+      page: JSON.stringify({
+        elements: [{
+          elementId: 't1',
+          elementType: 'text',
+          bounds: [20, 20, 400, 60],
+          content: { fontFamily: 'Unna', text: '<p>Step 1 → Step 2 😀</p>' },
+        }],
+      }),
+    });
+
+    const project = await validateProject(dir, { checkFonts: true, offline: true });
+    // Validation must not mutate the canonical project's text or fontFamily.
+    assert.equal(project.pages[0].elements[0].content.text, '<p>Step 1 → Step 2 😀</p>');
+    assert.equal(project.pages[0].elements[0].content.fontFamily, 'Unna');
+    assert.ok(project.warnings.some((w) => /Unna.*cannot shape.*2192.*Inter/.test(w)), project.warnings.join('\n'));
+    assert.ok(project.warnings.some((w) => /Unna.*lacks glyphs.*1F600/.test(w)), project.warnings.join('\n'));
+
+    const res = spawnSync(process.execPath, [VALIDATE_CLI, dir, '--check-fonts', '--offline'], { encoding: 'utf8' });
+    assert.equal(res.status, 0, res.stderr);
+    const summary = JSON.parse(res.stdout);
+    assert.deepEqual(summary.warnings, project.warnings);
+    for (const warning of summary.warnings) {
+      assert.ok(res.stderr.includes(`[pptd] warning: ${warning}`), res.stderr);
+    }
+
+    // --offline must reject an uncached Google Fonts customFont during --check-fonts.
+    makeDeck(dir, {
+      manifest: [
+        'version: v2',
+        'size: [960, 540]',
+        'customFonts:',
+        '  - family: Inter',
+        '    src: "https://fonts.googleapis.com/css2?family=Inter:wght@400&uncached=1"',
+        'pages: [pages/01.page]',
+        '',
+      ].join('\n'),
+    });
+    const offRes = spawnSync(process.execPath, [VALIDATE_CLI, dir, '--check-fonts', '--offline'], { encoding: 'utf8' });
+    assert.equal(offRes.status, 1);
+    assert.match(offRes.stderr, /not cached for offline use/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

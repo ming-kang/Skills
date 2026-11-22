@@ -9,6 +9,7 @@
   },
   "fallbacks": {
     "latin": "Liter",
+    "symbol": "Inter",
     "ea": "Noto Sans SC"
   },
   "faces": [
@@ -130,6 +131,34 @@
       "src": "jersey20charted/Jersey20Charted-Regular.ttf.gz",
       "license": "jersey20charted/OFL.txt",
       "source": "https://raw.githubusercontent.com/google/fonts/86aced91de05cd4f96a06838124cca45be337b2b/ofl/jersey20charted/Jersey20Charted-Regular.ttf"
+    },
+    {
+      "family": "Inter",
+      "slot": "regular",
+      "src": "inter/Inter-Regular.ttf.gz",
+      "license": "inter/OFL.txt",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf"
+    },
+    {
+      "family": "Inter",
+      "slot": "bold",
+      "src": "inter/Inter-Bold.ttf.gz",
+      "license": "inter/OFL.txt",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf"
+    },
+    {
+      "family": "Inter",
+      "slot": "italic",
+      "src": "inter/Inter-Italic.ttf.gz",
+      "license": "inter/OFL.txt",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTc2dthjQ.ttf"
+    },
+    {
+      "family": "Inter",
+      "slot": "boldItalic",
+      "src": "inter/Inter-BoldItalic.ttf.gz",
+      "license": "inter/OFL.txt",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTcPtxhjQ.ttf"
     },
     {
       "family": "Noto Sans SC",

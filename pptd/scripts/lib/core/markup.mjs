@@ -75,6 +75,24 @@ function wrapLooseLines(root) {
   flush(null);
 }
 
+/** Split a validated text node into literal and `\(...\)` formula segments. */
+export function splitFormulas(text) {
+  const segments = [];
+  let start = 0;
+  for (const match of text.matchAll(FORMULA)) {
+    if (match.index > start) segments.push({ text: text.slice(start, match.index), formula: false });
+    segments.push({ text: match[0], formula: true });
+    start = match.index + match[0].length;
+  }
+  if (start < text.length) segments.push({ text: text.slice(start), formula: false });
+  return segments;
+}
+
+/** Return text with complete `\(...\)` formula segments removed. */
+export function stripFormulas(text) {
+  return text.replace(FORMULA, '');
+}
+
 /** A newline inside a complete formula is LaTeX whitespace, not a new paragraph. */
 function looseLines(text) {
   const lines = [];

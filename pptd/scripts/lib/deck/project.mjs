@@ -151,7 +151,7 @@ export function buildWasmProject(project) {
 }
 
 /** Full semantic + local-asset validation used by `validate.mjs`. */
-export async function validateProject(source) {
+export async function validateProject(source, { checkFonts = false, fontDirs = [], offline = false } = {}) {
   const project = readProject(source);
   const root = path.dirname(project.manifestPath);
 
@@ -170,13 +170,19 @@ export async function validateProject(source) {
     validateFormulas(content.formulas);
   }
 
-  const localFonts = (project.customFonts ?? []).filter((f) => !/^https:\/\//i.test(f.src));
-  if (localFonts.length) {
-    const { matchFontFamily, readFontFacesFromFile } = await import('../prepare/font_data.mjs');
-    for (const entry of localFonts) {
-      const faces = readFontFacesFromFile(path.join(root, checkRelativePath(entry.src, 'customFonts.src')));
-      if (!matchFontFamily(faces, entry.family)) {
-        fail(`custom font family does not match its file: ${entry.family} / ${entry.src}`);
+  if (checkFonts) {
+    const { checkFonts: runFontCheck } = await import('../prepare/fonts.mjs');
+    const fonts = await runFontCheck(project, content, { projectRoot: root, fontDirs, offline });
+    project.warnings.push(...fonts.warnings);
+  } else {
+    const localFonts = (project.customFonts ?? []).filter((f) => !/^https:\/\//i.test(f.src));
+    if (localFonts.length) {
+      const { matchFontFamily, readFontFacesFromFile } = await import('../prepare/font_data.mjs');
+      for (const entry of localFonts) {
+        const faces = readFontFacesFromFile(path.join(root, checkRelativePath(entry.src, 'customFonts.src')));
+        if (!matchFontFamily(faces, entry.family)) {
+          fail(`custom font family does not match its file: ${entry.family} / ${entry.src}`);
+        }
       }
     }
   }

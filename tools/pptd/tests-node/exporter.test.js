@@ -313,3 +313,167 @@ test('rich-text emphasis selects the same font slot the writer marks bold or ita
   assert.deepEqual(await slots('font-style:oblique'), ['italic', 'regular']);
   assert.deepEqual(await slots('font-style:normal'), ['regular']);
 });
+
+test('a partial custom family composes per-slot with bundled faces and synthesizes missing styles from regular', async () => {
+  const { readFontBytes } = await import('../../../pptd/scripts/lib/prepare/font_data.mjs');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-partial-custom-'));
+  try {
+    fs.mkdirSync(path.join(root, 'fonts'));
+    // Copy only Unna Bold as a custom font: regular text must still resolve to bundled Unna Regular.
+    fs.writeFileSync(
+      path.join(root, 'fonts', 'Unna-Bold.ttf'),
+      readFontBytes(path.join(SKILL_ROOT, 'assets/fonts/unna/Unna-Bold.ttf.gz')),
+    );
+    const unnaProject = {
+      customFonts: [{ family: 'Unna', src: 'fonts/Unna-Bold.ttf' }],
+      pages: [{ pagePath: 'pages/01.page', elements: [{
+        elementId: 't', elementType: 'text', bounds: [0, 0, 800, 80],
+        content: { text: '<p>Plain <strong>Bold</strong></p>', fontFamily: 'Unna' },
+      }] }],
+    };
+    const unnaFonts = await prepareFonts(unnaProject, readContent(unnaProject), { projectRoot: root, offline: true, embed: true });
+    assert.deepEqual(unnaFonts.warnings, []);
+    assert.deepEqual(unnaFonts.bindings.map((f) => `${f.family}/${f.slot}`), ['Unna/bold', 'Unna/regular']);
+
+    // Copy only Sorts Mill Goudy Italic as a custom font (bundled has regular + italic, no bold):
+    // bold text must synthesize from bundled regular rather than from higher-priority custom italic.
+    fs.writeFileSync(
+      path.join(root, 'fonts', 'SortsMillGoudy-Italic.ttf'),
+      readFontBytes(path.join(SKILL_ROOT, 'assets/fonts/sortsmillgoudy/SortsMillGoudy-Italic.ttf.gz')),
+    );
+    const smgProject = {
+      customFonts: [{ family: 'Sorts Mill Goudy', src: 'fonts/SortsMillGoudy-Italic.ttf' }],
+      pages: [{ pagePath: 'pages/01.page', elements: [{
+        elementId: 't', elementType: 'text', bounds: [0, 0, 800, 80],
+        content: { text: '<p><strong>Bold only</strong></p>', fontFamily: 'Sorts Mill Goudy', bold: true },
+      }] }],
+    };
+    const smgFonts = await prepareFonts(smgProject, readContent(smgProject), { projectRoot: root, offline: true, embed: true });
+    assert.deepEqual(smgFonts.bindings.map((f) => `${f.family}/${f.slot}`), ['Sorts Mill Goudy/regular']);
+    assert.ok(smgFonts.warnings.some((w) => /has no bold face/.test(w)), smgFonts.warnings.join('\n'));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('glyph fallback uses paired EA -> Inter -> Noto Sans SC without phantom warnings or unused faces', async () => {
+  const run = async (text, fontFamily) => {
+    const project = { pages: [{ pagePath: 'pages/01.page', elements: [{
+      elementId: 'text', elementType: 'text', bounds: [0, 0, 800, 80],
+      content: { text, fontFamily },
+    }] }] };
+    const fonts = await prepareFonts(project, readContent(project), { projectRoot: os.tmpdir(), offline: true, embed: true });
+    return { fonts, markup: project.pages[0].elements[0].content.text };
+  };
+
+  // English-only bold arrow uses lightweight Inter/bold instead of 10MB Noto Sans SC, with no phantom regular warning.
+  const enBold = await run('<p><strong>Hello → World</strong></p>', 'Unna');
+  assert.equal(enBold.markup, '<p><strong>Hello <span style="font-family:Inter">→</span> World</strong></p>');
+  assert.deepEqual(enBold.fonts.families, ['Inter', 'Unna']);
+  assert.ok(enBold.fonts.bindings.some((f) => f.family === 'Inter' && f.slot === 'bold'));
+  assert.equal(enBold.fonts.warnings.length, 1, enBold.fonts.warnings.join('\n'));
+  assert.match(enBold.fonts.warnings[0], /Unna.*bold.*cannot shape.*2192.*Inter/);
+
+  // Symbol missing from both Unna and Inter (⑩) falls through to Noto Sans SC without pulling Inter into bindings.
+  const rareSym = await run('<p>Item ⑩</p>', 'Unna');
+  assert.equal(rareSym.markup, '<p>Item <span style="font-family:Noto Sans SC">⑩</span></p>');
+  assert.deepEqual(rareSym.fonts.families, ['Noto Sans SC', 'Unna']);
+  assert.ok(!rareSym.fonts.warnings.some((w) => /lacks glyphs/.test(w)));
+
+  // Bilingual text reuses its already-paired EA face (Noto Sans SC) for '≤' without loading Inter.
+  const bilingual = await run('<p><span style="font-weight:600">A≤中</span></p>', 'Jersey 15');
+  assert.ok(bilingual.markup.includes('<span style="font-family:Noto Sans SC">≤</span>'), bilingual.markup);
+  assert.deepEqual(bilingual.fonts.families, ['Jersey 15', 'Noto Sans SC']);
+  assert.ok(bilingual.fonts.warnings.some((w) => /Jersey 15.*regular.*cannot shape.*2264.*Noto Sans SC/.test(w)), bilingual.fonts.warnings.join('\n'));
+  assert.ok(!bilingual.fonts.warnings.some((w) => /lacks glyphs/.test(w)), bilingual.fonts.warnings.join('\n'));
+
+  // Explicit {latin, ea} pairing reuses its own EA face rather than dragging in Noto Sans SC.
+  const paired = await run('<p>A≤B</p>', { latin: 'Jersey 15', ea: 'Inter' });
+  assert.equal(paired.markup, '<p>A<span style="font-family:Inter">≤</span>B</p>');
+  assert.deepEqual(paired.fonts.families, ['Inter', 'Jersey 15']);
+
+  // Characters no fallback covers warn as lacking glyphs without committing unused fallback faces.
+  const emoji = await run('<p>A😀</p>', 'Jersey 15');
+  assert.deepEqual(emoji.fonts.families, ['Jersey 15']);
+  assert.ok(emoji.fonts.warnings.some((w) => /Jersey 15.*regular.*lacks glyphs.*1F600/.test(w)), emoji.fonts.warnings.join('\n'));
+
+  // Formulas, nested font-family overrides, grapheme clusters, and font-weight resets stay accurate.
+  const formula = await run(String.raw`<p>Val \(\alpha \to \beta\) and \(α \le β\)</p>`, 'Unna');
+  assert.deepEqual(formula.fonts.warnings, []);
+
+  const nested = await run('<p><span style="font-family:Unna">Outer <span style="font-family:Noto Sans SC">→</span></span></p>', 'Liter');
+  assert.deepEqual(nested.fonts.warnings, []);
+
+  const weightReset = await run('<p><strong>Bold <span style="font-weight:normal">Normal →</span></strong></p>', 'Unna');
+  assert.deepEqual(weightReset.fonts.bindings.filter((f) => f.family === 'Inter').map((f) => f.slot), ['regular']);
+  assert.match(weightReset.fonts.warnings[0], /Unna.*regular.*cannot shape.*2192.*Inter/);
+
+  const cluster = await run('<p>Alert ⚠️</p>', 'Unna');
+  assert.ok(cluster.markup.includes('<span style="font-family:Inter">⚠️</span>'), cluster.markup);
+});
+
+test('Google Fonts CSS2 resolves multiple RIBBI faces in parallel, caches offline, and rejects subsets or non-RIBBI weights', async () => {
+  const { readFontBytes } = await import('../../../pptd/scripts/lib/prepare/font_data.mjs');
+  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-gfont-cache-'));
+  const prevCache = process.env.PPTD_FONT_CACHE;
+  const originalFetch = globalThis.fetch;
+  try {
+    process.env.PPTD_FONT_CACHE = cacheRoot;
+    const regularBytes = readFontBytes(path.join(SKILL_ROOT, 'assets/fonts/inter/Inter-Regular.ttf.gz'));
+    const boldBytes = readFontBytes(path.join(SKILL_ROOT, 'assets/fonts/inter/Inter-Bold.ttf.gz'));
+    const cssUrl = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700';
+    const regUrl = 'https://fonts.gstatic.com/s/inter/test-regular.ttf';
+    const boldUrl = 'https://fonts.gstatic.com/s/inter/test-bold.ttf';
+    const cssBody = [
+      `@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; src: url(${regUrl}) format('truetype'); }`,
+      `@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; src: url(${boldUrl}) format('truetype'); }`,
+    ].join('\n');
+
+    let fetchCount = 0;
+    globalThis.fetch = async (url) => {
+      fetchCount += 1;
+      if (url === cssUrl) return new Response(cssBody);
+      if (url === regUrl) return new Response(regularBytes);
+      if (url === boldUrl) return new Response(boldBytes);
+      throw new Error(`unexpected fetch: ${url}`);
+    };
+
+    const makeProj = (src) => ({
+      customFonts: [{ family: 'Inter', src }],
+      pages: [{ pagePath: 'pages/01.page', elements: [{
+        elementId: 't', elementType: 'text', bounds: [0, 0, 800, 80],
+        content: { text: '<p>Plain <strong>Bold</strong></p>', fontFamily: 'Inter' },
+      }] }],
+    });
+
+    const online = await prepareFonts(makeProj(cssUrl), readContent(makeProj(cssUrl)), { projectRoot: os.tmpdir(), offline: false, embed: true });
+    assert.equal(fetchCount, 3);
+    assert.deepEqual(online.warnings, []);
+    assert.deepEqual(online.bindings.map((f) => `${f.family}/${f.slot}`), ['Inter/bold', 'Inter/regular']);
+
+    // Cached manifest + TTFs work completely offline with zero network calls.
+    globalThis.fetch = async () => { throw new Error('offline must not fetch'); };
+    const offline = await prepareFonts(makeProj(cssUrl), readContent(makeProj(cssUrl)), { projectRoot: os.tmpdir(), offline: true, embed: true });
+    assert.deepEqual(offline.warnings, []);
+    assert.deepEqual(offline.bindings.map((f) => `${f.family}/${f.slot}`), ['Inter/bold', 'Inter/regular']);
+
+    // Reject unicode-range subsets, non-RIBBI weights, and duplicate slots.
+    for (const [slug, badCss, pattern] of [
+      ['subset', `@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; unicode-range: U+0000-00FF; src: url(${regUrl}); }`, /subset-only/],
+      ['weight600', `@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; src: url(${regUrl}); }`, /unsupported style\/weight/],
+      ['dup', `@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; src: url(${regUrl}); }\n@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; src: url(${boldUrl}); }`, /multiple regular rules/],
+    ]) {
+      const badUrl = `https://fonts.googleapis.com/css2?family=Inter&case=${slug}`;
+      globalThis.fetch = async () => new Response(badCss);
+      await assert.rejects(
+        prepareFonts(makeProj(badUrl), readContent(makeProj(badUrl)), { projectRoot: os.tmpdir(), offline: false, embed: false }),
+        pattern,
+      );
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (prevCache === undefined) delete process.env.PPTD_FONT_CACHE;
+    else process.env.PPTD_FONT_CACHE = prevCache;
+    fs.rmSync(cacheRoot, { recursive: true, force: true });
+  }
+});

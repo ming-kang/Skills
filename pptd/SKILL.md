@@ -50,6 +50,8 @@ For PPTD-only output or a standalone check:
 
 ```bash
 node scripts/validate.mjs /absolute/path/deck/deck.pptd
+# also preview font resolution/style/embedding/coverage warnings without exporting:
+node scripts/validate.mjs /absolute/path/deck/deck.pptd --check-fonts [--font-dir PATH] [--offline]
 ```
 
 `heatmap`, `treemap`, `sunburst` and `sankey` export as **SVG pictures** (retaining source data in PPTD and SVG metadata, with labels frozen as glyph paths; requires SVG-capable playback, no raster fallback). Other chart types stay native.

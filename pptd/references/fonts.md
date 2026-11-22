@@ -18,6 +18,7 @@ MiSans is not redistributed by this skill. Use a licensed installed/project-loca
 
 | Font name | Font type | Style and characteristics | Suitable scenarios | Stylized font |
 |---|---|---|---|---|
+| Inter | Sans-serif | Clean neo-grotesque UI/presentation typeface; complete regular/bold/italic/bold-italic faces and broad arrow/math/symbol coverage (also the lightweight non-CJK symbol fallback) | Tech, product, data, corporate | No |
 | Liter | Sans-serif | Modern neo-grotesque style; low contrast, balanced proportions, optimized for screens; clean and rational | Tech, product | No |
 | HedvigLettersSans | Sans-serif | A "non-designer perspective" design; slightly irregular with a distinctive personality and strong brand character | Creative design, branding | No |
 | Oranienbaum | Serif | Modern high-contrast serif; strongly geometric with elegant lines and a classical temperament | Culture, art, fashion | No |
@@ -55,9 +56,19 @@ MiSans is not redistributed by this skill. Use a licensed installed/project-loca
 
 Labels of `heatmap` / `treemap` / `sunburst` / `sankey` charts are frozen as glyph outlines, so their font needs scalable monochrome outlines and regular-weight faces. Families that carry embedded bitmap strikes or color glyphs (for example SimSun, MS Gothic, Cambria) fail the export explicitly rather than being substituted; choose another family for those charts. Chart text styles take `color`, `fontSize` and `fontFamily` only.
 
-Use custom fonts to fill missing categories (e.g. JetBrains Mono, Archivo Black or EB Garamond). `customFonts.src` accepts a project-relative TTF/TTC/OTF/EOT file or a Google Fonts CSS URL; the declared family must match the file's metadata. Local files stay inside the manifest directory. `--font-dir PATH` also searches explicitly supplied local font directories without declaring external project paths.
+### Bundled faces vs. requested styles
 
-Google CSS uses a fixed non-browser user agent and must return one complete normal-weight TrueType face; text-specific and subset-only web responses are rejected. Downloads are cached outside the skill (`PPTD_FONT_CACHE` overrides the directory). `--offline` uses only local/bundled/cached fonts and local media.
+**Inter**, **Quattrocento Sans** and **Unna** ship complete regular/bold/italic/bold-italic faces; Sorts Mill Goudy also has an italic; **Noto Sans SC** and every other bundled family ship regular-weight only. Requesting an unavailable style exports with a “presentation software must synthesize that style” warning unless you supply that face via `customFonts` or `--font-dir`.
+
+The exporter checks **per-glyph coverage** at each text run (skipping `\(...\)` formulas, which use Office Math). A character the resolved face cannot shape (e.g. `→`, `≈`, `①`, `▼`, `✓`, `✗`) is wrapped automatically in the first covering fallback in order: the run's paired East Asian font (if any) → bundled **Inter** (lightweight non-CJK symbol fallback) → bundled **Noto Sans SC**, reported as `font 'X' / slot cannot shape …; those characters use 'Y'`. Only characters none of those cover (e.g. emoji) report `lacks glyphs used in deck text`: pick another family or reword the text.
+
+### Supplying custom families
+
+Supply every RIBBI face a family needs (regular, bold, italic, bold-italic) either as local files under `customFonts` / `--font-dir` or via one Google Fonts CSS2 URL (for example `https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700` or `https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400;1,700`). A partial custom family composes per-slot with bundled faces instead of shadowing styles it lacks: supplying only `Noto Sans SC` bold pairs with the bundled regular, and missing styles synthesize from regular rather than bold.
+
+Use custom fonts to fill missing categories (e.g. JetBrains Mono, Archivo Black or EB Garamond). `customFonts.src` accepts a project-relative TTF/TTC/OTF/EOT file or a Google Fonts CSS/CSS2 URL; every resolved face's metadata must match the declared family. Local files stay inside the manifest directory. `--font-dir PATH` also searches explicitly supplied local font directories without declaring external project paths.
+
+Google CSS uses a fixed non-browser user agent and accepts one or more complete RIBBI TrueType faces (`normal`/`italic`, `400`/`700`) from a single URL; `text=` requests, `unicode-range` subsets, duplicate slots and non-RIBBI weights are rejected. Downloads are cached outside the skill (`PPTD_FONT_CACHE` overrides the directory). `--offline` uses only local/bundled/cached fonts and local media.
 
 `--no-embed-fonts` deliberately leaves fonts external. Otherwise complete eligible faces are wrapped as valid EOT; RIBBI variants are bound under one family in regular/bold/italic/boldItalic order. Embedding does not permit redistributing loose system fonts. If a license prohibits editable outline embedding, or a variable/CFF face cannot be embedded, install that font on the intended rendering/playback machine and disclose the dependency.
 

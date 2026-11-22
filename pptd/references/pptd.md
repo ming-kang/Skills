@@ -138,7 +138,7 @@ interface CustomFont {
 }
 ```
 
-Local TTCs may contain style-linked faces. Google CSS must supply a complete normal/default-weight TrueType face, not a `text=` subset; downloads are cached. The exporter embeds eligible static TrueType/EOT faces with correct style bindings. Variable/CFF/restricted faces remain external with warnings; see [fonts.md](fonts.md).
+Local TTCs may contain style-linked faces. A Google Fonts CSS/CSS2 URL may supply one or more complete RIBBI TrueType faces (`400`/`700`, `normal`/`italic`), not `text=` or `unicode-range` subsets; downloads are cached. A partial custom family composes per-slot with bundled faces instead of shadowing styles it lacks. The exporter embeds eligible static TrueType/EOT faces with correct style bindings. Variable/CFF/restricted faces remain external with warnings; see [fonts.md](fonts.md).
 
 ## Page (.page)
 

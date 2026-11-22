@@ -55,6 +55,8 @@ A directory with exactly one manifest is also accepted.
 
 `manifest.metadata` (`title` / `author` / `company` / `subject` / `copyright`) is written to the file's document properties; `title` alone falls back to `manifest.title`.
 
+`validate.mjs` accepts `--check-fonts`, repeatable `--font-dir PATH` (with `--check-fonts`) and `--offline`: it resolves the same font selection as export and reports substitution, missing-style, non-embeddable and missing-glyph warnings in both stderr and JSON output without building a `.pptx`.
+
 Export validates YAML/schema/paths, IDs, geometry, table grids, charts, animations, formulas and image bytes; prepares assets; runs WASM; patches font styles/table image fills/transitions; then checks XML, relationships, content types, slide count and ZIP CRC. Stdout is a JSON summary; warnings go to stderr. Fix errors and review substitutions/unavailable styles rather than calling them exact matches.
 
 Bundled/local/cached fonts and local media work offline. Localize remote images and authorized font sources before calling the **editable project** portable: a cache or PPTX embedding does not localize source references.
