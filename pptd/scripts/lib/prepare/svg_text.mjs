@@ -4,16 +4,15 @@
 // from the selected original font bytes shared with the embedding pass.
 import { create as createFont } from '../../../assets/vendor/fontkit.mjs';
 import { parseCss } from '../core/css.mjs';
+import { FONT_SLOTS, GRAPHEMES } from '../core/text.mjs';
 import { NS } from '../core/xml.mjs';
 import { EAST_ASIAN, normalizeFontKey as key } from './font_data.mjs';
 
 const { svg: SVG, xml: XML } = NS;
-const SLOTS = new Set(['regular', 'bold', 'italic', 'boldItalic']);
 const ROOT_ATTRS = new Set(['width', 'height', 'viewBox', 'version', 'baseProfile']);
 const LABEL_ATTRS = new Set(['x', 'y', 'transform', 'style', 'text-anchor', 'dominant-baseline', 'fill', 'fill-opacity', 'xml:space', 'aria-label']);
 const LABEL_CSS = new Set(['font-size', 'font-family', 'font-weight', 'font-style']);
 const NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
-const graphemes = new Intl.Segmenter('und', { granularity: 'grapheme' });
 const num = (value) => String(Object.is(value, -0) ? 0 : value);
 const attributes = (node) => [...node.attributes];
 const SIMPLE_SCRIPTS = [
@@ -91,7 +90,7 @@ function checkTextCharacters(text) {
 export function createSvgFontOutliner(descriptors) {
   const families = new Map(), fonts = new Map(), containers = new WeakMap();
   for (const input of descriptors) {
-    if (typeof input?.family !== 'string' || !input.family.trim() || !SLOTS.has(input.slot) || typeof input.read !== 'function' ||
+    if (typeof input?.family !== 'string' || !input.family.trim() || !FONT_SLOTS.includes(input.slot) || typeof input.read !== 'function' ||
         !Number.isInteger(input.face ?? 0) || (input.face ?? 0) < 0) {
       throw new TypeError('invalid SVG font descriptor: expected family, slot, face index and byte reader');
     }
@@ -144,7 +143,7 @@ export function createSvgFontOutliner(descriptors) {
           ? [...names, 'Noto Sans SC'] : names;
         const runs = [];
         let primary;
-        for (const { segment } of graphemes.segment(content)) {
+        for (const { segment } of GRAPHEMES.segment(content)) {
           let selected;
           for (const name of EAST_ASIAN.test(segment) ? withCJK : names) {
             const face = faceFor(name);

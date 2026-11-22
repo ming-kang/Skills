@@ -1,4 +1,6 @@
 // Split CSS tokens respecting quoted family names and parenthesized url(...) values.
+export const CSS_NUMBER = /^[+-]?\d+(?:\.\d+)?$/;
+
 export function splitCss(value, delimiter) {
   const result = [];
   let start = 0;

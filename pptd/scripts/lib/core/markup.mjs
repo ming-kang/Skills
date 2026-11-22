@@ -14,7 +14,7 @@
 // they fail here instead of vanishing, and `$theme` colors are resolved to HEX before
 // serialization because the writer only understands theme tokens in element fields.
 import { HTML_ENTITIES } from '../../../assets/vendor/xmldom.mjs';
-import { parseCss } from './css.mjs';
+import { CSS_NUMBER, parseCss } from './css.mjs';
 import { resolveThemeColor } from './color.mjs';
 import { checkXmlString, parseXml, serializeNode } from './xml.mjs';
 
@@ -34,7 +34,6 @@ const FONT_VARIANTS = new Set(['normal', 'small-caps']);
 const FONT_WEIGHTS = new Set(['normal', 'bold', 'bolder', 'lighter']);
 const HEX_COLOR = /^#?[0-9a-f]{6}(?:[0-9a-f]{2})?$/i;
 const LENGTH = /^[+-]?\d+(?:\.\d+)?px$/;
-const NUMBER = /^[+-]?\d+(?:\.\d+)?$/;
 const HREF_SCHEME = /^(?:https?:\/\/|mailto:)/i;
 /** CSS marker keywords the writer renders as literal text; map them to real glyphs. */
 const LIST_GLYPHS = new Map([['disc', '\u2022'], ['circle', '\u25e6'], ['square', '\u25aa']]);
@@ -105,7 +104,7 @@ function looseLines(text) {
   return [...lines, text.slice(start)];
 }
 
-export function* textNodes(node) {
+function* textNodes(node) {
   if (node.nodeType === 3 || node.nodeType === 4) yield node;
   else if (node.nodeType === 1 || node.nodeType === 9) {
     for (let child = node.firstChild; child; child = child.nextSibling) yield* textNodes(child);
@@ -164,12 +163,12 @@ function checkCssValue(property, value, label) {
   };
   switch (property) {
     case 'text-align': if (!ALIGNMENTS.has(value)) invalid('left, center, right, justify or distributed'); return;
-    case 'line-height': if (!NUMBER.test(value) && !LENGTH.test(value)) invalid('a unitless multiple or a px length'); return;
+    case 'line-height': if (!CSS_NUMBER.test(value) && !LENGTH.test(value)) invalid('a unitless multiple or a px length'); return;
     case 'margin-top':
     case 'margin-left':
     case 'margin-right': if (!LENGTH.test(value)) invalid('a px length'); return;
     case 'font-size': if (!LENGTH.test(value)) invalid('a px length'); return;
-    case 'font-weight': if (!FONT_WEIGHTS.has(value) && !NUMBER.test(value)) invalid('normal, bold, bolder, lighter or a number'); return;
+    case 'font-weight': if (!FONT_WEIGHTS.has(value) && !CSS_NUMBER.test(value)) invalid('normal, bold, bolder, lighter or a number'); return;
     case 'font-style': if (!FONT_STYLES.has(value)) invalid('normal, italic or oblique'); return;
     case 'font-variant': if (!FONT_VARIANTS.has(value)) invalid('normal or small-caps'); return;
     case 'font-family': if (!value.trim()) invalid('a font family name'); return;

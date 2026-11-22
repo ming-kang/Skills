@@ -21,7 +21,7 @@ import { checkColor, checkStyle } from './style.mjs';
 import { checkTableStyleConfig } from './table.mjs';
 import { readYamlMapping } from './yaml.mjs';
 
-export function findManifest(source) {
+function findManifest(source) {
   const target = path.resolve(source);
   if (fs.existsSync(target) && fs.statSync(target).isFile()) {
     if (path.extname(target).toLowerCase() !== '.pptd') fail(`input must be a .pptd file or project directory: ${target}`);
@@ -177,13 +177,8 @@ export async function validateProject(source, { checkFonts = false, fontDirs = [
   } else {
     const localFonts = (project.customFonts ?? []).filter((f) => !/^https:\/\//i.test(f.src));
     if (localFonts.length) {
-      const { matchFontFamily, readFontFacesFromFile } = await import('../prepare/font_data.mjs');
-      for (const entry of localFonts) {
-        const faces = readFontFacesFromFile(path.join(root, checkRelativePath(entry.src, 'customFonts.src')));
-        if (!matchFontFamily(faces, entry.family)) {
-          fail(`custom font family does not match its file: ${entry.family} / ${entry.src}`);
-        }
-      }
+      const { checkCustomFont } = await import('../prepare/font_data.mjs');
+      for (const entry of localFonts) checkCustomFont(path.join(root, entry.src), entry.family);
     }
   }
 

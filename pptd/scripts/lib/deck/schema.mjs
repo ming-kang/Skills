@@ -26,7 +26,7 @@ const EASINGS = new Set(['linear', 'ease-in', 'ease-out', 'ease-in-out']);
 const LINE_CURVES = new Set(['sharp', 'round', 'smooth']);
 const ARROW_TYPES = new Set(['arrow', 'stealth', 'diamond', 'oval']);
 /** Shape and image-crop geometry: 177 preset names, or a custom SVG path with its viewBox. */
-export function checkShape(shape, label, shapes) {
+function checkShape(shape, label, shapes) {
   if (!isPlainObject(shape)) fail(`${label} must be a shape mapping`);
   const name = shape.shapeName;
   if (name === 'custom') {

@@ -2,14 +2,14 @@
 // grouped RIBBI font bindings, native table/cell image fills and slide transitions.
 import crypto from 'node:crypto';
 import { MIME_TYPES } from '../core/media.mjs';
-import { NS, childElements, firstChild, parseXml, serializeXml } from '../core/xml.mjs';
+import { FONT_SLOTS } from '../core/text.mjs';
+import { NS, childElements, firstChild } from '../core/xml.mjs';
 import { SLIDE_PART } from './package.mjs';
 
 const { presentation: P, drawing: A, relationships: R, packageRelationships: REL, contentTypes: CT } = NS;
 
 const FILL_NAMES = new Set(['noFill', 'solidFill', 'gradFill', 'blipFill', 'pattFill', 'grpFill']);
 const AFTER_FILL = new Set(['effectLst', 'effectDag', 'tableStyle', 'tableStyleId', 'extLst']);
-const SLOTS = ['regular', 'bold', 'italic', 'boldItalic'];
 
 export function patchFontBindings(pkg, bindings) {
   if (!bindings?.length) return;
@@ -26,7 +26,7 @@ export function patchFontBindings(pkg, bindings) {
     const entry = entries[i];
     const binding = bindings[i];
     const { family, slot } = binding;
-    if (!SLOTS.includes(slot)) throw new Error(`unsupported embedded font style: ${slot}`);
+    if (!FONT_SLOTS.includes(slot)) throw new Error(`unsupported embedded font style: ${slot}`);
     const font = firstChild(entry, P, 'font');
     const link = firstChild(entry, P, 'regular');
     if (!font || !link) throw new Error('writer emitted an incomplete embedded font entry');
@@ -54,7 +54,7 @@ export function patchFontBindings(pkg, bindings) {
   while (listing.firstChild) listing.removeChild(listing.firstChild);
   for (const { group, fontNode, slots } of groups.values()) {
     group.appendChild(fontNode);
-    for (const slot of SLOTS) {
+    for (const slot of FONT_SLOTS) {
       const node = slots.get(slot);
       if (node) group.appendChild(node);
     }
@@ -262,12 +262,6 @@ function replaceTransitionInDoc(doc, transition) {
   transEl.setAttribute('advClick', '1');
   transEl.appendChild(doc.createElementNS(pNs, `${prefix}:fade`));
   root.insertBefore(transEl, anchor.nextSibling);
-}
-
-export function replaceTransition(slideXml, transition) {
-  const doc = parseXml(slideXml, 'slide XML');
-  replaceTransitionInDoc(doc, transition);
-  return serializeXml(doc);
 }
 
 export function patchTransitions(pkg, transition) {

@@ -224,10 +224,3 @@ export function updateArchive(archive, updates) {
   }
   return writeZip(items, archive.comment);
 }
-
-export function updateZip(buffer, updates) {
-  if (!updates || (updates instanceof Map ? updates.size === 0 : Object.keys(updates).length === 0)) {
-    return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
-  }
-  return updateArchive(readZip(buffer), updates);
-}

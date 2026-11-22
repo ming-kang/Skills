@@ -1,5 +1,6 @@
 // TrueType/TTC metadata and uncompressed EOT wrapping (Node stdlib only).
 import fs from 'node:fs';
+import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
 
 const MAC_ROMAN_HIGH =
@@ -69,7 +70,7 @@ function sfntTablesFromReader(readAt, totalLength, offset = 0) {
   return tables;
 }
 
-export function sfntTables(data, offset = 0) {
+function sfntTables(data, offset = 0) {
   return sfntTablesFromReader((pos, length) => data.subarray(pos, pos + length), data.length, offset);
 }
 
@@ -357,6 +358,15 @@ export function matchFontFamily(faces, family) {
   return faces.some(
     (face) => normalizeFontKey(face.family) === target || (face.aliases ?? []).some((alias) => normalizeFontKey(alias) === target),
   );
+}
+
+/** A custom font must declare the family its file actually provides. */
+export function checkCustomFont(filePath, family) {
+  const faces = readFontFacesFromFile(filePath);
+  if (!matchFontFamily(faces, family)) {
+    throw new Error(`custom font family does not match its file: ${family} / ${path.basename(filePath)}`);
+  }
+  return faces;
 }
 
 export function embeddingAllowed(face) {

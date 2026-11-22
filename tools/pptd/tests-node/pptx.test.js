@@ -9,15 +9,15 @@ import { DOMParser } from '../../../pptd/assets/vendor/xmldom.mjs';
 import { exportPptx } from '../../../pptd/scripts/export.mjs';
 import { readFontFaces } from '../../../pptd/scripts/lib/prepare/font_data.mjs';
 import { PptxPackage } from '../../../pptd/scripts/lib/pptx/package.mjs';
-import { patchTransitions, replaceTransition } from '../../../pptd/scripts/lib/pptx/patch.mjs';
+import { patchTransitions } from '../../../pptd/scripts/lib/pptx/patch.mjs';
 import {
   PPTX_CONTENT_TYPE,
   slideTransitionFacts,
   validateTransitionOrder,
   verifyOutput,
 } from '../../../pptd/scripts/lib/pptx/verify.mjs';
-import { crc32, readZip, updateZip, writeZip } from '../../../pptd/scripts/lib/pptx/zip.mjs';
-import { makeDeck } from './helpers.mjs';
+import { crc32, readZip, writeZip } from '../../../pptd/scripts/lib/pptx/zip.mjs';
+import { makeDeck, replaceTransition, updateZip } from './helpers.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 const EXPORT_CLI = path.join(REPO_ROOT, 'pptd', 'scripts', 'export.mjs');

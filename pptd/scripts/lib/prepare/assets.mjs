@@ -8,7 +8,7 @@ import { walkObjects } from '../core/walk.mjs';
 import { fetchBounded } from '../core/net.mjs';
 import { checkContainedFile, checkRelativePath, normalizeLocalPath } from '../deck/contract.mjs';
 
-export function resolveIcon(name) {
+function resolveIcon(name) {
   if (typeof name !== 'string' || !/^(fas|far|fab):[a-z0-9][a-z0-9-]*$/.test(name)) {
     throw new Error('iconName must be a Font Awesome Free name such as fas:house, far:heart or fab:github');
   }

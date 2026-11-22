@@ -22,14 +22,7 @@ Infer audience, language, page count, aspect ratio and design direction; ask onl
 
 ## 2. Build a portable project
 
-```text
-deck/
-  deck.pptd
-  pages/
-    01-cover.page
-    02-content.page
-  media/                 # when used
-```
+Use the layout in `references/pptd.md` (**Project paths**): a `deck.pptd` manifest, `pages/*.page`, optional `media/`.
 
 Keep page, media and custom-font paths relative to the manifest and inside its directory. Localize remote images and authorized font files before calling the source self-contained; a cache or `.pptx` copy does not make the `.pptd` source portable. Prefer bundled or licensed project-local fonts (embedding permission does not authorize redistributing system fonts).
 
@@ -42,7 +35,7 @@ node scripts/export.mjs /absolute/path/deck/deck.pptd \
   --output /absolute/path/deck/deck.pptx
 ```
 
-A project directory works when it contains one manifest. Options: `--force` (replace existing output), `--transition none` (disable fade), `--font-dir PATH` (repeatable local font directory), `--no-embed-fonts`, `--offline`.
+A project directory works when it contains one manifest. `node scripts/export.mjs --help` lists every option.
 
 Export validates schema and assets, prepares icons/fonts/formulas/charts, builds `.pptx`, and verifies XML, relationships, media and ZIP integrity. Fix errors—never substitute placeholders for broken formulas, charts or icons. Review warnings carefully: intentional bleed may be fine, but font substitutions, missing styles or non-embeddable fonts need fixing or honest disclosure.
 
