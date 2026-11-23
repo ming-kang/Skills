@@ -8,6 +8,8 @@ Group components by responsibility, deployment location, or ownership. Client �
 
 Align peers and route fan-out through a shared unheaded rail, with arrowheads at destination nodes. A component list inside a container does not imply that its items execute in sequence.
 
+For a C4-style request, keep `Person` actors and external systems outside a named system boundary and commit to one level per canvas: system context (the system as one node among its users and dependencies) or container/component internals — not both.
+
 ## Data flow
 
 Arrows follow the payload from producer to consumer. Label each with the data it carries: events, vectors, passages, files, or rows. A store → query engine edge carries data; a query request travels in the opposite direction. Keep control signals distinct when both appear.
