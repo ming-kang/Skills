@@ -14,13 +14,13 @@ npx skills add ming-kang/skills
 
 ### Visualize
 
-Visualize generates clean technical diagrams as self-contained SVG — architecture, flowchart, sequence, data flow, ER, network topology, and more. It includes 33 reference diagrams, explanatory layouts, skeletons, and samples; repository development tools live outside the distributable skill folder.
+Visualize generates clean technical diagrams as self-contained SVG: architecture, flowchart, sequence, data flow, and more. It includes reference diagrams, explanatory layouts, skeletons, and samples; repository development tools live outside the distributable skill folder.
 
 → [docs/README.visualize.md](docs/README.visualize.md)
 
 ### Code Quality Review
 
-An extremely strict maintainability review — over a diff, a commit, uncommitted work, a module, or the whole project. Focused on structural simplification, abstraction quality, file size discipline, and spaghetti-condition prevention.
+A strict maintainability review over a PR, commit, branch, file, directory, module, or the whole repository, defaulting to the uncommitted diff when no target is named. Focused on structural simplification, abstraction quality, file size discipline, and spaghetti-condition prevention.
 
 → [docs/README.code-quality-review.md](docs/README.code-quality-review.md)
 
