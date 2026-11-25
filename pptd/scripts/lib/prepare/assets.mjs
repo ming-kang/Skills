@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 
 import { iconDefinition } from '../core/catalog.mjs';
-import { imageInfo } from '../core/media.mjs';
+import { dataUrlBytes, imageInfo } from '../core/media.mjs';
 import { walkObjects } from '../core/walk.mjs';
 import { fetchBounded } from '../core/net.mjs';
 import { checkContainedFile, checkRelativePath, normalizeLocalPath } from '../deck/contract.mjs';
@@ -41,11 +41,7 @@ function* imageHolders(project) {
 }
 
 async function imageBytes(src, projectRoot, getRealRoot, offline) {
-  if (src.startsWith('data:')) {
-    const match = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(src);
-    if (!match) throw new Error('invalid data URL image');
-    return match[2] ? Buffer.from(match[3], 'base64') : Buffer.from(decodeURIComponent(match[3]));
-  }
+  if (/^data:/i.test(src)) return dataUrlBytes(src);
   if (/^https?:\/\//i.test(src)) {
     if (offline) throw new Error('offline export requires local media');
     return fetchBounded(src, { label: 'image' });

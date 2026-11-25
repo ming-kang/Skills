@@ -72,6 +72,55 @@ function parseSvgSize(text) {
   return { ext: 'svg', extension: '.svg', width: null, height: null };
 }
 
+export const DATA_URL_IMAGE_MAX_BYTES = 64 * 1024 * 1024;
+
+function percentEncodedBytes(payload) {
+  let escapes = 0;
+  for (let index = 0; index < payload.length; index += 1) {
+    if (payload[index] !== '%') continue;
+    if (!/^[0-9A-Fa-f]{2}$/.test(payload.slice(index + 1, index + 3))) {
+      throw new Error('invalid percent-encoded data URL image');
+    }
+    escapes += 1;
+    index += 2;
+  }
+  const output = Buffer.alloc(Buffer.byteLength(payload, 'utf8') - escapes * 2);
+  let offset = 0;
+  let literal = '';
+  const flushLiteral = () => {
+    if (!literal) return;
+    offset += output.write(literal, offset, 'utf8');
+    literal = '';
+  };
+  for (let index = 0; index < payload.length; index += 1) {
+    if (payload[index] !== '%') {
+      literal += payload[index];
+      continue;
+    }
+    flushLiteral();
+    output[offset] = Number.parseInt(payload.slice(index + 1, index + 3), 16);
+    offset += 1;
+    index += 2;
+  }
+  flushLiteral();
+  return output;
+}
+
+export function dataUrlBytes(src) {
+  const match = /^data:([^,]*),(.*)$/is.exec(src);
+  if (!match) throw new Error('invalid data URL image');
+  const base64 = match[1].split(';').slice(1).some((part) => part.toLowerCase() === 'base64');
+  let bytes;
+  if (base64) {
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(match[2])) throw new Error('invalid base64 data URL image');
+    bytes = Buffer.from(match[2], 'base64');
+  } else {
+    bytes = percentEncodedBytes(match[2]);
+  }
+  if (bytes.length > DATA_URL_IMAGE_MAX_BYTES) throw new Error('data URL image exceeds the 64 MiB limit');
+  return bytes;
+}
+
 export function imageInfo(bytes, label = 'image') {
   const buf = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
   if (buf.length >= 45 && buf.subarray(0, 8).equals(PNG_HEADER) && buf.subarray(12, 16).toString('ascii') === 'IHDR' && buf.includes(PNG_IEND)) {

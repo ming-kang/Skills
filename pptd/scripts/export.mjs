@@ -95,14 +95,17 @@ export async function exportPptx(source, options = {}) {
   const { exportPPTDToPPTXBytes } = await loadWasmExporter(wasm);
   const content = readContent(wasmProject);
   materializeCellTextStyles(content);
-  const fonts = await prepareFonts(wasmProject, content, { projectRoot, fontDirs, embed: embedFonts, offline });
+  // Font and image preparation mutate disjoint fields; starting both lets remote
+  // downloads overlap local font analysis/embedding instead of serializing them.
+  const fontsPromise = prepareFonts(wasmProject, content, { projectRoot, fontDirs, embed: embedFonts, offline });
+  const mediaByKey = new Map();
+  const imagesPromise = resolveImages(wasmProject, projectRoot, mediaByKey, offline);
+  const [fonts, images] = await Promise.all([fontsPromise, imagesPromise]);
   for (const warning of fonts.warnings) {
     if (!quiet) log(`warning: ${warning}`);
   }
 
   const icons = prepareIcons(wasmProject);
-  const mediaByKey = new Map();
-  const images = await resolveImages(wasmProject, projectRoot, mediaByKey, offline);
 
   let outlineText = null;
   if (wasmProject.pages.some((page) => page.elements.some(isAdvancedChart))) {

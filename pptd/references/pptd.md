@@ -46,7 +46,7 @@ deck/
 
 Load the project through its `.pptd` manifest, never an individual `.page`. Both CLIs also accept a directory containing exactly one manifest.
 
-Page paths, image paths and custom-font paths are **relative to the manifest directory**, not to the `.page`. Every referenced local file must remain inside it, including through symlinks; absolute paths and `..` escapes are invalid. Remote `Image.src` and image-fill `src` may be HTTP(S) URLs; supported PNG/JPEG/GIF/SVG types are identified from bytes. Localize remote media before calling the editable project self-contained.
+Page paths, image paths and custom-font paths are **relative to the manifest directory**, not to the `.page`. Every referenced local file must remain inside it, including through symlinks; absolute paths and `..` escapes are invalid. Remote `Image.src` and image-fill `src` may be HTTP(S) URLs; embedded `data:` URLs are also accepted (decoded payload limit 64 MiB). Supported PNG/JPEG/GIF/SVG types are identified from bytes, so local media does not need a filename extension. Localize remote media before calling the editable project self-contained.
 
 ## Manifest (.pptd)
 

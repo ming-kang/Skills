@@ -29,7 +29,11 @@ import re
 import sys
 from pathlib import Path
 
-import yaml
+try:
+    import yaml
+except ImportError:
+    sys.stderr.write("quick_validate requires PyYAML: python -m pip install --user PyYAML\n")
+    sys.exit(2)
 
 ALLOWED_PROPERTIES = {"name", "description", "license", "allowed-tools", "metadata", "compatibility"}
 REPO_ROOT = Path(__file__).resolve().parent.parent

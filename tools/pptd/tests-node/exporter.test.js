@@ -62,12 +62,14 @@ test('local media resolves to bytes and all matching sources are remapped', asyn
     fs.mkdirSync(path.join(root, 'media'));
     const bytes = fs.readFileSync(new URL('../tests/fixtures/qa-deck/media/pixel.png', import.meta.url));
     fs.writeFileSync(path.join(root, 'media', 'pixel.png'), bytes);
+    fs.writeFileSync(path.join(root, 'media', 'pixel-no-extension'), bytes);
     const project = {
       pages: [
         {
           background: { type: 'image', src: 'media/pixel.png' },
           elements: [
             { elementType: 'image', src: 'media/pixel.png' },
+            { elementType: 'image', src: 'media/pixel-no-extension' },
             { elementType: 'shape', fill: { type: 'image', src: 'media/pixel.png' } },
           ],
         },
@@ -77,7 +79,8 @@ test('local media resolves to bytes and all matching sources are remapped', asyn
     assert.deepEqual(Buffer.from(images['wasm-assets/img-0.png']), bytes);
     assert.equal(project.pages[0].background.src, 'wasm-assets/img-0.png');
     assert.equal(project.pages[0].elements[0].src, 'wasm-assets/img-0.png');
-    assert.equal(project.pages[0].elements[1].fill.src, 'wasm-assets/img-0.png');
+    assert.equal(project.pages[0].elements[1].src, 'wasm-assets/img-0.png');
+    assert.equal(project.pages[0].elements[2].fill.src, 'wasm-assets/img-0.png');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -90,12 +93,63 @@ test('media paths cannot escape the project', async () => {
   await assert.rejects(resolveImages(project, os.tmpdir()), /escapes the PPTD directory/);
 });
 
+test('project validation identifies local image bytes without requiring a file extension', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-extensionless-media-'));
+  try {
+    fs.mkdirSync(path.join(root, 'pages'));
+    fs.mkdirSync(path.join(root, 'media'));
+    fs.copyFileSync(new URL('../tests/fixtures/qa-deck/media/pixel.png', import.meta.url), path.join(root, 'media', 'pixel'));
+    fs.writeFileSync(path.join(root, 'deck.pptd'), 'version: v2\nsize: [960, 540]\npages: [pages/01.page]\n');
+    fs.writeFileSync(path.join(root, 'pages/01.page'), [
+      'elements:',
+      '  - elementId: img',
+      '    elementType: image',
+      '    bounds: [0, 0, 10, 10]',
+      '    src: media/pixel',
+      '',
+    ].join('\n'));
+    assert.equal(readProject(root).media[0].path, 'media/pixel');
+    fs.writeFileSync(path.join(root, 'pages/01.page'), [
+      'elements:',
+      '  - elementId: img',
+      '    elementType: image',
+      '    bounds: [0, 0, 10, 10]',
+      '    src: data:image/png;base64,%%%',
+      '',
+    ].join('\n'));
+    assert.throws(() => readProject(root), /invalid base64 data URL image/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('bad image bytes are rejected and actual SVG bytes override a misleading URL suffix', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pptd-media-identity-'));
   const originalFetch = globalThis.fetch;
   try {
     fs.writeFileSync(path.join(root, 'fake.png'), '<html>not an image</html>');
     await assert.rejects(resolveImages({ pages: [{ elements: [{ elementType: 'image', src: 'fake.png' }] }] }, root), /not a supported/);
+    await assert.rejects(
+      resolveImages({ pages: [{ elements: [{ elementType: 'image', src: 'data:image/png;base64,%%%' }] }] }, root),
+      /invalid base64 data URL/,
+    );
+    const pixel = fs.readFileSync(new URL('../tests/fixtures/qa-deck/media/pixel.png', import.meta.url));
+    const dataProject = { pages: [{ elements: [{ elementType: 'image', src: `data:image/png;base64,${pixel.toString('base64')}` }] }] };
+    const dataImages = await resolveImages(dataProject, root);
+    assert.equal(dataProject.pages[0].elements[0].src, 'wasm-assets/img-0.png');
+    assert.deepEqual(Buffer.from(dataImages['wasm-assets/img-0.png']), pixel);
+    const percentProject = {
+      pages: [{ elements: [{ elementType: 'image', src: `data:image/png,${[...pixel].map((byte) => `%${byte.toString(16).padStart(2, '0')}`).join('')}` }] }],
+    };
+    await resolveImages(percentProject, root);
+    assert.equal(percentProject.pages[0].elements[0].src, 'wasm-assets/img-0.png');
+    const inlineSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>';
+    const svgDataProject = {
+      pages: [{ elements: [{ elementType: 'image', src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(inlineSvg)}` }] }],
+    };
+    await resolveImages(svgDataProject, root);
+    assert.equal(svgDataProject.pages[0].elements[0].src, 'wasm-assets/img-0.svg');
+
     const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>');
     globalThis.fetch = async () => new Response(svg);
     const project = { pages: [{ elements: [{ elementType: 'image', src: 'https://example.invalid/picture.png' }] }] };

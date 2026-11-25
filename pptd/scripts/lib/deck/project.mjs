@@ -14,7 +14,7 @@ import {
 } from './contract.mjs';
 import { readCatalog } from '../core/catalog.mjs';
 import { resolveThemeColor } from '../core/color.mjs';
-import { IMAGE_EXTENSIONS, imageInfo } from '../core/media.mjs';
+import { dataUrlBytes, imageInfo } from '../core/media.mjs';
 import { readContent } from './content.mjs';
 import { checkPage } from './schema.mjs';
 import { checkColor, checkStyle } from './style.mjs';
@@ -110,10 +110,11 @@ export function readProject(source) {
   const root = path.dirname(manifestPath);
   const realRoot = fs.realpathSync(root);
   const media = new Map();
+  const dataImages = [];
   const warnings = [];
   const theme = manifest.theme ?? {};
 
-  checkTheme(manifest, { theme, media });
+  checkTheme(manifest, { theme, media, dataImages });
   checkCustomFonts(manifest, root, realRoot);
 
   const pages = manifest.pages;
@@ -126,7 +127,7 @@ export function readProject(source) {
     const relative = checkRelativePath(entry, 'manifest.pages entry');
     const pagePath = checkContainedFile(root, realRoot, relative, 'manifest.pages entry', `missing page file: ${entry}`);
     const data = readYamlMapping(fs.readFileSync(pagePath, 'utf8'), pagePath);
-    checkPage(data, entry, { size, theme, shapes: readCatalog('shapes.json'), warnings, media });
+    checkPage(data, entry, { size, theme, shapes: readCatalog('shapes.json'), warnings, media, dataImages });
     projectPages.push({
       ...data,
       pagePath: String(entry).replaceAll('\\', '/'),
@@ -137,8 +138,9 @@ export function readProject(source) {
   for (const item of media.values()) {
     if (!item.path) continue;
     checkContainedFile(root, realRoot, item.path, item.label, `${item.label}: missing local image: ${item.path}`);
-    const extension = path.extname(item.path).toLowerCase();
-    if (!IMAGE_EXTENSIONS.has(extension)) fail(`${item.label}: unsupported local image type: ${item.path}`);
+  }
+  for (const item of dataImages) {
+    imageInfo(dataUrlBytes(item.src), item.label);
   }
 
   return { ...manifest, manifestPath, pages: projectPages, warnings, media: [...media.values()] };

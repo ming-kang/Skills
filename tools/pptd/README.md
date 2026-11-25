@@ -36,6 +36,8 @@ npm ci
 npm run pptd:build-assets
 ```
 
+npm 11 may print an `allowScripts` warning for esbuild's install script even though the platform binary is present and the tests pass; it is development noise, not a PPTD runtime dependency.
+
 - `build_vendor.mjs` bundles only heatmap/treemap/sunburst/sankey, SVG, grid, title and colorbar from ECharts. fontkit registers SFNT/TTC containers, omitting unused WOFF/WOFF2/DFont and Brotli. Its pinned source build preserves legacy three-argument `@cache` decorators and inlines Parcel's three Unicode trie reads. Do not switch to TC39 decorator semantics or strip shaping/subsetting imports by patching upstream code.
 - Every bundle is checked for external imports; notices are derived from actual inputs. Missing licenses are restored only from pinned authoritative sources and verified hashes. Preserve source attributions and Unicode/base64 notices.
 - `build_fonts.mjs` rebuilds `.ttf.gz` storage from the catalog's pinned sources, reusing intact local payloads offline. Complete TTF bytes and OFL attribution are preserved. `build_shapes.mjs` derives 177 shapes/adjustment arities; the Font Awesome catalog is pre-vendored, not rebuilt by this command.
@@ -58,7 +60,7 @@ node pptd/scripts/export.mjs tools/pptd/tests/fixtures/advanced-charts -o .artif
 python -B pptd/scripts/render_slides.py .artifacts/pptd/charts.pptx -o .artifacts/pptd/charts-review --if-available --force
 ```
 
-Inspect every page's fonts, fit, labels, crop, tables, formulas and layering; compare SVG/XML and frozen outputs where appropriate. ECharts source bundles can differ slightly from published monolithic builds in SSR text-width estimates, so do not assert pixel identity from package tests. Direct PowerPoint PNG export is not a font-fidelity oracle. `skipped` is an environment limit, not a review; render failures are not passes.
+Inspect every page's fonts, fit, labels, crop, tables, formulas and layering using whatever renderer or preview tool the environment already provides; compare SVG/XML and frozen outputs where appropriate. ECharts source bundles can differ slightly from published monolithic builds in SSR text-width estimates, so do not assert pixel identity from package tests. PowerPoint and LibreOffice are examples, not required dependencies. LibreOffice output reports `pdfFonts` and may substitute embedded fonts, so it is not a final font oracle. `skipped` is an environment limit, not a review; render failures are not passes.
 
 ## Keep these contracts
 

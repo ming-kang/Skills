@@ -81,8 +81,8 @@ def pdf_renderer():
                 if all(hasattr(module, attr) for attr in ("open", "Matrix", "VersionBind")):
                     return module
             except (ImportError, OSError) as exc:
-                raise Unavailable(f"font-faithful PDF -> PNG review needs usable optional PyMuPDF: {exc}") from exc
-    raise Unavailable("font-faithful Office PDF -> PNG review needs optional PyMuPDF")
+                raise Unavailable(f"PDF -> PNG review needs usable optional PyMuPDF: {exc}") from exc
+    raise Unavailable("Office PDF -> PNG review needs optional PyMuPDF; alternatively use another available inspection tool")
 
 
 def choose_engine(requested: str):
@@ -134,7 +134,7 @@ def run_command(command: Sequence[str], label: str, timeout: int = COMMAND_TIMEO
     return output
 
 
-def render_powerpoint(source: Path, stage: Path, work: Path, width: int, shell: str, pdf_module) -> list[str]:
+def render_powerpoint(source: Path, stage: Path, work: Path, width: int, shell: str, pdf_module) -> tuple[list[str], list[str]]:
     session = work / "powerpoint-session.json"
     pdf_dir = work / "powerpoint-pdf"
     pdf_dir.mkdir()
@@ -154,17 +154,21 @@ def render_powerpoint(source: Path, stage: Path, work: Path, width: int, shell: 
         raise
     pdf = pdf_dir / "slides.pdf"
     if not pdf.is_file():
-        raise RenderError("PowerPoint did not produce a font-faithful PDF")
+        raise RenderError("PowerPoint did not produce a PDF")
     return rasterize_pdf(pdf, stage, width, pdf_module)
 
 
-def rasterize_pdf(pdf: Path, stage: Path, width: int, pdf_module) -> list[str]:
+def rasterize_pdf(pdf: Path, stage: Path, width: int, pdf_module) -> tuple[list[str], list[str]]:
     names: list[str] = []
+    fonts = set()
     try:
         with pdf_module.open(str(pdf)) as document:
             for index, page in enumerate(document):
                 if page.rect.width <= 0 or page.rect.height <= 0:
                     raise RenderError(f"PDF page {index + 1} has an invalid canvas")
+                for item in page.get_fonts():
+                    if len(item) >= 4 and item[3]:
+                        fonts.add(str(item[3]))
                 scale = width / page.rect.width
                 pixmap = page.get_pixmap(matrix=pdf_module.Matrix(scale, scale), alpha=False)
                 name = f"slide-{index + 1:03}.png"
@@ -172,10 +176,10 @@ def rasterize_pdf(pdf: Path, stage: Path, width: int, pdf_module) -> list[str]:
                 names.append(name)
     except Exception as exc:
         raise RenderError(f"PDF rasterization failed: {exc}") from exc
-    return names
+    return names, sorted(fonts)
 
 
-def render_libreoffice(source: Path, stage: Path, work: Path, width: int, command: str, pdf_module) -> list[str]:
+def render_libreoffice(source: Path, stage: Path, work: Path, width: int, command: str, pdf_module) -> tuple[list[str], list[str]]:
     local_source = work / "deck.pptx"
     shutil.copy2(source, local_source)
     pdf_dir = work / "pdf"
@@ -280,9 +284,9 @@ def render(source: Path, output: Path, engine: str, command: str, pdf_module, wi
         stage = work / "slides"
         stage.mkdir()
         if engine == "powerpoint":
-            names = render_powerpoint(source, stage, work, width, command, pdf_module)
+            names, pdf_fonts = render_powerpoint(source, stage, work, width, command, pdf_module)
         else:
-            names = render_libreoffice(source, stage, work, width, command, pdf_module)
+            names, pdf_fonts = render_libreoffice(source, stage, work, width, command, pdf_module)
         if not names:
             raise RenderError("renderer did not produce any slide PNGs")
         for name in names:
@@ -296,8 +300,12 @@ def render(source: Path, output: Path, engine: str, command: str, pdf_module, wi
         metadata = {"format": FORMAT, "engine": engine, "source": str(source), "width": width, "slides": names}
         (stage / MANIFEST).write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         publish(stage, output, expected, force)
+    warnings = []
+    if engine == "libreoffice":
+        warnings.append("LibreOffice may substitute embedded fonts; use these PNGs for layout/structure QA, not final font acceptance")
     return {"status": "rendered", "engine": engine, "output": str(output),
-            "slides": [str(output / name) for name in names], "manifest": str(output / MANIFEST)}
+            "slides": [str(output / name) for name in names], "manifest": str(output / MANIFEST),
+            "pdfFonts": pdf_fonts, "warnings": warnings}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -308,7 +316,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("input", type=Path, help="local .pptx to render (read-only)")
     parser.add_argument("--output", "-o", type=Path, required=True, help="empty or helper-managed render directory")
     parser.add_argument("--engine", choices=("auto", "powerpoint", "libreoffice"), default="auto",
-                        help="auto: local PowerPoint first, otherwise LibreOffice; both use optional PyMuPDF for PDF -> PNG")
+                        help="auto: local PowerPoint first, otherwise LibreOffice; both use optional PyMuPDF for PDF -> PNG. LibreOffice may substitute fonts")
     parser.add_argument("--if-available", action="store_true", help="report skipped/exit 0 if dependencies are unavailable")
     parser.add_argument("--force", action="store_true", help="replace only an existing helper-managed render set")
     parser.add_argument("--width", type=int, default=1600, help="PNG width in pixels; height preserves canvas ratio (default: 1600)")

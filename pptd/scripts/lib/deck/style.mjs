@@ -66,7 +66,11 @@ export function checkStyle(style, label, themeColors = null) {
 
 export function registerImageSource(src, label, context) {
   requireString(src, label);
-  if (/^https?:\/\//i.test(src) || src.startsWith('data:')) return;
+  if (/^data:/i.test(src)) {
+    context?.dataImages?.push({ src, label });
+    return;
+  }
+  if (/^https?:\/\//i.test(src)) return;
   const relative = checkRelativePath(normalizeLocalPath(src), label);
   if (context?.media && !context.media.has(relative)) {
     context.media.set(relative, { path: relative, label });

@@ -1,4 +1,4 @@
-# Internal Windows COM bridge: export a font-faithful PDF for render_slides.py to rasterize.
+# Internal Windows COM bridge: export a PDF through PowerPoint for render_slides.py to rasterize.
 # Direct Slide.Export PNG substitutes embedded fonts and is deliberately not used.
 param(
   [Parameter(Mandatory = $true)][string]$Pptx,

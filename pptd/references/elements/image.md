@@ -10,7 +10,7 @@ interface Image extends ElementBase {
   rotation?: number;                 // default: 0; degrees, clockwise rotation
   opacity?: number;                  // default: 1; constraint: [0, 1]
   flip?: [boolean, boolean];         // default: [false, false]; [horizontal flip, vertical flip]
-  src: string;                       // URL or local relative path
+  src: string;                       // local relative path, HTTP(S) URL, or data: URL
   cropShape?: ShapeDef;              // default: rectangle (i.e., no shape cropping)
   fit?: ImageFit;                    // default: {mode: "cover"}
   crop?: ImageCrop;                  // always applied; see the rendering order with fit/cropShape below
